@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useSocket } from '@/lib/socket';
 import { PaymentModal } from '@/components/payment/PaymentModal';
 import { formatTime, formatCurrency } from '@/lib/utils';
+import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
   X,
@@ -21,10 +22,11 @@ import {
   User,
   History,
   FileText,
-  Play,
-  Pause,
-  Volume2,
+  Lock,
 } from 'lucide-react';
+import { TextBubble, ImageBubble, VoiceBubble, ReceiptBubble } from '@/components/liveflow/workspace/message-bubbles';
+import { Button } from '@/components/ui/button';
+import { Kbd, TierBadge } from '@/components/liveflow/primitives';
 import type { Conversation, Message, MessageTemplate, Product, Lead } from '@/types';
 
 interface ChatPanelProps {
@@ -60,10 +62,6 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
-  // Reproductor de notas de voz de WhatsApp
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   // Snippets / Plantillas y Catálogo en vivo
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -71,6 +69,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
   const [showFlashCatalog, setShowFlashCatalog] = useState(false);
   const [snippetFilter, setSnippetFilter] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
   const socket = useSocket();
 
   const fetchConversation = useCallback(async () => {
@@ -117,7 +116,6 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
     fetchConversation();
     fetchMessages();
 
-    // Cargar plantillas de respuestas rápidas y productos en vivo
     fetch('/api/templates')
       .then((res) => res.json())
       .then((data) => {
@@ -132,9 +130,8 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       })
       .catch(() => undefined);
 
-    // Bloquear chat en tiempo real
     if (socket && conversationId) {
-      socket.emit('chat:lock', { conversationId, operatorName: 'Vendedora' });
+      socket.emit('chat:lock', { conversationId, operatorName: 'Mariana' });
     }
 
     return () => {
@@ -143,6 +140,10 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       }
     };
   }, [fetchConversation, fetchMessages, socket, conversationId]);
+
+  useEffect(() => {
+    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages.length]);
 
   useEffect(() => {
     if (!socket) return;
@@ -233,7 +234,6 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
     const value = e.target.value;
     setNewMessage(value);
 
-    // Detectar atajo de barra diagonal '/' para abrir snippets
     if (value.startsWith('/')) {
       setShowSnippetsMenu(true);
       setSnippetFilter(value.slice(1).toLowerCase());
@@ -294,22 +294,6 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       setError(err?.message || 'Error al enviar imagen');
     } finally {
       setSending(false);
-    }
-  };
-
-  const toggleAudio = (audioUrl: string, msgId: string) => {
-    if (playingAudioId === msgId) {
-      audioRef.current?.pause();
-      setPlayingAudioId(null);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.play();
-      setPlayingAudioId(msgId);
-      audio.onended = () => setPlayingAudioId(null);
     }
   };
 
@@ -378,7 +362,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -386,79 +370,63 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
   return (
     <div className="flex h-full flex-col bg-background relative">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 border-b p-3 bg-card">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-foreground">
-              {conversation?.lead?.name || conversation?.lead?.phone || 'Cliente'}
-            </h3>
-            {conversation?.lead?.tier === 'VIP' && (
-              <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[9px] font-black text-amber-600 dark:text-amber-400">
-                ★ VIP
-              </span>
-            )}
-            {conversation?.status && (
-              <span
-                className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                  conversation.status === 'PAID'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
-                    : conversation.status === 'AWAITING_PAYMENT'
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                    : 'bg-muted text-muted-foreground'
-                )}
-              >
-                {conversation.status}
-              </span>
-            )}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4 bg-card/80 backdrop-blur-md">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold" aria-hidden>
+            {conversation?.lead?.name?.slice(0, 2).toUpperCase() || 'CL'}
           </div>
-          <p className="truncate text-xs text-muted-foreground">
-            {conversation?.lead?.phone}
-          </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h2 className="truncate text-xs font-bold text-foreground">
+                {conversation?.lead?.name || conversation?.lead?.phone || 'Clienta'}
+              </h2>
+              <TierBadge tier={conversation?.lead?.tier} />
+            </div>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">
+              {conversation?.lead?.phone}
+            </p>
+          </div>
         </div>
 
-        <div className="flex shrink-0 gap-1.5">
-          {/* Botón Catálogo Relámpago */}
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowFlashCatalog(!showFlashCatalog)}
-            className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
-            title="Ver catálogo de prendas del Live"
+            className="flex items-center gap-1 rounded-lg border border-border bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary transition-all"
           >
-            <ShoppingBag className="h-3.5 w-3.5 text-primary" />
-            Prendas
+            <ShoppingBag className="size-3.5 text-primary" />
+            Catálogo
           </button>
 
-          {/* Botón Cobro Express */}
-          <button
+          <Button
+            variant="success"
+            size="sm"
             onClick={() => {
               setSelectedProductForPayment(null);
               setShowPaymentModal(true);
             }}
-            className="flex items-center gap-1 rounded-md bg-green-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-700"
+            className="h-8 gap-1 font-bold text-xs"
           >
-            <CreditCard className="h-3.5 w-3.5" />
+            <CreditCard className="size-3.5" />
             Cobro
-          </button>
+          </Button>
 
-          {/* Cerrar */}
           <button
             onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-md border p-1 hover:bg-accent text-muted-foreground hover:text-foreground"
+            className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Selector de Pestañas: Chat / Ficha 360 / Dirección / Ficha de Empaque */}
-      <div className="flex border-b bg-muted/40 px-3 pt-1 text-xs font-semibold overflow-x-auto">
+      {/* Tabs bar */}
+      <div className="flex border-b border-border bg-muted/30 px-3 pt-1 text-xs font-semibold overflow-x-auto">
         <button
           onClick={() => setActiveTab('chat')}
           className={cn(
-            'border-b-2 px-3 py-1.5 transition-all shrink-0',
+            'border-b-2 px-3 py-1.5 transition-all shrink-0 text-xs',
             activeTab === 'chat'
-              ? 'border-primary text-primary font-bold bg-background rounded-t'
+              ? 'border-primary text-primary font-bold bg-background rounded-t-md'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
         >
@@ -467,69 +435,71 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
         <button
           onClick={() => setActiveTab('profile')}
           className={cn(
-            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0',
+            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0 text-xs',
             activeTab === 'profile'
-              ? 'border-primary text-primary font-bold bg-background rounded-t'
+              ? 'border-primary text-primary font-bold bg-background rounded-t-md'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
         >
-          <User className="h-3 w-3" />
+          <User className="size-3" />
           Ficha 360°
         </button>
         <button
           onClick={() => setActiveTab('address')}
           className={cn(
-            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0',
+            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0 text-xs',
             activeTab === 'address'
-              ? 'border-primary text-primary font-bold bg-background rounded-t'
+              ? 'border-primary text-primary font-bold bg-background rounded-t-md'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
         >
-          <MapPin className="h-3 w-3" />
+          <MapPin className="size-3" />
           Dirección
         </button>
         <button
           onClick={() => setActiveTab('packing')}
           className={cn(
-            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0',
+            'flex items-center gap-1 border-b-2 px-3 py-1.5 transition-all shrink-0 text-xs',
             activeTab === 'packing'
-              ? 'border-primary text-primary font-bold bg-background rounded-t'
+              ? 'border-primary text-primary font-bold bg-background rounded-t-md'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
         >
-          <Printer className="h-3 w-3" />
+          <Printer className="size-3" />
           Etiqueta
         </button>
       </div>
 
-      {/* Banner de Cobro Pendiente con Alerta de Tiempo de Apartado */}
+      {/* Banner de Apartado Activo */}
       {pendingPayment && (
-        <div className="flex items-center justify-between border-b bg-amber-500/10 px-4 py-2 text-xs">
+        <div className="flex items-center justify-between border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs">
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-amber-900 dark:text-amber-200 truncate">
-              ⏳ Apartado: <strong>${Number(pendingPayment.amount).toFixed(2)} {pendingPayment.currency}</strong> ({pendingPayment.concept})
+            <p className="font-semibold text-amber-500 truncate">
+              ⏳ Apartado: <strong>{money(Number(pendingPayment.amount))} MXN</strong> ({pendingPayment.concept})
             </p>
-            <p className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-1 mt-0.5">
-              <Clock className="h-3 w-3" /> Vence en ~25 min
+            <p className="text-[10px] text-amber-500/80 font-mono mt-0.5">
+              Ref: {pendingPayment.id.slice(0, 8).toUpperCase()} • Vence en ~25 min
             </p>
           </div>
-          <button
+          <Button
+            variant="success"
+            size="sm"
             onClick={() => approvePaymentOrder(pendingPayment.id)}
             disabled={approving === pendingPayment.id}
-            className="ml-2 flex shrink-0 items-center gap-1 rounded bg-green-600 px-2.5 py-1 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            className="h-7 text-xs font-bold shrink-0"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            <CheckCircle2 className="size-3.5" />
             {approving === pendingPayment.id ? 'Aprobando...' : 'Aprobar Pago'}
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* Popover de Catálogo Relámpago de Prendas con Control de Stock */}
+      {/* Popover Catálogo Relámpago */}
       {showFlashCatalog && (
-        <div className="border-b bg-card p-3 shadow-md max-h-52 overflow-y-auto">
+        <div className="border-b border-border bg-card p-3 shadow-lg max-h-52 overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-foreground flex items-center gap-1">
-              <Zap className="h-3.5 w-3.5 text-amber-500" /> Catálogo Relámpago (Haz clic para cobrar):
+              <Zap className="size-3.5 text-amber-500" /> Catálogo en Vivo (Clic para agregar a la orden):
             </span>
             <button
               onClick={() => setShowFlashCatalog(false)}
@@ -543,7 +513,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
               <button
                 key={p.id}
                 onClick={() => startPaymentForProduct(p)}
-                className="flex items-center justify-between rounded border p-2 text-left text-xs hover:bg-accent hover:border-primary transition-all"
+                className="flex items-center justify-between rounded-lg border border-border p-2 text-left text-xs hover:bg-accent transition-all"
               >
                 <div>
                   <div className="flex items-center gap-2">
@@ -555,160 +525,88 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                   {p.description && <p className="text-[10px] text-muted-foreground">{p.description}</p>}
                 </div>
                 <div className="text-right shrink-0 ml-2">
-                  <span className="font-bold text-green-600 dark:text-green-400">
-                    ${Number(p.price).toFixed(2)} {p.currency}
+                  <span className="font-bold text-emerald-500 font-mono">
+                    {money(Number(p.price))}
                   </span>
                   <span className="block text-[10px] text-primary font-medium">Cobrar ➔</span>
                 </div>
               </button>
             ))}
-            {products.length === 0 && (
-              <p className="text-xs text-muted-foreground py-2 text-center">
-                No hay productos disponibles. Agrégalos en la sección Productos.
-              </p>
-            )}
           </div>
-        </div>
-      )}
-
-      {/* Toasts / Errores */}
-      {successToast && (
-        <div className="mx-4 mt-3 rounded-md bg-green-100 p-2.5 text-xs font-medium text-green-900 border border-green-300">
-          {successToast}
-        </div>
-      )}
-
-      {error && (
-        <div className="mx-4 mt-3 rounded-md bg-yellow-50 p-2.5 text-xs text-yellow-800 border border-yellow-200">
-          {error}
         </div>
       )}
 
       {/* PESTAÑA 1: CHAT */}
       {activeTab === 'chat' && (
         <>
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={feedRef} className="flex-1 space-y-3 overflow-y-auto p-4 scrollbar-thin">
             {messages.map((message) => {
               const isOutbound = message.direction === 'OUTBOUND';
-              const isImage = message.type === 'IMAGE' && Boolean(message.mediaUrl);
-              const isAudio = message.type === 'AUDIO' && Boolean(message.mediaUrl);
+              const from = isOutbound ? ('out' as const) : ('in' as const);
+              const time = formatTime(message.sentAt);
+
+              if (message.type === 'IMAGE' && message.mediaUrl) {
+                if (!isOutbound && message.isPossibleReceipt && pendingPayment) {
+                  return (
+                    <ReceiptBubble
+                      key={message.id}
+                      src={message.mediaUrl}
+                      amount={Number(pendingPayment.amount)}
+                      time={time}
+                      approved={pendingPayment.status === 'PAID'}
+                      onApprove={() => approvePaymentOrder(pendingPayment.id)}
+                      onImageClick={() => setPreviewImage(message.mediaUrl!)}
+                    />
+                  );
+                }
+                return (
+                  <ImageBubble
+                    key={message.id}
+                    src={message.mediaUrl}
+                    caption={message.content}
+                    from={from}
+                    time={time}
+                    onImageClick={() => setPreviewImage(message.mediaUrl!)}
+                  />
+                );
+              }
+
+              if (message.type === 'AUDIO' && message.mediaUrl) {
+                return (
+                  <VoiceBubble
+                    key={message.id}
+                    src={message.mediaUrl}
+                    from={from}
+                    time={time}
+                  />
+                );
+              }
 
               return (
-                <div
+                <TextBubble
                   key={message.id}
-                  className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}
-                >
-                  <div
-                    className={cn(
-                      'max-w-[85%] rounded-lg px-3 py-2 text-sm shadow-sm',
-                      isOutbound
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/80 text-foreground border'
-                    )}
-                  >
-                    {isImage ? (
-                      <div className="space-y-1.5">
-                        {!isOutbound && (
-                          <div className="flex items-center justify-between gap-2 border-b pb-1">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                              🧾 Comprobante / Foto
-                            </span>
-                            {pendingPayment && (
-                              <button
-                                onClick={() => approvePaymentOrder(pendingPayment.id)}
-                                disabled={approving === pendingPayment.id}
-                                className="inline-flex items-center gap-1 rounded bg-green-600 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-green-700"
-                              >
-                                <CheckCircle2 className="h-3 w-3" />
-                                Aprobar
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="relative group overflow-hidden rounded border bg-black/5">
-                          <img
-                            src={message.mediaUrl!}
-                            alt="Comprobante o archivo"
-                            className="max-h-60 w-auto rounded object-contain cursor-pointer hover:opacity-95"
-                            onClick={() => setPreviewImage(message.mediaUrl!)}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setPreviewImage(message.mediaUrl!)}
-                            className="absolute bottom-2 right-2 rounded bg-black/60 p-1 text-white opacity-80 group-hover:opacity-100"
-                          >
-                            <ZoomIn className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-
-                        {message.content && (
-                          <p className="whitespace-pre-wrap break-words text-xs">{message.content}</p>
-                        )}
-                      </div>
-                    ) : isAudio ? (
-                      <div className="flex items-center gap-3 p-1">
-                        <button
-                          type="button"
-                          onClick={() => toggleAudio(message.mediaUrl!, message.id)}
-                          className={cn(
-                            'h-8 w-8 rounded-full flex items-center justify-center transition-all',
-                            isOutbound ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
-                          )}
-                        >
-                          {playingAudioId === message.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4 ml-0.5" />
-                          )}
-                        </button>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1">
-                            <Volume2 className="h-3.5 w-3.5 opacity-70" />
-                            <span className="text-xs font-semibold">Nota de Voz WhatsApp</span>
-                          </div>
-                          <div className="h-1.5 w-28 rounded-full bg-black/10 dark:bg-white/20 mt-1 overflow-hidden">
-                            <div
-                              className={cn(
-                                'h-full bg-current transition-all',
-                                playingAudioId === message.id ? 'w-full animate-pulse' : 'w-0'
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-                    )}
-
-                    <p
-                      className={cn(
-                        'mt-1 text-right text-[10px]',
-                        isOutbound ? 'opacity-80' : 'text-muted-foreground'
-                      )}
-                    >
-                      {formatTime(message.sentAt)}
-                    </p>
-                  </div>
-                </div>
+                  text={message.content || ''}
+                  from={from}
+                  time={time}
+                />
               );
             })}
 
             {messages.length === 0 && (
-              <p className="py-8 text-center text-xs text-muted-foreground">
+              <p className="py-12 text-center text-xs text-muted-foreground">
                 Sin mensajes en esta conversación
               </p>
             )}
           </div>
 
-          {/* Menú Emergente de Snippets / Respuestas Rápidas */}
+          {/* Snippets / Autocompletado */}
           {showSnippetsMenu && filteredTemplates.length > 0 && (
-            <div className="absolute bottom-16 left-3 right-3 rounded-lg border bg-card p-2 shadow-2xl z-30 max-h-56 overflow-y-auto">
-              <div className="flex items-center justify-between border-b pb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="absolute bottom-16 left-3 right-3 rounded-xl border border-border bg-card p-2 shadow-2xl z-30 max-h-56 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-border pb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Respuestas Rápidas (Atajos '/')
+                  <Sparkles className="size-3.5 text-primary" /> Respuestas Rápidas (Atajos &apos;/&apos;)
                 </span>
-                <span className="text-[10px] lowercase font-normal">Usa ↑ ↓ o clic para insertar</span>
+                <span className="text-[10px] lowercase font-normal">Clic para insertar</span>
               </div>
               <div className="mt-1 space-y-1">
                 {filteredTemplates.map((t) => (
@@ -716,13 +614,13 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                     key={t.id}
                     type="button"
                     onClick={() => insertSnippet(t)}
-                    className="w-full text-left rounded p-2 text-xs hover:bg-accent flex items-start justify-between gap-2 transition-colors group"
+                    className="w-full text-left rounded-lg p-2 text-xs hover:bg-accent flex items-start justify-between gap-2 transition-colors group"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-foreground">{t.name}</span>
                         {t.shortcut && (
-                          <code className="rounded bg-muted px-1.5 py-0.2 text-[10px] font-mono text-primary group-hover:bg-primary/20">
+                          <code className="rounded bg-muted px-1.5 py-0.2 text-[10px] font-mono text-primary">
                             /{t.shortcut}
                           </code>
                         )}
@@ -736,43 +634,29 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
             </div>
           )}
 
-          {/* Previsualización de imagen pegada desde el portapapeles */}
+          {/* Preview Imagen Pegada */}
           {pastingImage && (
-            <div className="border-t bg-muted/30 p-3 flex items-center justify-between gap-3">
+            <div className="border-t border-border bg-muted/40 p-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <img
-                  src={pastingImage}
-                  alt="Pegada"
-                  className="h-14 w-14 rounded object-cover border"
-                />
+                <img src={pastingImage} alt="Pegada" className="size-14 rounded-lg object-cover border" />
                 <div>
                   <p className="text-xs font-bold text-foreground">Imagen lista para enviar</p>
                   <p className="text-[11px] text-muted-foreground">Presiona Enviar para mandar a WhatsApp</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPastingImage(null)}
-                  className="rounded border px-2.5 py-1 text-xs font-semibold hover:bg-accent"
-                >
+                <Button variant="outline" size="sm" onClick={() => setPastingImage(null)}>
                   Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={sendPastedImage}
-                  disabled={sending}
-                  className="rounded bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-                >
+                </Button>
+                <Button variant="default" size="sm" onClick={sendPastedImage} disabled={sending}>
                   {sending ? 'Enviando...' : 'Enviar Imagen'}
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
-          {/* Input de Mensaje con Atajos y soporte para pegar imágenes */}
-          <div className="border-t p-3 bg-card">
-            {/* Chips de atajos sugeridos */}
+          {/* Input Bar */}
+          <div className="border-t border-border p-3 bg-card">
             <div className="mb-2 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
               <span className="text-[11px] text-muted-foreground font-medium shrink-0">Atajos:</span>
               {templates.slice(0, 4).map((t) => (
@@ -780,7 +664,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                   key={t.id}
                   type="button"
                   onClick={() => insertSnippet(t)}
-                  className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] font-medium hover:bg-accent text-foreground shrink-0 shadow-xs"
+                  className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] font-medium hover:bg-accent text-foreground shrink-0 shadow-xs"
                 >
                   /{t.shortcut || t.name}
                 </button>
@@ -804,91 +688,85 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                     }
                   }
                 }}
-                placeholder="Escribe, '/' para atajos o pega captura con Ctrl+V..."
-                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Escribe un mensaje, '/' para atajos o pega captura..."
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <button
+              <Button
+                variant="default"
+                size="sm"
                 onClick={() => (pastingImage ? sendPastedImage() : sendMessage())}
                 disabled={sending || (!newMessage.trim() && !pastingImage)}
-                className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="h-8 gap-1 font-bold"
               >
-                <Send className="h-4 w-4" />
-              </button>
+                <Send className="size-3.5" />
+              </Button>
             </div>
           </div>
         </>
       )}
 
-      {/* PESTAÑA 2: FICHA 360° DE LA CLIENTA (HISTORIAL & NOTAS PRIVADAS) */}
+      {/* PESTAÑA 2: FICHA 360 */}
       {activeTab === 'profile' && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="rounded-xl border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
               <div>
                 <h4 className="font-bold text-sm text-foreground">
                   {conversation?.lead?.name || 'Clienta'}
                 </h4>
-                <p className="text-xs text-muted-foreground">{conversation?.lead?.phone}</p>
+                <p className="text-xs text-muted-foreground font-mono">{conversation?.lead?.phone}</p>
               </div>
-              <span className="rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 text-xs font-bold">
-                {conversation?.lead?.tier || 'NUEVA'}
-              </span>
+              <TierBadge tier={conversation?.lead?.tier} />
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="rounded-lg bg-muted/40 p-2.5">
                 <span className="text-muted-foreground text-[11px] block">Compras Concretadas</span>
-                <span className="font-black text-base text-foreground">
+                <span className="font-black text-base text-foreground font-mono">
                   {conversation?.lead?.totalPaidCount || 0}
                 </span>
               </div>
               <div className="rounded-lg bg-muted/40 p-2.5">
                 <span className="text-muted-foreground text-[11px] block">Total Gastado</span>
-                <span className="font-black text-base text-emerald-600">
-                  {formatCurrency(conversation?.lead?.totalSpent || 0)}
+                <span className="font-black text-base text-emerald-500 font-mono">
+                  {money(conversation?.lead?.totalSpent || 0)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Notas Privadas entre Vendedoras */}
-          <form onSubmit={handleSaveAddress} className="rounded-xl border bg-card p-4 space-y-2">
+          <form onSubmit={handleSaveAddress} className="rounded-xl border border-border bg-card p-4 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5" /> Notas Privadas entre Vendedoras
+                <FileText className="size-3.5" /> Notas Privadas entre Vendedoras
               </label>
-              <button
-                type="submit"
-                disabled={savingAddress}
-                className="rounded bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90"
-              >
-                {savingAddress ? 'Guardando...' : 'Guardar Nota'}
-              </button>
+              <Button type="submit" variant="default" size="sm" disabled={savingAddress} className="h-6 text-[11px]">
+                <Save className="size-3" /> Guardar
+              </Button>
             </div>
             <textarea
               rows={3}
               value={addressForm.internalNotes}
               onChange={(e) => setAddressForm({ ...addressForm, internalNotes: e.target.value })}
               placeholder="Ej: Siempre pide talla M, prefiere envío por moto local, transfiere al instante por Banorte..."
-              className="w-full rounded-md border bg-background p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </form>
 
-          {/* Historial de Cobros de esta Conversación */}
-          <div className="rounded-xl border bg-card p-4 space-y-2.5">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
             <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <History className="h-3.5 w-3.5" /> Historial de Cobros
+              <History className="size-3.5" /> Historial de Cobros
             </h5>
             <div className="space-y-1.5">
               {conversation?.paymentOrders?.map((po) => (
-                <div key={po.id} className="flex items-center justify-between border-b pb-1.5 text-xs">
+                <div key={po.id} className="flex items-center justify-between border-b border-border pb-1.5 text-xs">
                   <div>
                     <p className="font-semibold text-foreground">{po.concept}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(po.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold">{formatCurrency(Number(po.amount))}</span>
-                    <span className="block text-[10px] uppercase font-semibold text-emerald-600">{po.status}</span>
+                    <span className="font-bold font-mono">{money(Number(po.amount))}</span>
+                    <span className="block text-[10px] uppercase font-bold text-emerald-500">{po.status}</span>
                   </div>
                 </div>
               ))}
@@ -897,21 +775,16 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
         </div>
       )}
 
-      {/* PESTAÑA 3: CAPTURA RÁPIDA DE DIRECCIÓN */}
+      {/* PESTAÑA 3: DIRECCIÓN */}
       {activeTab === 'address' && (
-        <form onSubmit={handleSaveAddress} className="flex-1 overflow-y-auto p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b">
+        <form onSubmit={handleSaveAddress} className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
             <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
               Datos de Envío de la Clienta
             </h4>
-            <button
-              type="submit"
-              disabled={savingAddress}
-              className="flex items-center gap-1 rounded bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-            >
-              <Save className="h-3.5 w-3.5" />
-              {savingAddress ? 'Guardando...' : 'Guardar Datos'}
-            </button>
+            <Button type="submit" variant="default" size="sm" disabled={savingAddress} className="h-7 text-xs">
+              <Save className="size-3" /> Guardar
+            </Button>
           </div>
 
           <div>
@@ -921,7 +794,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
               value={addressForm.name}
               onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
               placeholder="Ej: María González"
-              className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+              className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
             />
           </div>
 
@@ -933,7 +806,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressStreet}
                 onChange={(e) => setAddressForm({ ...addressForm, addressStreet: e.target.value })}
                 placeholder="Ej: Av. Hidalgo"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
               />
             </div>
             <div>
@@ -943,7 +816,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressNumber}
                 onChange={(e) => setAddressForm({ ...addressForm, addressNumber: e.target.value })}
                 placeholder="Ej: #123 Int 4"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
               />
             </div>
           </div>
@@ -956,7 +829,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressColonia}
                 onChange={(e) => setAddressForm({ ...addressForm, addressColonia: e.target.value })}
                 placeholder="Ej: Centro"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
               />
             </div>
             <div>
@@ -966,7 +839,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressZipCode}
                 onChange={(e) => setAddressForm({ ...addressForm, addressZipCode: e.target.value })}
                 placeholder="Ej: 06000"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs font-mono bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs font-mono bg-background"
               />
             </div>
           </div>
@@ -979,7 +852,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressCity}
                 onChange={(e) => setAddressForm({ ...addressForm, addressCity: e.target.value })}
                 placeholder="Ej: Guadalajara"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
               />
             </div>
             <div>
@@ -989,75 +862,70 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 value={addressForm.addressState}
                 onChange={(e) => setAddressForm({ ...addressForm, addressState: e.target.value })}
                 placeholder="Ej: Jalisco"
-                className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+                className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium">Referencias de Entrega (Entre calles, color de fachada)</label>
+            <label className="text-xs font-medium">Referencias de Entrega</label>
             <textarea
               rows={2}
               value={addressForm.addressNotes}
               onChange={(e) => setAddressForm({ ...addressForm, addressNotes: e.target.value })}
-              placeholder="Ej: Portón café, entre Juárez y Morelos. Dejar con vigilancia si no responden."
-              className="mt-1 w-full rounded border px-2.5 py-1.5 text-xs bg-background"
+              placeholder="Ej: Portón café, entre Juárez y Morelos."
+              className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
             />
           </div>
         </form>
       )}
 
-      {/* PESTAÑA 4: ETIQUETA / PACKING SLIP PARA IMPRESIÓN */}
+      {/* PESTAÑA 4: ETIQUETA */}
       {activeTab === 'packing' && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
             <span className="text-xs font-bold text-muted-foreground uppercase">
               Ficha de Empaque para Paquete
             </span>
-            <button
-              onClick={printPackingSlip}
-              className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Imprimir Etiqueta
-            </button>
+            <Button variant="default" size="sm" onClick={printPackingSlip} className="h-7 text-xs">
+              <Printer className="size-3.5" /> Imprimir Etiqueta
+            </Button>
           </div>
 
-          {/* Ficha Visual Lista para Pegar en el Paquete */}
-          <div className="rounded-lg border-2 border-dashed border-foreground/30 p-4 bg-white text-black font-sans space-y-3 shadow-sm">
-            <div className="flex justify-between items-start border-b pb-2">
+          <div className="rounded-xl border-2 border-dashed border-zinc-700 p-4 bg-zinc-950 text-zinc-100 font-sans space-y-3 shadow-md">
+            <div className="flex justify-between items-start border-b border-zinc-800 pb-2">
               <div>
-                <h2 className="font-black text-sm uppercase tracking-wide">📦 PAQUETE LIVE SHOPPING</h2>
-                <p className="text-[11px] text-gray-600">Cliente: <strong>{addressForm.name || conversation?.lead?.phone}</strong></p>
-                <p className="text-[11px] text-gray-600">Tel: <strong>{conversation?.lead?.phone}</strong></p>
+                <h2 className="font-black text-xs uppercase tracking-wide text-emerald-400">📦 PAQUETE LIVE SHOPPING</h2>
+                <p className="text-[11px] text-zinc-300">Cliente: <strong>{addressForm.name || conversation?.lead?.phone}</strong></p>
+                <p className="text-[11px] text-zinc-400 font-mono">Tel: <strong>{conversation?.lead?.phone}</strong></p>
               </div>
               <div className="text-right font-mono text-xs">
-                <span className="font-bold border border-black px-1.5 py-0.5 rounded">
+                <span className="font-bold border border-zinc-700 bg-zinc-900 px-2 py-0.5 rounded text-emerald-400">
                   {conversation?.paymentOrders?.[0]?.id?.slice(0, 8)?.toUpperCase() || 'REF-LIVE'}
                 </span>
               </div>
             </div>
 
-            <div>
-              <p className="text-[10px] uppercase font-bold text-gray-500">Dirección de Envío:</p>
-              <p className="font-bold text-xs mt-0.5">
+            <div className="text-xs space-y-0.5">
+              <p className="text-[10px] uppercase font-bold text-zinc-500">Dirección de Envío:</p>
+              <p className="font-bold text-zinc-100">
                 {addressForm.addressStreet} {addressForm.addressNumber}
               </p>
-              <p className="text-xs">
+              <p className="text-zinc-300">
                 {addressForm.addressColonia ? `Col. ${addressForm.addressColonia}, ` : ''}
                 {addressForm.addressCity} {addressForm.addressState}
               </p>
-              <p className="text-xs font-mono font-bold">CP: {addressForm.addressZipCode || 'N/A'}</p>
+              <p className="font-mono font-bold text-zinc-400">CP: {addressForm.addressZipCode || 'N/A'}</p>
               {addressForm.addressNotes && (
-                <p className="text-[11px] text-gray-700 italic mt-1 bg-gray-100 p-1 rounded">
+                <p className="text-[11px] text-zinc-400 italic mt-1 bg-zinc-900 p-1.5 rounded border border-zinc-800">
                   Ref: {addressForm.addressNotes}
                 </p>
               )}
             </div>
 
-            <div className="border-t pt-2 text-[11px]">
-              <p className="font-bold text-gray-700">Contenido / Prendas:</p>
-              <p className="font-semibold">{conversation?.paymentOrders?.[0]?.concept || 'Prendas del Live'}</p>
+            <div className="border-t border-zinc-800 pt-2 text-[11px]">
+              <p className="font-bold text-zinc-400">Prendas:</p>
+              <p className="font-semibold text-emerald-300">{conversation?.paymentOrders?.[0]?.concept || 'Prendas del Live'}</p>
             </div>
           </div>
         </div>
@@ -1072,23 +940,23 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
         initialProduct={selectedProductForPayment}
       />
 
-      {/* Modal de Vista Previa de Imagen */}
+      {/* Modal de Zoom de Imagen */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs"
           onClick={() => setPreviewImage(null)}
         >
-          <div className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-lg bg-background p-2">
+          <div className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-xl bg-background p-2 border border-border shadow-2xl">
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1 text-white hover:bg-black/90"
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/90"
             >
-              <X className="h-5 w-5" />
+              <X className="size-4" />
             </button>
             <img
               src={previewImage}
               alt="Comprobante en grande"
-              className="max-h-[85vh] max-w-full rounded object-contain"
+              className="max-h-[85vh] max-w-full rounded-lg object-contain"
             />
           </div>
         </div>
