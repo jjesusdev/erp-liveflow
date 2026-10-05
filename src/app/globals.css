@@ -92,21 +92,23 @@
     @apply border-border;
   }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    letter-spacing: -0.01em;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", var(--font-inter), "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    letter-spacing: -0.012em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
+    @apply bg-background text-foreground font-sans antialiased;
   }
-  .font-mono {
-    font-family: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
+  .font-mono,
+  kbd,
+  code {
+    font-family: inherit;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
   }
 }
 
-/* Custom scrollbar exact from diseno */
+/* Custom scrollbar */
 .scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;

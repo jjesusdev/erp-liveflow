@@ -5,6 +5,28 @@ const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          '"SF Pro"',
+          'var(--font-inter)',
+          '"Segoe UI"',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        mono: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Text"',
+          'var(--font-inter)',
+          'sans-serif',
+        ],
+      },
       colors: {
         border: 'var(--border)',
         input: 'var(--input)',
@@ -66,28 +88,6 @@ const config: Config = {
           foreground: 'var(--transit-foreground)',
         },
         vip: 'var(--vip)',
-      },
-      fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"SF Pro Display"',
-          '"SF Pro Text"',
-          '"SF Pro"',
-          '"Helvetica Neue"',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
-        mono: [
-          '"SF Mono"',
-          'SFMono-Regular',
-          'ui-monospace',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          'monospace',
-        ],
       },
       borderRadius: {
         lg: 'var(--radius)',
