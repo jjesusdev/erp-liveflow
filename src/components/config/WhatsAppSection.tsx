@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSocket } from '@/lib/socket';
-import { Loader2, Power, RefreshCw, Smartphone } from 'lucide-react';
+import { Loader2, Power, RefreshCw, Smartphone, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge, LiveDot } from '@/components/liveflow/primitives';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface WhatsAppState {
   connected: boolean;
@@ -28,7 +31,6 @@ export function WhatsAppSection() {
         ...prev,
         connected: Boolean(status?.connected),
         connecting: Boolean(status?.connecting),
-        // Si se conecto, el QR dejo de ser valido.
         qr: status?.connected ? null : prev.qr,
       }));
     };
@@ -55,96 +57,118 @@ export function WhatsAppSection() {
     if (!socket) return;
     setState((prev) => ({ ...prev, connecting: true, qr: null }));
     socket.emit('whatsapp:connect');
+    toast.info('Solicitando código QR de WhatsApp...');
   };
 
   const disconnect = () => {
     if (!socket) return;
     socket.emit('whatsapp:disconnect');
     setState({ connected: false, connecting: false, qr: null });
+    toast.success('Sesión de WhatsApp desconectada');
   };
 
-  const statusLabel = state.connected
-    ? 'Conectado'
-    : state.qr
-    ? 'Escanea el QR'
-    : state.connecting
-    ? 'Conectando...'
-    : 'Desconectado';
-
   return (
-    <section className="rounded-lg border p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Smartphone className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-4">
+      {/* Tarjeta de Estado de Conexión */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              'flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
+              state.connected
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+                : 'border-border bg-muted text-muted-foreground'
+            )}
+          >
+            <Smartphone className="size-5" />
+          </div>
           <div>
-            <h2 className="font-semibold">WhatsApp</h2>
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span
-                className={cn(
-                  'h-2 w-2 rounded-full',
-                  state.connected
-                    ? 'bg-green-500'
-                    : state.connecting
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
-                )}
-              />
-              {statusLabel}
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                Línea de WhatsApp Oficial
+              </h3>
+              {state.connected ? (
+                <Badge tone="success">
+                  <CheckCircle2 className="size-2.5" /> Conectado
+                </Badge>
+              ) : state.connecting ? (
+                <Badge tone="pending">Conectando...</Badge>
+              ) : (
+                <Badge tone="live">Desconectado</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {state.connected
+                ? 'Los mensajes, cobros de Live y comprobantes se sincronizan en tiempo real.'
+                : 'Escanea el código QR desde la app de WhatsApp para vincular el CRM.'}
             </p>
           </div>
         </div>
 
-        {state.connected ? (
-          <button
-            onClick={disconnect}
-            disabled={!socket}
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            <Power className="h-4 w-4" />
-            Desconectar
-          </button>
-        ) : (
-          <button
-            onClick={connect}
-            disabled={!socket || state.connecting}
-            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {state.connecting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {state.qr ? 'Regenerar QR' : 'Conectar'}
-          </button>
-        )}
+        <div>
+          {state.connected ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={disconnect}
+              disabled={!socket}
+              className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/30 text-xs"
+            >
+              <Power className="size-3.5" /> Desconectar
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={connect}
+              disabled={!socket || state.connecting}
+              className="text-xs font-semibold"
+            >
+              {state.connecting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" /> Conectando...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="size-3.5" /> {state.qr ? 'Regenerar QR' : 'Conectar WhatsApp'}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
-      {state.connected && (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Los mensajes del chat, los links de pago y las campanas se envian por
-          WhatsApp automaticamente.
-        </p>
-      )}
-
+      {/* Tarjeta de Código QR */}
       {!state.connected && state.qr && (
-        <div className="mt-4 flex flex-col items-center gap-3 rounded-md border bg-muted/30 p-4">
-          <p className="text-sm font-medium">
-            Abre WhatsApp &gt; Dispositivos vinculados &gt Vincular dispositivo
-          </p>
-          <div className="rounded-lg bg-white p-3">
-            <QRCodeSVG value={state.qr} size={200} />
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-6 text-center space-y-3 shadow-xs">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <ShieldCheck className="size-4 text-emerald-500" />
+            <span>Vincular Dispositivo WhatsApp</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            El QR caduca en ~20 segundos. Si expira, pide uno nuevo.
+          <p className="text-xs text-muted-foreground max-w-sm">
+            Abre WhatsApp en tu teléfono &gt; <strong>Dispositivos vinculados</strong> &gt; <strong>Vincular un dispositivo</strong>.
+          </p>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <QRCodeSVG value={state.qr} size={180} />
+          </div>
+
+          <p className="text-[11px] font-mono text-muted-foreground">
+            El código se actualiza automáticamente cada 20 segundos.
           </p>
         </div>
       )}
 
+      {/* Guía si está desconectado sin QR */}
       {!state.connected && !state.qr && !state.connecting && (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Conecta tu numero para enviar y recibir mensajes en tiempo real.
-        </p>
+        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-center space-y-1.5">
+          <AlertCircle className="size-5 text-muted-foreground mx-auto" />
+          <p className="text-xs font-semibold text-foreground">WhatsApp no está vinculado</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Haz clic en &quot;Conectar WhatsApp&quot; arriba para generar el código QR y empezar a atender chats del Live.
+          </p>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
