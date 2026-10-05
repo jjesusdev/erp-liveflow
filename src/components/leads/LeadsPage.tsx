@@ -1,30 +1,43 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatCurrency, formatDate, cn } from '@/lib/date-utils';
+import { formatDate } from '@/lib/date-utils';
+import { money } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
   Search,
   CreditCard,
-  MessageSquare,
   Truck,
-  Instagram,
-  Facebook,
-  ShoppingBag,
   Plus,
   Pencil,
   Download,
-  Star,
   Users,
+  MapPin,
+  Calendar,
+  MessageSquare,
+  StickyNote,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge, TierBadge, SectionLabel } from '@/components/liveflow/primitives';
+import { toast } from 'sonner';
 import type { Lead, PaymentStatus } from '@/types';
 
-const PAYMENT_LABELS: Record<PaymentStatus, { label: string; className: string }> = {
-  PAID: { label: 'Pagado', className: 'text-green-600' },
-  SENT: { label: 'Enviado', className: 'text-blue-600' },
-  PENDING: { label: 'Pendiente', className: 'text-orange-600' },
-  EXPIRED: { label: 'Expirado', className: 'text-muted-foreground' },
-  CANCELLED: { label: 'Cancelado', className: 'text-red-600' },
-  REFUNDED: { label: 'Reembolsado', className: 'text-purple-600' },
+const PAYMENT_TONE: Record<PaymentStatus, 'success' | 'transit' | 'pending' | 'live' | 'neutral'> = {
+  PAID: 'success',
+  SENT: 'transit',
+  PENDING: 'pending',
+  EXPIRED: 'neutral',
+  CANCELLED: 'live',
+  REFUNDED: 'pending',
+};
+
+const PAYMENT_LABEL: Record<PaymentStatus, string> = {
+  PAID: 'Pagado',
+  SENT: 'Enviado',
+  PENDING: 'Pendiente',
+  EXPIRED: 'Expirado',
+  CANCELLED: 'Cancelado',
+  REFUNDED: 'Reembolsado',
 };
 
 const TIER_FILTERS = [
@@ -35,26 +48,18 @@ const TIER_FILTERS = [
   { id: 'GHOST', label: 'Apartan sin pagar' },
 ];
 
-function SourceIcon({ source }: { source?: string | null }) {
-  if (source?.includes('Instagram')) return <Instagram className="h-3 w-3" />;
-  if (source?.includes('Facebook')) return <Facebook className="h-3 w-3" />;
-  return <ShoppingBag className="h-3 w-3" />;
-}
-
 export function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Alta / edición de clientes
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [form, setForm] = useState({ phone: '', name: '', source: '', internalNotes: '' });
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -65,13 +70,12 @@ export function LeadsPage() {
       if (!res.ok) throw new Error('No se pudieron cargar los clientes');
       const data: Lead[] = await res.json();
       setLeads(data);
-      setError(null);
 
       setSelectedLead((current) =>
         current ? data.find((l) => l.id === current.id) || null : null
       );
-    } catch (err: any) {
-      setError(err?.message || 'Error al cargar los clientes');
+    } catch {
+      toast.error('Error al cargar clientas');
     } finally {
       setLoading(false);
     }
@@ -85,7 +89,6 @@ export function LeadsPage() {
   const openCreate = () => {
     setEditingLead(null);
     setForm({ phone: '', name: '', source: 'manual', internalNotes: '' });
-    setFormError(null);
     setShowModal(true);
   };
 
@@ -97,14 +100,12 @@ export function LeadsPage() {
       source: lead.source || '',
       internalNotes: lead.internalNotes || '',
     });
-    setFormError(null);
     setShowModal(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setFormError(null);
 
     try {
       const url = editingLead ? `/api/leads/${editingLead.id}` : '/api/leads';
@@ -116,13 +117,12 @@ export function LeadsPage() {
         body: JSON.stringify(form),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo guardar el cliente');
-
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success(editingLead ? 'Clienta actualizada' : 'Clienta creada');
       setShowModal(false);
       fetchLeads();
-    } catch (err: any) {
-      setFormError(err?.message || 'No se pudo guardar el cliente');
+    } catch {
+      toast.error('No se pudo guardar la clienta');
     } finally {
       setSaving(false);
     }
@@ -156,6 +156,7 @@ export function LeadsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Clientas exportadas en CSV');
   };
 
   const totalSpent = (lead: Lead) =>
@@ -164,50 +165,45 @@ export function LeadsPage() {
       .reduce((sum, p) => sum + Number(p.amount), 0);
 
   return (
-    <div className="flex h-full">
-      {/* Lista Izquierda */}
-      <div className="flex w-96 shrink-0 flex-col border-r bg-card">
-        <div className="border-b p-3.5 space-y-2.5">
-          <div className="flex gap-2">
-            <button
-              onClick={openCreate}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Nueva Clienta
-            </button>
-            <button
-              onClick={exportLeadsCSV}
-              title="Exportar base de clientas a CSV"
-              className="flex items-center gap-1 rounded-md border bg-secondary px-2.5 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
-            >
-              <Download className="h-3.5 w-3.5" />
-              CSV
-            </button>
+    <div className="flex h-full min-h-0 flex-1 overflow-hidden">
+      {/* Columna Izquierda: Directorio */}
+      <aside aria-label="Directorio de clientas" className="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-border bg-card/40">
+        <div className="flex flex-col gap-2.5 border-b border-border p-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold tracking-tight">Clientas & Scoring</h2>
+            <div className="flex items-center gap-1.5">
+              <Button variant="default" size="sm" onClick={openCreate} className="h-7 gap-1 px-2.5 text-xs">
+                <Plus className="size-3" /> Nueva
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportLeadsCSV} className="h-7 px-2 text-xs">
+                <Download className="size-3" />
+              </Button>
+            </div>
           </div>
 
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar por nombre o teléfono..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border py-1.5 pl-8 pr-3 text-xs bg-background"
+              className="h-7 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           </div>
 
-          {/* Selector de Segmentos / Scoring */}
-          <div className="flex flex-wrap gap-1">
+          {/* Chips de Categorías */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
             {TIER_FILTERS.map((t) => (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => setTierFilter(t.id)}
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                  'h-6 rounded-md border px-2 text-[11px] font-medium transition-colors whitespace-nowrap',
                   tierFilter === t.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-accent text-muted-foreground'
+                    ? 'border-foreground/20 bg-foreground text-background font-semibold shadow-xs'
+                    : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {t.label}
@@ -216,57 +212,41 @@ export function LeadsPage() {
           </div>
         </div>
 
-        {error && (
-          <div className="m-3 rounded-md bg-red-50 p-2 text-xs text-red-800">
-            {error}
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto divide-y">
+        <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-border/60 scrollbar-thin">
           {filteredLeads.map((lead) => {
-            const paidCount = (lead.paymentOrders || []).filter(
-              (p) => p.status === 'PAID'
-            ).length;
+            const isSelected = selectedLead?.id === lead.id;
+            const paidCount = (lead.paymentOrders || []).filter((p) => p.status === 'PAID').length;
 
             return (
               <button
                 key={lead.id}
+                type="button"
                 onClick={() => setSelectedLead(lead)}
                 className={cn(
-                  'w-full p-3 text-left transition-colors hover:bg-muted/50 block',
-                  selectedLead?.id === lead.id && 'bg-accent'
+                  'flex w-full flex-col gap-1.5 p-3 text-left transition-colors',
+                  isSelected
+                    ? 'bg-card shadow-xs ring-1 ring-foreground/10'
+                    : 'hover:bg-muted/40'
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate font-semibold text-xs text-foreground">
-                        {lead.name || lead.phone}
-                      </p>
-                      {lead.tier === 'VIP' && (
-                        <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[9px] font-black text-amber-600 dark:text-amber-400">
-                          ★ VIP
-                        </span>
-                      )}
-                    </div>
-                    <p className="truncate text-[11px] text-muted-foreground font-mono">
-                      {lead.phone}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {lead.lastInteractionAt && formatDate(lead.lastInteractionAt)}
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-xs font-semibold text-foreground tracking-tight">
+                    {lead.name || lead.phone}
+                  </span>
+                  <TierBadge tier={lead.tier === 'VIP' ? 'vip' : lead.tier === 'FREQUENT' ? 'recurrente' : 'nueva'} />
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                    {lead.lastInteractionAt ? formatDate(lead.lastInteractionAt) : 'Nuevo'}
                   </span>
                 </div>
 
-                <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <SourceIcon source={lead.source} />
-                    {lead.source || 'WhatsApp'}
-                  </span>
-                  {paidCount > 0 && (
-                    <span className="font-bold text-green-600 dark:text-green-400 font-mono">
-                      {paidCount} compra{paidCount > 1 ? 's' : ''} ({formatCurrency(totalSpent(lead))})
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="font-mono">{lead.phone}</span>
+                  {paidCount > 0 ? (
+                    <span className="font-bold text-emerald-500">
+                      {paidCount} compra{paidCount > 1 ? 's' : ''} ({money(totalSpent(lead))})
                     </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Sin compras</span>
                   )}
                 </div>
               </button>
@@ -274,191 +254,199 @@ export function LeadsPage() {
           })}
 
           {!loading && filteredLeads.length === 0 && (
-            <div className="py-12 text-center text-xs text-muted-foreground">
-              {search ? 'Ninguna clienta coincide' : 'No hay clientas en este segmento'}
+            <div className="p-8 text-center text-xs text-muted-foreground">
+              {search ? 'Ninguna clienta coincide' : 'No hay clientas en este segmento.'}
             </div>
           )}
         </div>
-      </div>
+      </aside>
 
-      {/* Detalle Derecho */}
-      <div className="flex-1 overflow-y-auto p-6 bg-background">
+      {/* Columna Derecha: Detalle Ficha 360° */}
+      <main className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-background">
         {selectedLead ? (
-          <div className="space-y-6 max-w-3xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-foreground">
-                    {selectedLead.name || selectedLead.phone}
-                  </h2>
-                  <span className="rounded-full bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 text-xs font-bold">
-                    {selectedLead.tier || 'NUEVA'}
-                  </span>
+          <div className="mx-auto max-w-4xl space-y-6">
+            {/* Header Clienta */}
+            <header className="flex items-start justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted text-base font-bold text-foreground">
+                  {selectedLead.name?.slice(0, 2).toUpperCase() || 'CL'}
                 </div>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  {selectedLead.phone}
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold tracking-tight text-foreground">
+                      {selectedLead.name || selectedLead.phone}
+                    </h1>
+                    <TierBadge tier={selectedLead.tier === 'VIP' ? 'vip' : selectedLead.tier === 'FREQUENT' ? 'recurrente' : 'nueva'} />
+                  </div>
+                  <p className="font-mono text-xs text-muted-foreground mt-0.5">{selectedLead.phone}</p>
+                </div>
               </div>
-              <button
-                onClick={() => openEdit(selectedLead)}
-                className="flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-semibold hover:bg-accent"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Editar Perfil
-              </button>
-            </div>
 
-            {/* Métricas de la clienta */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Total Comprado</p>
-                <p className="text-xl font-black text-green-600 mt-1 font-mono">
-                  {formatCurrency(totalSpent(selectedLead))}
+              <Button variant="outline" size="sm" onClick={() => openEdit(selectedLead)} className="h-8 gap-1.5 text-xs font-semibold">
+                <Pencil className="size-3.5" /> Editar Perfil
+              </Button>
+            </header>
+
+            {/* KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-border bg-card p-3.5 space-y-1">
+                <SectionLabel>Total Comprado</SectionLabel>
+                <p className="text-xl font-bold text-emerald-500 font-mono">
+                  {money(totalSpent(selectedLead))}
                 </p>
               </div>
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Pedidos Pagados</p>
-                <p className="text-xl font-black text-foreground mt-1">
+              <div className="rounded-xl border border-border bg-card p-3.5 space-y-1">
+                <SectionLabel>Pedidos Pagados</SectionLabel>
+                <p className="text-xl font-bold text-foreground font-mono">
                   {(selectedLead.paymentOrders || []).filter((p) => p.status === 'PAID').length}
                 </p>
               </div>
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Conversaciones</p>
-                <p className="text-xl font-black text-foreground mt-1">
+              <div className="rounded-xl border border-border bg-card p-3.5 space-y-1">
+                <SectionLabel>Conversaciones Live</SectionLabel>
+                <p className="text-xl font-bold text-foreground font-mono">
                   {(selectedLead.conversations || []).length}
                 </p>
               </div>
             </div>
 
-            {/* Dirección de Envío */}
-            <div className="rounded-lg border bg-card p-4 space-y-1 text-xs">
-              <p className="font-bold text-muted-foreground uppercase text-[10px]">Dirección Registrada:</p>
+            {/* Dirección de Entrega Registrada */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-2 shadow-xs">
+              <SectionLabel className="flex items-center gap-1.5">
+                <MapPin className="size-3.5 text-primary" /> Dirección de Entrega
+              </SectionLabel>
               {selectedLead.addressStreet ? (
-                <div>
-                  <p className="font-semibold text-foreground text-sm">
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-foreground text-sm">
                     {selectedLead.addressStreet} {selectedLead.addressNumber}
                   </p>
                   <p className="text-muted-foreground">
-                    Col. {selectedLead.addressColonia || 'N/A'}, {selectedLead.addressCity} {selectedLead.addressState} (CP: {selectedLead.addressZipCode})
+                    {selectedLead.addressColonia ? `Col. ${selectedLead.addressColonia}, ` : ''}
+                    {selectedLead.addressCity} {selectedLead.addressState} (CP: {selectedLead.addressZipCode})
                   </p>
                   {selectedLead.addressNotes && (
-                    <p className="italic text-gray-600 dark:text-gray-400 mt-1 bg-muted/50 p-1.5 rounded">
+                    <p className="italic text-muted-foreground bg-muted/40 p-2 rounded-md mt-2 border border-border">
                       Ref: {selectedLead.addressNotes}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-muted-foreground italic">Sin dirección de entrega capturada aún.</p>
+                <p className="text-xs text-muted-foreground italic">Sin dirección capturada aún.</p>
               )}
             </div>
 
-            {/* Historial de Compras */}
-            <section className="space-y-2.5">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Historial de Cobros</h3>
-              <div className="rounded-lg border bg-card divide-y">
+            {/* Notas Privadas del Equipo */}
+            {selectedLead.internalNotes && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-1.5 text-xs">
+                <SectionLabel className="text-amber-500 flex items-center gap-1.5">
+                  <StickyNote className="size-3.5" /> Notas Privadas entre Vendedoras
+                </SectionLabel>
+                <p className="text-foreground leading-relaxed">{selectedLead.internalNotes}</p>
+              </div>
+            )}
+
+            {/* Historial de Cobros */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+              <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Historial de Cobros y Tickets
+                </h3>
+              </div>
+              <div className="divide-y divide-border">
                 {(selectedLead.paymentOrders || []).length > 0 ? (
                   (selectedLead.paymentOrders || []).map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-3 text-xs"
-                    >
+                    <div key={order.id} className="flex items-center justify-between p-3.5 text-xs">
                       <div>
                         <p className="font-semibold text-foreground">{order.concept}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {formatDate(order.createdAt)} • Ref: {order.id.slice(0, 8).toUpperCase()}
+                          {formatDate(order.createdAt)} · Ref: {order.id.slice(0, 8).toUpperCase()}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold font-mono">
-                          {formatCurrency(Number(order.amount), order.currency)}
-                        </p>
-                        <p className={cn('text-[10px] font-bold uppercase', PAYMENT_LABELS[order.status]?.className)}>
-                          {PAYMENT_LABELS[order.status]?.label || order.status}
-                        </p>
+                        <span className="font-bold text-foreground">{money(Number(order.amount))}</span>
+                        <div className="mt-0.5">
+                          <Badge tone={PAYMENT_TONE[order.status]}>
+                            {PAYMENT_LABEL[order.status] || order.status}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center text-xs text-muted-foreground">
-                    Sin cobros registrados
-                  </div>
+                  <p className="p-8 text-center text-xs text-muted-foreground">Sin cobros registrados.</p>
                 )}
               </div>
-            </section>
+            </div>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-            Selecciona una clienta de la lista para ver su perfil completo.
+            Selecciona una clienta en la bandeja izquierda para ver su historial 360°.
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Modal Crear/Editar Clienta */}
+      {/* Modal Crear / Editar Clienta */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-2xl">
-            <h2 className="text-base font-bold mb-3">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl space-y-4">
+            <h2 className="text-base font-bold">
               {editingLead ? 'Editar Clienta' : 'Nueva Clienta'}
             </h2>
-            {formError && (
-              <div className="mb-3 rounded-md bg-red-50 p-2.5 text-xs text-red-800">
-                {formError}
-              </div>
-            )}
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold">Teléfono de WhatsApp</label>
+                <label className="text-[11px] font-semibold uppercase text-muted-foreground">Teléfono de WhatsApp</label>
                 <input
                   type="text"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+52 1 55 1234 5678"
-                  className="mt-1 w-full rounded-md border px-3 py-1.5 text-xs bg-background font-mono"
+                  className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40 font-mono"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold">Nombre Completo</label>
+                <label className="text-[11px] font-semibold uppercase text-muted-foreground">Nombre Completo</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ej: Sofia Martínez"
-                  className="mt-1 w-full rounded-md border px-3 py-1.5 text-xs bg-background"
+                  placeholder="Ej: Sofía Martínez"
+                  className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold">Origen</label>
+                <label className="text-[11px] font-semibold uppercase text-muted-foreground">Origen</label>
                 <select
                   value={form.source}
                   onChange={(e) => setForm({ ...form, source: e.target.value })}
-                  className="mt-1 w-full rounded-md border px-3 py-1.5 text-xs bg-background"
+                  className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 >
                   <option value="whatsapp">WhatsApp Directo</option>
                   <option value="tiktok_live">TikTok Live</option>
                   <option value="instagram_live">Instagram Live</option>
-                  <option value="facebook_live">Facebook Live</option>
                   <option value="manual">Manual / Tienda</option>
                 </select>
               </div>
 
+              <div>
+                <label className="text-[11px] font-semibold uppercase text-muted-foreground">Notas Internas</label>
+                <textarea
+                  rows={2}
+                  value={form.internalNotes}
+                  onChange={(e) => setForm({ ...form, internalNotes: e.target.value })}
+                  placeholder="Notas privadas para las vendedoras..."
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40 resize-none"
+                />
+              </div>
+
               <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 rounded-md border py-2 text-xs font-semibold hover:bg-accent"
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowModal(false)} className="flex-1">
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 rounded-md bg-primary py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
+                </Button>
+                <Button type="submit" variant="default" size="sm" disabled={saving} className="flex-1">
                   {saving ? 'Guardando...' : 'Guardar'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

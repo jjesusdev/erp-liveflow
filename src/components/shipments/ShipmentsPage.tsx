@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatCurrency, cn } from '@/lib/date-utils';
+import { formatDate, formatCurrency } from '@/lib/date-utils';
+import { money } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
   Truck,
   Package,
@@ -19,13 +21,17 @@ import {
   Square,
   Search,
   MapPin,
+  PackageCheck,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge, SectionLabel } from '@/components/liveflow/primitives';
+import { toast } from 'sonner';
 import type { Shipment, ShipmentStatus } from '@/types';
 
 const FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'PENDING', label: 'Pendientes' },
-  { id: 'IN_TRANSIT', label: 'En camino / Despachados' },
+  { id: 'IN_TRANSIT', label: 'En camino' },
   { id: 'DELIVERED', label: 'Entregados' },
   { id: 'RETURNED', label: 'Devueltos' },
   { id: 'LOST', label: 'Perdidos' },
@@ -34,29 +40,29 @@ const FILTERS = [
 const CARRIER_PRESETS = [
   'Envío Local / Moto',
   'Estafeta',
-  'DHL',
+  'DHL Express',
   'FedEx',
   '99Minutos',
   'Uber Flash / Didi',
-  'Entrega Personal / Punto de entrega',
+  'Entrega Personal',
   'Recoge en tienda',
 ];
 
-const STATUS_META: Record<ShipmentStatus, { label: string; className: string }> = {
-  PENDING: { label: 'Pendiente', className: 'bg-orange-100 text-orange-800' },
-  IN_TRANSIT: { label: 'En camino', className: 'bg-blue-100 text-blue-800' },
-  DELIVERED: { label: 'Entregado', className: 'bg-green-100 text-green-800' },
-  RETURNED: { label: 'Devuelto', className: 'bg-yellow-100 text-yellow-800' },
-  LOST: { label: 'Perdido', className: 'bg-red-100 text-red-800' },
+const STATUS_TONE: Record<ShipmentStatus, 'pending' | 'transit' | 'success' | 'live' | 'neutral'> = {
+  PENDING: 'pending',
+  IN_TRANSIT: 'transit',
+  DELIVERED: 'success',
+  RETURNED: 'pending',
+  LOST: 'live',
 };
 
-function StatusIcon({ status }: { status: ShipmentStatus }) {
-  if (status === 'DELIVERED') return <CheckCircle className="h-4 w-4 text-green-600" />;
-  if (status === 'IN_TRANSIT') return <Truck className="h-4 w-4 text-blue-600" />;
-  if (status === 'RETURNED') return <RotateCcw className="h-4 w-4 text-yellow-600" />;
-  if (status === 'LOST') return <XCircle className="h-4 w-4 text-red-600" />;
-  return <Package className="h-4 w-4 text-orange-600" />;
-}
+const STATUS_LABEL: Record<ShipmentStatus, string> = {
+  PENDING: 'Pendiente',
+  IN_TRANSIT: 'En camino',
+  DELIVERED: 'Entregado',
+  RETURNED: 'Devuelto',
+  LOST: 'Perdido',
+};
 
 export function ShipmentsPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -66,8 +72,6 @@ export function ShipmentsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ trackingNumber: '', carrier: '', notes: '' });
-  const [error, setError] = useState<string | null>(null);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Selección múltiple para despacho e impresión masiva
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -77,11 +81,10 @@ export function ShipmentsPage() {
     try {
       const url = filter === 'all' ? '/api/shipments' : `/api/shipments?status=${filter}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error('No se pudieron cargar los envios');
+      if (!res.ok) throw new Error('No se pudieron cargar los envíos');
       setShipments(await res.json());
-      setError(null);
-    } catch (err: any) {
-      setError(err?.message || 'Error al cargar los envios');
+    } catch {
+      toast.error('Error al cargar los envíos');
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,6 @@ export function ShipmentsPage() {
 
   const updateShipment = async (id: string, data: Record<string, unknown>) => {
     setBusyId(id);
-    setError(null);
 
     try {
       const res = await fetch(`/api/shipments/${id}`, {
@@ -104,17 +106,18 @@ export function ShipmentsPage() {
       });
 
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error || 'No se pudo actualizar el envio');
+      if (!res.ok) throw new Error(payload?.error || 'No se pudo actualizar el envío');
 
       if (data.status === 'IN_TRANSIT') {
-        setSuccessToast('🚚 ¡Paquete despachado y notificación enviada a la clienta por WhatsApp!');
-        setTimeout(() => setSuccessToast(null), 4000);
+        toast.success('Paquete despachado', { description: 'Notificación enviada a la clienta por WhatsApp.' });
+      } else {
+        toast.success('Estado actualizado');
       }
 
       setEditingId(null);
       fetchShipments();
-    } catch (err: any) {
-      setError(err?.message || 'No se pudo actualizar el envio');
+    } catch {
+      toast.error('No se pudo actualizar el envío');
     } finally {
       setBusyId(null);
     }
@@ -127,7 +130,6 @@ export function ShipmentsPage() {
       carrier: shipment.carrier || '',
       notes: shipment.notes || '',
     });
-    setError(null);
   };
 
   const toggleSelect = (id: string) => {
@@ -188,6 +190,7 @@ export function ShipmentsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Manifiesto exportado', { description: `${list.length} envíos listos para despacho.` });
   };
 
   const printBulkLabels = () => {
@@ -198,63 +201,71 @@ export function ShipmentsPage() {
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Gestión de Envíos y Logística</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Impresión masiva de etiquetas, manifiestos de despacho y control de reparto.
-          </p>
-        </div>
+    <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header Superior */}
+        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">
+                Logística & Despacho de Envíos
+              </h1>
+              <Badge tone="transit">Estafeta · Moto Local · En mano</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Impresión masiva de etiquetas térmicas, control de guías y manifiestos de paquetería.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={printBulkLabels}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-sm"
+          <div className="flex items-center gap-2">
+            {selectedIds.length > 0 && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={printBulkLabels}
+                className="h-8 gap-1.5 font-bold text-xs shadow-sm"
+              >
+                <Printer className="size-3.5" />
+                Imprimir {selectedIds.length} Etiquetas
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportManifestCSV}
+              className="h-8 gap-1.5 text-xs font-semibold"
             >
-              <Printer className="h-3.5 w-3.5" />
-              Imprimir {selectedIds.length} Etiquetas
-            </button>
-          )}
+              <Download className="size-3.5" />
+              Descargar Manifiesto CSV
+            </Button>
+          </div>
+        </header>
 
-          <button
-            onClick={exportManifestCSV}
-            className="flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Descargar Manifiesto CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Barra de Filtros y Búsqueda */}
-      <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          {/* Búsqueda */}
-          <div className="relative min-w-[240px] flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Barra de Filtros y Búsqueda */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por cliente, colonia, ciudad o paquetería..."
+              placeholder="Buscar por cliente, colonia o paquetería..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border bg-background py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           </div>
 
-          {/* Filtros de estado */}
-          <div className="flex flex-wrap gap-1">
+          <div role="tablist" className="flex gap-1 overflow-x-auto scrollbar-thin w-full sm:w-auto">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
+                type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'rounded-md px-2.5 py-1 text-xs font-semibold',
+                  'h-7 rounded-md border px-2.5 text-xs font-medium transition-colors whitespace-nowrap',
                   filter === f.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-accent'
+                    ? 'border-foreground/20 bg-foreground text-background font-semibold shadow-xs'
+                    : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {f.label}
@@ -262,263 +273,256 @@ export function ShipmentsPage() {
             ))}
           </div>
         </div>
-      </div>
 
-      {successToast && (
-        <div className="mb-4 rounded-md bg-green-100 p-3 text-sm font-medium text-green-900 border border-green-300">
-          {successToast}
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
-          {error}
-        </div>
-      )}
-
-      {/* Tabla de Envíos */}
-      <div className="overflow-x-auto rounded-lg border bg-card">
-        <table className="w-full min-w-[1100px]">
-          <thead>
-            <tr className="border-b bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-3 text-left w-10">
-                <button onClick={toggleSelectAll} className="p-0.5">
-                  {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
-                    <CheckSquare className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Square className="h-4 w-4" />
-                  )}
-                </button>
-              </th>
-              <th className="px-4 py-3 text-left">Cliente & Contacto</th>
-              <th className="px-4 py-3 text-left">Dirección de Entrega</th>
-              <th className="px-4 py-3 text-left">Pedido / Concepto</th>
-              <th className="px-4 py-3 text-left">Método / Paquetería</th>
-              <th className="px-4 py-3 text-left">Guía (Opcional)</th>
-              <th className="px-4 py-3 text-left">Estado</th>
-              <th className="px-4 py-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y text-sm">
-            {filteredShipments.map((shipment) => {
-              const isEditing = editingId === shipment.id;
-              const isSelected = selectedIds.includes(shipment.id);
-
-              return (
-                <tr key={shipment.id} className={cn('hover:bg-muted/30', isSelected && 'bg-primary/5')}>
-                  {/* Checkbox */}
-                  <td className="px-4 py-3">
-                    <button onClick={() => toggleSelect(shipment.id)} className="p-0.5">
-                      {isSelected ? (
-                        <CheckSquare className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Square className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-                  </td>
-
-                  {/* Cliente */}
-                  <td className="px-4 py-3 font-medium">
-                    <p className="truncate">{shipment.lead?.name || 'Cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{shipment.lead?.phone}</p>
-                  </td>
-
-                  {/* Dirección */}
-                  <td className="px-4 py-3 text-xs">
-                    {shipment.lead?.addressStreet ? (
-                      <div>
-                        <p className="font-semibold text-foreground truncate max-w-[200px]">
-                          {shipment.lead.addressStreet} {shipment.lead.addressNumber}
-                        </p>
-                        <p className="text-muted-foreground truncate max-w-[200px]">
-                          {shipment.lead.addressColonia ? `Col. ${shipment.lead.addressColonia}, ` : ''}
-                          {shipment.lead.addressCity || ''}
-                        </p>
-                      </div>
+        {/* Tabla de Envíos Estilizada Cockpit */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+          <table className="w-full min-w-[1000px] border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="py-2.5 px-3 w-10">
+                  <button type="button" onClick={toggleSelectAll} className="flex size-4 items-center justify-center">
+                    {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
+                      <CheckSquare className="size-4 text-primary" />
                     ) : (
-                      <span className="text-muted-foreground italic">Sin dirección registrada</span>
+                      <Square className="size-4 text-muted-foreground" />
                     )}
-                  </td>
+                  </button>
+                </th>
+                <th className="py-2.5 px-3">Clienta & Destino</th>
+                <th className="py-2.5 px-3">Dirección de Entrega</th>
+                <th className="py-2.5 px-3">Prendas / Pedido</th>
+                <th className="py-2.5 px-3">Método / Paquetería</th>
+                <th className="py-2.5 px-3">Guía (Opcional)</th>
+                <th className="py-2.5 px-3">Estado</th>
+                <th className="py-2.5 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredShipments.map((shipment) => {
+                const isEditing = editingId === shipment.id;
+                const isSelected = selectedIds.includes(shipment.id);
 
-                  {/* Pedido */}
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-foreground">{shipment.paymentOrder?.concept || '-'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${Number(shipment.paymentOrder?.amount || 0).toFixed(2)} {shipment.paymentOrder?.currency || 'MXN'}
-                    </p>
-                  </td>
-
-                  {/* Método */}
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <div>
-                        <input
-                          list={`carrier-options-${shipment.id}`}
-                          value={draft.carrier}
-                          onChange={(e) => setDraft({ ...draft, carrier: e.target.value })}
-                          placeholder="Ej: Moto local, Estafeta..."
-                          className="w-full rounded-md border px-2 py-1 text-xs"
-                        />
-                        <datalist id={`carrier-options-${shipment.id}`}>
-                          {CARRIER_PRESETS.map((p) => (
-                            <option key={p} value={p} />
-                          ))}
-                        </datalist>
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
-                        {shipment.carrier?.toLowerCase().includes('moto') ? (
-                          <Bike className="h-3.5 w-3.5 text-amber-600" />
-                        ) : shipment.carrier?.toLowerCase().includes('tienda') || shipment.carrier?.toLowerCase().includes('personal') ? (
-                          <UserCheck className="h-3.5 w-3.5 text-purple-600" />
+                return (
+                  <tr
+                    key={shipment.id}
+                    className={cn(
+                      'transition-colors hover:bg-muted/30',
+                      isSelected && 'bg-primary/5'
+                    )}
+                  >
+                    {/* Checkbox */}
+                    <td className="py-3 px-3">
+                      <button type="button" onClick={() => toggleSelect(shipment.id)} className="flex size-4 items-center justify-center">
+                        {isSelected ? (
+                          <CheckSquare className="size-4 text-primary" />
                         ) : (
-                          <Truck className="h-3.5 w-3.5 text-blue-600" />
+                          <Square className="size-4 text-muted-foreground/60" />
                         )}
-                        {shipment.carrier || <span className="text-muted-foreground italic">Sin asignar</span>}
-                      </span>
-                    )}
-                  </td>
+                      </button>
+                    </td>
 
-                  {/* Guía */}
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input
-                        value={draft.trackingNumber}
-                        onChange={(e) => setDraft({ ...draft, trackingNumber: e.target.value })}
-                        placeholder="Guía (Opcional)"
-                        className="w-full rounded-md border px-2 py-1 text-xs font-mono"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs">
-                        {shipment.trackingNumber || <span className="text-muted-foreground italic">N/A</span>}
-                      </span>
-                    )}
-                  </td>
+                    {/* Clienta */}
+                    <td className="py-3 px-3 font-medium">
+                      <p className="font-semibold text-foreground truncate">{shipment.lead?.name || 'Cliente'}</p>
+                      <p className="text-[11px] text-muted-foreground">{shipment.lead?.phone}</p>
+                    </td>
 
-                  {/* Estado */}
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                        STATUS_META[shipment.status]?.className
-                      )}
-                    >
-                      <StatusIcon status={shipment.status} />
-                      {STATUS_META[shipment.status]?.label || shipment.status}
-                    </span>
-                  </td>
-
-                  {/* Acciones */}
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end items-center gap-1.5">
-                      {isEditing ? (
-                        <>
-                          <button
-                            onClick={() => updateShipment(shipment.id, draft)}
-                            disabled={busyId === shipment.id}
-                            className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                          >
-                            {busyId === shipment.id ? 'Guardando...' : 'Guardar'}
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-accent"
-                          >
-                            Cancelar
-                          </button>
-                        </>
+                    {/* Dirección */}
+                    <td className="py-3 px-3 text-[11px]">
+                      {shipment.lead?.addressStreet ? (
+                        <div className="max-w-[220px]">
+                          <p className="font-medium text-foreground truncate">
+                            {shipment.lead.addressStreet} {shipment.lead.addressNumber}
+                          </p>
+                          <p className="text-muted-foreground truncate">
+                            {shipment.lead.addressColonia ? `Col. ${shipment.lead.addressColonia}, ` : ''}
+                            {shipment.lead.addressCity || ''}
+                          </p>
+                        </div>
                       ) : (
-                        <>
-                          <button
-                            onClick={() => startEdit(shipment)}
-                            title="Editar detalles"
-                            className="rounded p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-
-                          {shipment.status === 'PENDING' && (
-                            <button
-                              onClick={() => updateShipment(shipment.id, { status: 'IN_TRANSIT' })}
-                              disabled={busyId === shipment.id}
-                              className="inline-flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
-                              title="Despachar y notificar por WhatsApp"
-                            >
-                              {busyId === shipment.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Send className="h-3 w-3" />
-                                  Despachar
-                                </>
-                              )}
-                            </button>
-                          )}
-
-                          {shipment.status === 'IN_TRANSIT' && (
-                            <button
-                              onClick={() => updateShipment(shipment.id, { status: 'DELIVERED' })}
-                              disabled={busyId === shipment.id}
-                              className="inline-flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-50"
-                              title="Marcar como entregado"
-                            >
-                              {busyId === shipment.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-3 w-3" />
-                                  Entregado
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </>
+                        <span className="text-muted-foreground italic text-[11px]">Sin dirección capturada</span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
 
-        {!loading && filteredShipments.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground text-sm">
-            No se encontraron envíos con los criterios seleccionados.
-          </div>
-        )}
+                    {/* Pedido */}
+                    <td className="py-3 px-3">
+                      <p className="font-semibold text-foreground truncate max-w-[200px]">
+                        {shipment.paymentOrder?.concept || 'Prendas del Live'}
+                      </p>
+                      <p className="text-[11px] text-emerald-500 font-bold">
+                        {money(Number(shipment.paymentOrder?.amount || 0))}
+                      </p>
+                    </td>
+
+                    {/* Método */}
+                    <td className="py-3 px-3">
+                      {isEditing ? (
+                        <div>
+                          <input
+                            list={`carrier-options-${shipment.id}`}
+                            value={draft.carrier}
+                            onChange={(e) => setDraft({ ...draft, carrier: e.target.value })}
+                            placeholder="Paquetería o método"
+                            className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
+                          />
+                          <datalist id={`carrier-options-${shipment.id}`}>
+                            {CARRIER_PRESETS.map((p) => (
+                              <option key={p} value={p} />
+                            ))}
+                          </datalist>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                          {shipment.carrier?.toLowerCase().includes('moto') ? (
+                            <Bike className="size-3.5 text-amber-500" />
+                          ) : shipment.carrier?.toLowerCase().includes('tienda') || shipment.carrier?.toLowerCase().includes('personal') ? (
+                            <UserCheck className="size-3.5 text-purple-500" />
+                          ) : (
+                            <Truck className="size-3.5 text-blue-500" />
+                          )}
+                          {shipment.carrier || <span className="text-muted-foreground italic">Sin asignar</span>}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Guía */}
+                    <td className="py-3 px-3">
+                      {isEditing ? (
+                        <input
+                          value={draft.trackingNumber}
+                          onChange={(e) => setDraft({ ...draft, trackingNumber: e.target.value })}
+                          placeholder="Número de guía"
+                          className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {shipment.trackingNumber || <span className="italic text-[11px]">N/A</span>}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Estado */}
+                    <td className="py-3 px-3">
+                      <Badge tone={STATUS_TONE[shipment.status]}>
+                        {STATUS_LABEL[shipment.status] || shipment.status}
+                      </Badge>
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="py-3 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              disabled={busyId === shipment.id}
+                              onClick={() => updateShipment(shipment.id, draft)}
+                              className="h-6 px-2 text-[11px]"
+                            >
+                              {busyId === shipment.id ? '...' : 'Guardar'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingId(null)}
+                              className="h-6 px-2 text-[11px]"
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => startEdit(shipment)}
+                              className="size-7 text-muted-foreground hover:text-foreground"
+                              title="Editar detalles"
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+
+                            {shipment.status === 'PENDING' && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={busyId === shipment.id}
+                                onClick={() => updateShipment(shipment.id, { status: 'IN_TRANSIT' })}
+                                className="h-7 px-2.5 text-xs font-bold gap-1"
+                              >
+                                {busyId === shipment.id ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Send className="size-3" /> Despachar
+                                  </>
+                                )}
+                              </Button>
+                            )}
+
+                            {shipment.status === 'IN_TRANSIT' && (
+                              <Button
+                                variant="success"
+                                size="sm"
+                                disabled={busyId === shipment.id}
+                                onClick={() => updateShipment(shipment.id, { status: 'DELIVERED' })}
+                                className="h-7 px-2.5 text-xs font-bold gap-1"
+                              >
+                                {busyId === shipment.id ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="size-3" /> Entregado
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {!loading && filteredShipments.length === 0 && (
+            <div className="p-12 text-center text-xs text-muted-foreground">
+              No hay envíos en este filtro. Los paquetes se generan automáticamente al confirmar pagos.
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Modal / Vista de Impresión Masiva de Etiquetas */}
+      {/* Vista de Impresión Masiva de Etiquetas Térmicas */}
       {showBulkPrintView && (
         <div className="fixed inset-0 z-50 bg-white text-black p-8 overflow-y-auto">
           <div className="no-print flex justify-between items-center mb-6 border-b pb-4">
             <h2 className="font-bold text-lg">Impresión Masiva ({selectedIds.length} Etiquetas)</h2>
-            <button
-              onClick={() => setShowBulkPrintView(false)}
-              className="rounded bg-black px-4 py-2 text-xs font-bold text-white"
-            >
+            <Button variant="default" size="sm" onClick={() => setShowBulkPrintView(false)}>
               Cerrar Vista de Impresión
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {shipments
               .filter((s) => selectedIds.includes(s.id))
               .map((s) => (
-                <div key={s.id} className="rounded-lg border-2 border-dashed border-black p-4 space-y-2.5 break-inside-avoid">
+                <div key={s.id} className="rounded-xl border-2 border-dashed border-black p-4 space-y-2.5 break-inside-avoid">
                   <div className="flex justify-between items-start border-b border-black pb-1.5">
                     <div>
-                      <h3 className="font-black text-xs uppercase">📦 PAQUETE LIVE SHOPPING</h3>
-                      <p className="text-[11px]">Cliente: <strong>{s.lead?.name || s.lead?.phone}</strong></p>
+                      <h3 className="font-black text-xs uppercase">📦 LIVEFLOW BOUTIQUE</h3>
+                      <p className="text-[11px]">Destino: <strong>{s.lead?.name || s.lead?.phone}</strong></p>
                       <p className="text-[11px]">Tel: <strong>{s.lead?.phone}</strong></p>
                     </div>
-                    <span className="font-mono text-xs font-bold border border-black px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-bold border border-black px-1.5 py-0.5 rounded">
                       {s.paymentOrder?.id?.slice(0, 8)?.toUpperCase() || 'REF-LIVE'}
                     </span>
                   </div>
 
-                  <div className="text-xs">
+                  <div className="text-xs space-y-0.5">
                     <p className="font-bold">
                       {s.lead?.addressStreet} {s.lead?.addressNumber}
                     </p>
@@ -526,13 +530,13 @@ export function ShipmentsPage() {
                       {s.lead?.addressColonia ? `Col. ${s.lead.addressColonia}, ` : ''}
                       {s.lead?.addressCity} {s.lead?.addressState}
                     </p>
-                    <p className="font-mono font-bold">CP: {s.lead?.addressZipCode || 'N/A'}</p>
+                    <p className="font-bold">CP: {s.lead?.addressZipCode || 'N/A'}</p>
                     {s.lead?.addressNotes && <p className="italic text-[10px] bg-gray-100 p-1 rounded mt-1">Ref: {s.lead.addressNotes}</p>}
                   </div>
 
                   <div className="border-t border-black pt-1.5 text-[11px] flex justify-between">
                     <span>Prendas: <strong>{s.paymentOrder?.concept}</strong></span>
-                    <span>Envío: <strong>{s.carrier || 'Local'}</strong></span>
+                    <span>Método: <strong>{s.carrier || 'Estafeta'}</strong></span>
                   </div>
                 </div>
               ))}
