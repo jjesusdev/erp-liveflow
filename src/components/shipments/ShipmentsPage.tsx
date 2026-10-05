@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatCurrency } from '@/lib/date-utils';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatDate } from '@/lib/date-utils';
 import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -20,11 +20,11 @@ import {
   CheckSquare,
   Square,
   Search,
-  MapPin,
   PackageCheck,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge, SectionLabel } from '@/components/liveflow/primitives';
+import { Badge } from '@/components/liveflow/primitives';
 import { toast } from 'sonner';
 import type { Shipment, ShipmentStatus } from '@/types';
 
@@ -33,9 +33,7 @@ const FILTERS = [
   { id: 'PENDING', label: 'Pendientes' },
   { id: 'IN_TRANSIT', label: 'En camino' },
   { id: 'DELIVERED', label: 'Entregados' },
-  { id: 'RETURNED', label: 'Devueltos' },
-  { id: 'LOST', label: 'Perdidos' },
-];
+] as const;
 
 const CARRIER_PRESETS = [
   'Envío Local / Moto',
@@ -66,14 +64,13 @@ const STATUS_LABEL: Record<ShipmentStatus, string> = {
 
 export function ShipmentsPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ trackingNumber: '', carrier: '', notes: '' });
 
-  // Selección múltiple para despacho e impresión masiva
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkPrintView, setShowBulkPrintView] = useState(false);
 
@@ -146,18 +143,28 @@ export function ShipmentsPage() {
     }
   };
 
-  const filteredShipments = shipments.filter((s) => {
-    if (!search.trim()) return true;
-    const term = search.toLowerCase();
-    return (
-      (s.lead?.name && s.lead.name.toLowerCase().includes(term)) ||
-      (s.lead?.phone && s.lead.phone.includes(term)) ||
-      (s.carrier && s.carrier.toLowerCase().includes(term)) ||
-      (s.trackingNumber && s.trackingNumber.toLowerCase().includes(term)) ||
-      (s.lead?.addressCity && s.lead.addressCity.toLowerCase().includes(term)) ||
-      (s.lead?.addressColonia && s.lead.addressColonia.toLowerCase().includes(term))
-    );
-  });
+  const filteredShipments = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return shipments.filter((s) => {
+      return (
+        (!q ||
+          (s.lead?.name && s.lead.name.toLowerCase().includes(q)) ||
+          (s.lead?.phone && s.lead.phone.includes(q)) ||
+          (s.carrier && s.carrier.toLowerCase().includes(q)) ||
+          (s.trackingNumber && s.trackingNumber.toLowerCase().includes(q)) ||
+          (s.lead?.addressCity && s.lead.addressCity.toLowerCase().includes(q)) ||
+          (s.lead?.addressColonia && s.lead.addressColonia.toLowerCase().includes(q)))
+      );
+    });
+  }, [shipments, query]);
+
+  const stats = useMemo(() => {
+    const total = shipments.length;
+    const pending = shipments.filter((s) => s.status === 'PENDING').length;
+    const inTransit = shipments.filter((s) => s.status === 'IN_TRANSIT').length;
+    const delivered = shipments.filter((s) => s.status === 'DELIVERED').length;
+    return { total, pending, inTransit, delivered };
+  }, [shipments]);
 
   const exportManifestCSV = () => {
     const list = selectedIds.length > 0
@@ -190,7 +197,7 @@ export function ShipmentsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Manifiesto exportado', { description: `${list.length} envíos listos para despacho.` });
+    toast.success('Manifiesto exportado', { description: `${list.length} paquetes descargados.` });
   };
 
   const printBulkLabels = () => {
@@ -201,302 +208,268 @@ export function ShipmentsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Header Superior */}
-        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+    <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin bg-background">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+        {/* Header exacto de CuadreView */}
+        <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-foreground">
-                Logística & Despacho de Envíos
-              </h1>
-              <Badge tone="transit">Estafeta · Moto Local · En mano</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Impresión masiva de etiquetas térmicas, control de guías y manifiestos de paquetería.
+            <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
+              LOGÍSTICA · {stats.total} PAQUETES REGISTRADOS
             </p>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Despacho & Envíos
+            </h1>
           </div>
-
           <div className="flex items-center gap-2">
             {selectedIds.length > 0 && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={printBulkLabels}
-                className="h-8 gap-1.5 font-bold text-xs shadow-sm"
-              >
-                <Printer className="size-3.5" />
-                Imprimir {selectedIds.length} Etiquetas
+              <Button size="sm" onClick={printBulkLabels} className="gap-1.5 text-xs font-bold shadow-xs">
+                <Printer className="size-3.5" aria-hidden />
+                Imprimir {selectedIds.length} etiquetas
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportManifestCSV}
-              className="h-8 gap-1.5 text-xs font-semibold"
-            >
-              <Download className="size-3.5" />
-              Descargar Manifiesto CSV
+            <Button variant="outline" size="sm" onClick={exportManifestCSV} className="gap-1.5 text-xs">
+              <Download className="size-3.5" aria-hidden />
+              Exportar Manifiesto CSV
             </Button>
           </div>
         </header>
 
-        {/* Barra de Filtros y Búsqueda */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar por cliente, colonia o paquetería..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-            />
+        {/* 4 Tarjetas de Resumen estilo Cuadre */}
+        <section aria-label="Resumen de Envíos" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Por empaquetar</p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-pending">{stats.pending}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Pagos confirmados en espera</p>
           </div>
 
-          <div role="tablist" className="flex gap-1 overflow-x-auto scrollbar-thin w-full sm:w-auto">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  'h-7 rounded-md border px-2.5 text-xs font-medium transition-colors whitespace-nowrap',
-                  filter === f.id
-                    ? 'border-foreground/20 bg-foreground text-background font-semibold shadow-xs'
-                    : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">En camino</p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-transit">{stats.inTransit}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Despachados con chofer / guía</p>
           </div>
-        </div>
 
-        {/* Tabla de Envíos Estilizada Cockpit */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          <table className="w-full min-w-[1000px] border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                <th className="py-2.5 px-3 w-10">
-                  <button type="button" onClick={toggleSelectAll} className="flex size-4 items-center justify-center">
-                    {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
-                      <CheckSquare className="size-4 text-primary" />
-                    ) : (
-                      <Square className="size-4 text-muted-foreground" />
-                    )}
-                  </button>
-                </th>
-                <th className="py-2.5 px-3">Clienta & Destino</th>
-                <th className="py-2.5 px-3">Dirección de Entrega</th>
-                <th className="py-2.5 px-3">Prendas / Pedido</th>
-                <th className="py-2.5 px-3">Método / Paquetería</th>
-                <th className="py-2.5 px-3">Guía (Opcional)</th>
-                <th className="py-2.5 px-3">Estado</th>
-                <th className="py-2.5 px-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredShipments.map((shipment) => {
-                const isEditing = editingId === shipment.id;
-                const isSelected = selectedIds.includes(shipment.id);
+          <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Entregados con éxito</p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-success">{stats.delivered}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Ciclo completado</p>
+          </div>
 
-                return (
-                  <tr
-                    key={shipment.id}
-                    className={cn(
-                      'transition-colors hover:bg-muted/30',
-                      isSelected && 'bg-primary/5'
-                    )}
-                  >
-                    {/* Checkbox */}
-                    <td className="py-3 px-3">
-                      <button type="button" onClick={() => toggleSelect(shipment.id)} className="flex size-4 items-center justify-center">
-                        {isSelected ? (
-                          <CheckSquare className="size-4 text-primary" />
-                        ) : (
-                          <Square className="size-4 text-muted-foreground/60" />
-                        )}
-                      </button>
-                    </td>
+          <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total de envíos</p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{stats.total}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Histórico acumulado</p>
+          </div>
+        </section>
 
-                    {/* Clienta */}
-                    <td className="py-3 px-3 font-medium">
-                      <p className="font-semibold text-foreground truncate">{shipment.lead?.name || 'Cliente'}</p>
-                      <p className="text-[11px] text-muted-foreground">{shipment.lead?.phone}</p>
-                    </td>
+        {/* Sección de Movimientos de Envíos (Tabla Idéntica a Cuadre) */}
+        <section aria-label="Movimientos de Envíos" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
+            <div role="tablist" aria-label="Filtrar por estado" className="flex gap-1 rounded-md bg-muted p-0.5">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={filter === f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={cn(
+                    'h-6 rounded px-2.5 text-xs font-medium transition-colors',
+                    filter === f.id
+                      ? 'bg-background text-foreground shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
 
-                    {/* Dirección */}
-                    <td className="py-3 px-3 text-[11px]">
-                      {shipment.lead?.addressStreet ? (
-                        <div className="max-w-[220px]">
-                          <p className="font-medium text-foreground truncate">
-                            {shipment.lead.addressStreet} {shipment.lead.addressNumber}
-                          </p>
-                          <p className="text-muted-foreground truncate">
-                            {shipment.lead.addressColonia ? `Col. ${shipment.lead.addressColonia}, ` : ''}
-                            {shipment.lead.addressCity || ''}
-                          </p>
-                        </div>
+            <label className="relative">
+              <span className="sr-only">Buscar por cliente o destino</span>
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cliente, ciudad o guía…"
+                className="h-7 w-60 rounded-md border border-input bg-background pr-2 pl-8 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
+              />
+            </label>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <tr>
+                  <th scope="col" className="w-8 px-3 py-2.5">
+                    <button type="button" onClick={toggleSelectAll} className="flex size-4 items-center justify-center">
+                      {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
+                        <CheckSquare className="size-4 text-primary" />
                       ) : (
-                        <span className="text-muted-foreground italic text-[11px]">Sin dirección capturada</span>
+                        <Square className="size-4 text-muted-foreground/60" />
                       )}
-                    </td>
+                    </button>
+                  </th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Folio</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Destinatario</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Dirección</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Prendas</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Método</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredShipments.map((shipment) => {
+                  const isEditing = editingId === shipment.id;
+                  const isSelected = selectedIds.includes(shipment.id);
 
-                    {/* Pedido */}
-                    <td className="py-3 px-3">
-                      <p className="font-semibold text-foreground truncate max-w-[200px]">
-                        {shipment.paymentOrder?.concept || 'Prendas del Live'}
-                      </p>
-                      <p className="text-[11px] text-emerald-500 font-bold">
-                        {money(Number(shipment.paymentOrder?.amount || 0))}
-                      </p>
-                    </td>
+                  return (
+                    <tr
+                      key={shipment.id}
+                      className={cn(
+                        'transition-colors hover:bg-muted/30',
+                        isSelected && 'bg-muted/50'
+                      )}
+                    >
+                      <td className="px-3 py-2.5">
+                        <button type="button" onClick={() => toggleSelect(shipment.id)} className="flex size-4 items-center justify-center">
+                          {isSelected ? (
+                            <CheckSquare className="size-4 text-primary" />
+                          ) : (
+                            <Square className="size-4 text-muted-foreground/60" />
+                          )}
+                        </button>
+                      </td>
 
-                    {/* Método */}
-                    <td className="py-3 px-3">
-                      {isEditing ? (
-                        <div>
+                      <td className="px-3 py-2.5 font-semibold text-foreground">
+                        {shipment.paymentOrder?.id ? `LF-${shipment.paymentOrder.id.slice(0, 8).toUpperCase()}` : 'LF-ENV'}
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <p className="font-semibold text-foreground">{shipment.lead?.name || 'Clienta'}</p>
+                        <p className="text-[11px] text-muted-foreground">{shipment.lead?.phone}</p>
+                      </td>
+
+                      <td className="px-3 py-2.5 text-[11px] text-muted-foreground max-w-56 truncate">
+                        {shipment.lead?.addressStreet
+                          ? `${shipment.lead.addressStreet} ${shipment.lead.addressNumber || ''}, ${shipment.lead.addressCity || ''}`
+                          : 'Sin capturar'}
+                      </td>
+
+                      <td className="px-3 py-2.5 text-foreground max-w-48 truncate">
+                        {shipment.paymentOrder?.concept || 'Prendas Live'}
+                      </td>
+
+                      <td className="px-3 py-2.5 text-muted-foreground">
+                        {isEditing ? (
                           <input
-                            list={`carrier-options-${shipment.id}`}
+                            list={`carrier-opts-${shipment.id}`}
                             value={draft.carrier}
                             onChange={(e) => setDraft({ ...draft, carrier: e.target.value })}
-                            placeholder="Paquetería o método"
-                            className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
+                            placeholder="Método..."
+                            className="h-6 w-32 rounded border border-input bg-background px-1.5 text-xs"
                           />
-                          <datalist id={`carrier-options-${shipment.id}`}>
-                            {CARRIER_PRESETS.map((p) => (
-                              <option key={p} value={p} />
-                            ))}
-                          </datalist>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                          {shipment.carrier?.toLowerCase().includes('moto') ? (
-                            <Bike className="size-3.5 text-amber-500" />
-                          ) : shipment.carrier?.toLowerCase().includes('tienda') || shipment.carrier?.toLowerCase().includes('personal') ? (
-                            <UserCheck className="size-3.5 text-purple-500" />
-                          ) : (
-                            <Truck className="size-3.5 text-blue-500" />
-                          )}
-                          {shipment.carrier || <span className="text-muted-foreground italic">Sin asignar</span>}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Guía */}
-                    <td className="py-3 px-3">
-                      {isEditing ? (
-                        <input
-                          value={draft.trackingNumber}
-                          onChange={(e) => setDraft({ ...draft, trackingNumber: e.target.value })}
-                          placeholder="Número de guía"
-                          className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
-                        />
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {shipment.trackingNumber || <span className="italic text-[11px]">N/A</span>}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Estado */}
-                    <td className="py-3 px-3">
-                      <Badge tone={STATUS_TONE[shipment.status]}>
-                        {STATUS_LABEL[shipment.status] || shipment.status}
-                      </Badge>
-                    </td>
-
-                    {/* Acciones */}
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              disabled={busyId === shipment.id}
-                              onClick={() => updateShipment(shipment.id, draft)}
-                              className="h-6 px-2 text-[11px]"
-                            >
-                              {busyId === shipment.id ? '...' : 'Guardar'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingId(null)}
-                              className="h-6 px-2 text-[11px]"
-                            >
-                              Cancelar
-                            </Button>
-                          </>
                         ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => startEdit(shipment)}
-                              className="size-7 text-muted-foreground hover:text-foreground"
-                              title="Editar detalles"
-                            >
-                              <Pencil className="size-3.5" />
-                            </Button>
-
-                            {shipment.status === 'PENDING' && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                disabled={busyId === shipment.id}
-                                onClick={() => updateShipment(shipment.id, { status: 'IN_TRANSIT' })}
-                                className="h-7 px-2.5 text-xs font-bold gap-1"
-                              >
-                                {busyId === shipment.id ? (
-                                  <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Send className="size-3" /> Despachar
-                                  </>
-                                )}
-                              </Button>
-                            )}
-
-                            {shipment.status === 'IN_TRANSIT' && (
-                              <Button
-                                variant="success"
-                                size="sm"
-                                disabled={busyId === shipment.id}
-                                onClick={() => updateShipment(shipment.id, { status: 'DELIVERED' })}
-                                className="h-7 px-2.5 text-xs font-bold gap-1"
-                              >
-                                {busyId === shipment.id ? (
-                                  <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle className="size-3" /> Entregado
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </>
+                          <span>{shipment.carrier || 'Estafeta'}</span>
                         )}
-                      </div>
+                        <datalist id={`carrier-opts-${shipment.id}`}>
+                          {CARRIER_PRESETS.map((p) => (
+                            <option key={p} value={p} />
+                          ))}
+                        </datalist>
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <Badge tone={STATUS_TONE[shipment.status]}>
+                          {STATUS_LABEL[shipment.status] || shipment.status}
+                        </Badge>
+                      </td>
+
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isEditing ? (
+                            <>
+                              <Button
+                                size="xs"
+                                variant="default"
+                                disabled={busyId === shipment.id}
+                                onClick={() => updateShipment(shipment.id, draft)}
+                                className="h-6 px-2 text-[11px]"
+                              >
+                                Guardar
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => setEditingId(null)}
+                                className="h-6 px-2 text-[11px]"
+                              >
+                                Cancelar
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => startEdit(shipment)}
+                                className="size-6 text-muted-foreground hover:text-foreground"
+                              >
+                                <Pencil className="size-3" />
+                              </Button>
+
+                              {shipment.status === 'PENDING' && (
+                                <Button
+                                  size="xs"
+                                  variant="default"
+                                  disabled={busyId === shipment.id}
+                                  onClick={() => updateShipment(shipment.id, { status: 'IN_TRANSIT' })}
+                                  className="h-6 px-2 text-[11px] gap-1 font-semibold"
+                                >
+                                  <Send className="size-2.5" /> Despachar
+                                </Button>
+                              )}
+
+                              {shipment.status === 'IN_TRANSIT' && (
+                                <Button
+                                  size="xs"
+                                  variant="success"
+                                  disabled={busyId === shipment.id}
+                                  onClick={() => updateShipment(shipment.id, { status: 'DELIVERED' })}
+                                  className="h-6 px-2 text-[11px] gap-1 font-semibold"
+                                >
+                                  <Check className="size-2.5" /> Entregado
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!loading && filteredShipments.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">
+                      No hay envíos en este filtro.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {!loading && filteredShipments.length === 0 && (
-            <div className="p-12 text-center text-xs text-muted-foreground">
-              No hay envíos en este filtro. Los paquetes se generan automáticamente al confirmar pagos.
-            </div>
-          )}
-        </div>
+                )}
+              </tbody>
+              <tfoot className="border-t border-border bg-muted/40">
+                <tr>
+                  <td colSpan={8} className="px-3 py-2.5 text-xs text-muted-foreground">
+                    {filteredShipments.length} paquetes mostrados
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
       </div>
 
-      {/* Vista de Impresión Masiva de Etiquetas Térmicas */}
+      {/* Vista de Impresión Térmica Masiva */}
       {showBulkPrintView && (
         <div className="fixed inset-0 z-50 bg-white text-black p-8 overflow-y-auto">
           <div className="no-print flex justify-between items-center mb-6 border-b pb-4">
