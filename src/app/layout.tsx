@@ -4,7 +4,6 @@ import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,10 +29,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <TooltipProvider delayDuration={150}>
-            <AppShell>{children}</AppShell>
-            <Toaster position="bottom-right" />
-          </TooltipProvider>
+          <AppShell>{children}</AppShell>
+          <Toaster position="bottom-right" />
         </ThemeProvider>
       </body>
     </html>

@@ -1,5 +1,5 @@
-import { CajaPage } from '@/components/caja/CajaPage';
+import { CuadreView } from '@/components/liveflow/cuadre/cuadre-view';
 
-export default function Caja() {
-  return <CajaPage />;
+export default function CuadrePage() {
+  return <CuadreView />;
 }

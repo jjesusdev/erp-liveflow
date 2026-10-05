@@ -1,5 +1,5 @@
-import { LiveHudPage } from '@/components/live/LiveHudPage';
+import { LiveHud } from '@/components/liveflow/hud/live-hud';
 
-export default function LiveHud() {
-  return <LiveHudPage />;
+export default function HudPage() {
+  return <LiveHud />;
 }

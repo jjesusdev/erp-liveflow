@@ -1,40 +1,34 @@
-import { type ClassValue, clsx } from 'clsx';
+import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDistanceToNow, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = 'MXN') {
+export function formatCurrency(amount: number, currency: string = 'MXN'): string {
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency,
+    minimumFractionDigits: 2,
   }).format(amount);
 }
 
-export function formatTime(date: Date | string) {
-  return new Intl.DateTimeFormat('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return format(d, "d 'de' MMMM, yyyy", { locale: es });
 }
 
-export function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat('es-MX', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
+export function formatTime(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return format(d, 'HH:mm', { locale: es });
 }
 
-export function timeAgo(date: Date | string) {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return 'ahora';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
+export function timeAgo(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return formatDistanceToNow(d, { addSuffix: true, locale: es });
 }

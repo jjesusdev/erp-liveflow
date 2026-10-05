@@ -22,11 +22,10 @@ import {
   User,
   History,
   FileText,
-  Lock,
 } from 'lucide-react';
 import { TextBubble, ImageBubble, VoiceBubble, ReceiptBubble } from '@/components/liveflow/workspace/message-bubbles';
 import { Button } from '@/components/ui/button';
-import { Kbd, TierBadge } from '@/components/liveflow/primitives';
+import { TierBadge } from '@/components/liveflow/primitives';
 import type { Conversation, Message, MessageTemplate, Product, Lead } from '@/types';
 
 interface ChatPanelProps {
@@ -380,7 +379,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
               <h2 className="truncate text-xs font-bold text-foreground">
                 {conversation?.lead?.name || conversation?.lead?.phone || 'Clienta'}
               </h2>
-              <TierBadge tier={conversation?.lead?.tier} />
+              <TierBadge tier={conversation?.lead?.tier === 'VIP' ? 'vip' : conversation?.lead?.tier === 'FREQUENT' ? 'recurrente' : 'nueva'} />
             </div>
             <p className="truncate font-mono text-[11px] text-muted-foreground">
               {conversation?.lead?.phone}
@@ -550,23 +549,30 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                   return (
                     <ReceiptBubble
                       key={message.id}
-                      src={message.mediaUrl}
-                      amount={Number(pendingPayment.amount)}
-                      time={time}
-                      approved={pendingPayment.status === 'PAID'}
+                      message={{
+                        id: message.id,
+                        kind: 'receipt',
+                        from: 'in',
+                        src: message.mediaUrl,
+                        amount: Number(pendingPayment.amount),
+                        time,
+                        approved: pendingPayment.status === 'PAID',
+                      }}
                       onApprove={() => approvePaymentOrder(pendingPayment.id)}
-                      onImageClick={() => setPreviewImage(message.mediaUrl!)}
                     />
                   );
                 }
                 return (
                   <ImageBubble
                     key={message.id}
-                    src={message.mediaUrl}
-                    caption={message.content}
-                    from={from}
-                    time={time}
-                    onImageClick={() => setPreviewImage(message.mediaUrl!)}
+                    message={{
+                      id: message.id,
+                      kind: 'image',
+                      from,
+                      src: message.mediaUrl,
+                      caption: message.content || undefined,
+                      time,
+                    }}
                   />
                 );
               }
@@ -575,9 +581,13 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 return (
                   <VoiceBubble
                     key={message.id}
-                    src={message.mediaUrl}
-                    from={from}
-                    time={time}
+                    message={{
+                      id: message.id,
+                      kind: 'voice',
+                      from,
+                      durationSec: 15,
+                      time,
+                    }}
                   />
                 );
               }
@@ -585,9 +595,13 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
               return (
                 <TextBubble
                   key={message.id}
-                  text={message.content || ''}
-                  from={from}
-                  time={time}
+                  message={{
+                    id: message.id,
+                    kind: 'text',
+                    from,
+                    text: message.content || '',
+                    time,
+                  }}
                 />
               );
             })}
@@ -716,7 +730,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 </h4>
                 <p className="text-xs text-muted-foreground font-mono">{conversation?.lead?.phone}</p>
               </div>
-              <TierBadge tier={conversation?.lead?.tier} />
+              <TierBadge tier={conversation?.lead?.tier === 'VIP' ? 'vip' : conversation?.lead?.tier === 'FREQUENT' ? 'recurrente' : 'nueva'} />
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">

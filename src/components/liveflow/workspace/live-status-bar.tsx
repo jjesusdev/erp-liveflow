@@ -1,85 +1,86 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSocket } from '@/lib/socket';
-import { Radio, Users, Sparkles, TrendingUp, DollarSign } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import Link from 'next/link';
+import { MonitorPlay, Radio, Users } from 'lucide-react';
+import { clock, money } from '@/lib/format';
+import { Badge, LiveDot } from '@/components/liveflow/primitives';
 import type { LiveSession } from '@/types';
 
 export function LiveStatusBar({
   activeSession,
-  onEndLive,
   onStartLive,
+  onEndLive,
 }: {
   activeSession?: LiveSession | null;
-  onEndLive?: () => void;
   onStartLive?: () => void;
+  onEndLive?: () => void;
 }) {
-  const [totalSales, setTotalSales] = useState(activeSession?.totalSales || 0);
-  const [tickets, setTickets] = useState(activeSession?.ordersCount || 0);
+  const [elapsed, setElapsed] = useState(42 * 60 + 18);
 
   useEffect(() => {
-    if (activeSession) {
-      setTotalSales(activeSession.totalSales || 0);
-      setTickets(activeSession.ordersCount || 0);
-    }
-  }, [activeSession]);
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const h = Math.floor(elapsed / 3600);
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/60 px-4 backdrop-blur-md">
-      <div className="flex items-center gap-3">
-        {activeSession ? (
-          <div className="flex items-center gap-2">
-            <span className="relative flex size-2.5">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-red-600" />
+    <header className="flex h-10 shrink-0 items-center gap-4 border-b border-border bg-card/60 px-4 text-xs backdrop-blur-md">
+      <h1 className="text-sm font-black tracking-wider uppercase text-foreground">LiveFlow</h1>
+      {activeSession ? (
+        <>
+          <Badge tone="live" className="font-bold">
+            <LiveDot className="size-1.5" />
+            EN VIVO
+          </Badge>
+          <span className="text-muted-foreground truncate max-w-xs">{activeSession.platform} • {activeSession.title}</span>
+          <span className="font-mono text-muted-foreground">
+            {String(h).padStart(2, '0')}:{clock(elapsed % 3600)}
+          </span>
+          <div className="ml-auto flex items-center gap-4">
+            <span className="font-mono font-bold text-emerald-500">
+              {money(activeSession.totalSales || 0)}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-red-500">EN VIVO</span>
-              <span className="text-xs font-semibold text-foreground truncate max-w-[200px]">
-                {activeSession.title}
-              </span>
-              <span className="rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-red-400">
-                {activeSession.platform}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="size-2 rounded-full bg-zinc-600" />
-            <span className="text-xs font-medium">Modo Preparación • Sin transmisión activa</span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4">
-        {activeSession ? (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs">
-              <DollarSign className="size-3.5 text-emerald-500" />
-              <span className="font-mono font-bold text-foreground">{formatCurrency(totalSales)}</span>
-              <span className="text-[10px] text-muted-foreground">({tickets} ventas)</span>
-            </div>
+            <Link
+              href="/live-hud"
+              className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline"
+            >
+              <MonitorPlay className="size-3.5" aria-hidden />
+              Abrir HUD
+            </Link>
             {onEndLive && (
               <button
                 onClick={onEndLive}
-                className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors"
+                className="rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/20"
               >
                 Finalizar Live
               </button>
             )}
           </div>
-        ) : (
-          onStartLive && (
-            <button
-              onClick={onStartLive}
-              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-all"
+        </>
+      ) : (
+        <>
+          <span className="text-muted-foreground">Sin transmisión activa</span>
+          <div className="ml-auto flex items-center gap-3">
+            {onStartLive && (
+              <button
+                onClick={onStartLive}
+                className="flex items-center gap-1 rounded bg-red-600 px-2.5 py-0.5 text-[11px] font-bold text-white hover:bg-red-700"
+              >
+                <Radio className="size-3" /> Iniciar Live
+              </button>
+            )}
+            <Link
+              href="/live-hud"
+              className="inline-flex items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
             >
-              <Radio className="size-3.5" /> Iniciar Sesión Live
-            </button>
-          )
-        )}
-      </div>
+              <MonitorPlay className="size-3.5" aria-hidden />
+              HUD
+            </Link>
+          </div>
+        </>
+      )}
     </header>
   );
 }

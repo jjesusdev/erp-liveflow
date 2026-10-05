@@ -1,14 +1,12 @@
 'use client';
 
-import { Sidebar } from '@/components/layout/Sidebar';
-import { CommandPalette } from '@/components/layout/CommandPalette';
+import { NavRail } from '@/components/liveflow/nav-rail';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      <Sidebar />
-      <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
-      <CommandPalette />
+    <div className="flex h-dvh overflow-hidden bg-background">
+      <NavRail />
+      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }
