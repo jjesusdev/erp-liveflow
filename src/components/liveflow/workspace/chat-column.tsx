@@ -1,14 +1,29 @@
-'use client'
+'use client';
 
-import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
-import { Check, ChevronDown, Clock, ImagePlus, Lock, Phone, Plus, SendHorizontal, Shirt, Wallet, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { clock, money } from '@/lib/format'
-import { CATALOG, SHORTCUTS, type Conversation, type Message, type Product } from '@/lib/liveflow-data'
-import { Button } from '@/components/ui/button'
-import { Kbd, TierBadge } from '@/components/liveflow/primitives'
-import { ImageBubble, ReceiptBubble, TextBubble, VoiceBubble } from './message-bubbles'
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import {
+  Check,
+  ChevronDown,
+  Clock,
+  ImagePlus,
+  Lock,
+  Phone,
+  Plus,
+  SendHorizontal,
+  Shirt,
+  Wallet,
+  X,
+  Radio,
+  Zap,
+  Sparkles,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { clock, money } from '@/lib/format';
+import { CATALOG, SHORTCUTS, type Conversation, type Message, type Product } from '@/lib/liveflow-data';
+import { Button } from '@/components/ui/button';
+import { Kbd, TierBadge } from '@/components/liveflow/primitives';
+import { ImageBubble, ReceiptBubble, TextBubble, VoiceBubble } from './message-bubbles';
 
 export function ChatColumn({
   conversation,
@@ -19,19 +34,62 @@ export function ChatColumn({
   onSend,
   onAddProduct,
 }: {
-  conversation: Conversation
-  messages: Message[]
-  deadline: number | null
-  onApprove: () => void
-  onOpenCharge: () => void
-  onSend: (text: string, image?: string) => void
-  onAddProduct: (p: Product) => void
+  conversation?: Conversation | null;
+  messages: Message[];
+  deadline: number | null;
+  onApprove: () => void;
+  onOpenCharge: () => void;
+  onSend: (text: string, image?: string) => void;
+  onAddProduct: (p: Product) => void;
 }) {
-  const feedRef = useRef<HTMLDivElement>(null)
+  const feedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages.length, conversation.id])
+    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages.length, conversation?.id]);
+
+  if (!conversation) {
+    return (
+      <section aria-label="Centro de atención en espera" className="flex min-w-0 flex-1 flex-col bg-background">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Centro de Atención Live
+            </h2>
+          </div>
+          <span className="text-[11px] font-mono text-muted-foreground">STANDBY</span>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-lg mx-auto">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 mb-4 border border-emerald-500/20">
+            <Radio className="size-6 animate-pulse" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">Listo para atender transmisiones en vivo</h3>
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+            Cuando las clientas escriban por WhatsApp solicitando prendas o enviando comprobantes de transferencia, la conversación aparecerá aquí para gestionarla al vuelo.
+          </p>
+
+          <div className="grid grid-cols-3 gap-2.5 w-full mt-6 text-left">
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <span className="text-[10px] font-bold text-amber-500">1. APARTADOS</span>
+              <p className="text-[11px] text-muted-foreground">Bloqueo de 30 min para transferir.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <span className="text-[10px] font-bold text-emerald-500">2. COMPROBANTES</span>
+              <p className="text-[11px] text-muted-foreground">Aprobación en 1 clic sobre la foto.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-3 space-y-1">
+              <span className="text-[10px] font-bold text-blue-500">3. DESPACHOS</span>
+              <p className="text-[11px] text-muted-foreground">Ficha y etiqueta de empaque lista.</p>
+            </div>
+          </div>
+        </div>
+
+        <Composer onSend={onSend} disabled={true} />
+      </section>
+    );
+  }
 
   return (
     <section aria-label={`Chat con ${conversation.name}`} className="flex min-w-0 flex-1 flex-col bg-background">
@@ -47,16 +105,16 @@ export function ChatColumn({
             <span className="h-px flex-1 bg-border" />
           </div>
           {messages.map((m) => {
-            if (m.kind === 'text') return <TextBubble key={m.id} message={m} />
-            if (m.kind === 'voice') return <VoiceBubble key={m.id} message={m} />
-            if (m.kind === 'image') return <ImageBubble key={m.id} message={m} />
-            return <ReceiptBubble key={m.id} message={m} onApprove={onApprove} />
+            if (m.kind === 'text') return <TextBubble key={m.id} message={m} />;
+            if (m.kind === 'voice') return <VoiceBubble key={m.id} message={m} />;
+            if (m.kind === 'image') return <ImageBubble key={m.id} message={m} />;
+            return <ReceiptBubble key={m.id} message={m} onApprove={onApprove} />;
           })}
         </div>
       </div>
       <Composer onSend={onSend} />
     </section>
-  )
+  );
 }
 
 function ChatHeader({
@@ -64,16 +122,16 @@ function ChatHeader({
   onOpenCharge,
   onAddProduct,
 }: {
-  conversation: Conversation
-  onOpenCharge: () => void
-  onAddProduct: (p: Product) => void
+  conversation: Conversation;
+  onOpenCharge: () => void;
+  onAddProduct: (p: Product) => void;
 }) {
-  const [catalogOpen, setCatalogOpen] = useState(false)
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const initials = c.name
     .split(' ')
     .slice(0, 2)
     .map((p) => p[0])
-    .join('')
+    .join('');
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
@@ -81,215 +139,212 @@ function ChatHeader({
         {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <h2 className="truncate text-sm font-semibold tracking-tight">{c.name}</h2>
           <TierBadge tier={c.tier} />
         </div>
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1 font-mono">
-            <Phone className="size-3" aria-hidden />
-            {c.phone}
+          <span className="font-mono">{c.phone}</span>
+          <span>·</span>
+          <span className="flex items-center gap-1 text-emerald-500 font-medium">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            En línea WhatsApp
           </span>
-          {c.lockedBy && (
-            <span className="inline-flex items-center gap-1">
-              <Lock className="size-3" aria-hidden />
-              Atendiendo: {c.lockedBy}
-            </span>
-          )}
         </div>
       </div>
 
-      <div className="relative">
-        <Button
-          variant="outline"
-          size="sm"
-          aria-expanded={catalogOpen}
-          aria-haspopup="menu"
+      <div className="relative flex items-center gap-2">
+        <button
+          type="button"
           onClick={() => setCatalogOpen((o) => !o)}
+          aria-expanded={catalogOpen}
+          className="flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium hover:bg-muted active:scale-[0.98]"
         >
-          <Shirt aria-hidden />
-          Prendas
-          <ChevronDown className="opacity-60" aria-hidden />
-        </Button>
+          <Shirt className="size-3.5" aria-hidden />
+          <span>Prendas</span>
+          <ChevronDown className={cn('size-3 transition-transform', catalogOpen && 'rotate-180')} aria-hidden />
+        </button>
+
         {catalogOpen && (
-          <>
-            <button type="button" aria-label="Cerrar catálogo" className="fixed inset-0 z-30 cursor-default" onClick={() => setCatalogOpen(false)} />
-            <div role="menu" className="absolute top-9 right-0 z-40 w-72 rounded-lg border border-border bg-popover p-1 shadow-xl animate-in fade-in-0 zoom-in-95">
-              <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Catálogo rápido</p>
+          <div
+            role="menu"
+            className="absolute top-full right-0 z-30 mt-1.5 w-80 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
+          >
+            <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Prendas activas en vivo
+            </p>
+            <div className="flex flex-col gap-1">
               {CATALOG.map((p) => (
                 <button
                   key={p.sku}
-                  role="menuitem"
                   type="button"
-                  disabled={p.stock === 0}
                   onClick={() => {
-                    onAddProduct(p)
-                    setCatalogOpen(false)
+                    onAddProduct(p);
+                    setCatalogOpen(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-muted disabled:opacity-50"
+                  className="flex items-center gap-2.5 rounded-lg p-2 text-left text-xs transition-colors hover:bg-accent"
                 >
-                  <Image src={p.img} alt="" width={36} height={36} className="size-9 rounded-md border border-border object-cover" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-medium">{p.name}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground">
-                      {p.sku} · T.{p.size} · {p.stock} disp.
-                    </span>
-                  </span>
-                  <span className="font-mono text-xs font-bold">{money(p.price)}</span>
-                  <Plus className="size-3.5 text-muted-foreground" aria-hidden />
+                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                    <Image src={p.img} alt={p.name} fill sizes="40px" className="object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Talla {p.size} · {p.stock} disponibles
+                    </p>
+                  </div>
+                  <span className="font-mono font-bold text-foreground">{money(p.price)}</span>
                 </button>
               ))}
             </div>
-          </>
+          </div>
         )}
+
+        <Button variant="success" size="sm" onClick={onOpenCharge}>
+          <Wallet aria-hidden />
+          Cobrar
+          <Kbd className="ml-1 bg-white/20 text-white border-white/30">C</Kbd>
+        </Button>
       </div>
-      <Button variant="success" size="sm" onClick={onOpenCharge} className="font-semibold">
-        <Wallet aria-hidden />
-        Cobro
-        <Kbd className="ml-0.5 border-success-foreground/20 bg-success-foreground/10 text-success-foreground">C</Kbd>
-      </Button>
     </header>
-  )
+  );
 }
 
-function ApartadoBanner({ amount, deadline, onApprove }: { amount: number; deadline: number; onApprove: () => void }) {
-  const [now, setNow] = useState(() => Date.now())
+function ApartadoBanner({
+  amount,
+  deadline,
+  onApprove,
+}: {
+  amount: number;
+  deadline: number;
+  onApprove: () => void;
+}) {
+  const [remaining, setRemaining] = useState(() => Math.max(0, Math.floor((deadline - Date.now()) / 1000)));
+
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const remaining = Math.max(0, Math.round((deadline - now) / 1000))
-  const pct = Math.min(100, (remaining / (30 * 60)) * 100)
-  const urgent = remaining < 5 * 60
+    const id = setInterval(() => {
+      setRemaining(Math.max(0, Math.floor((deadline - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+
+  const urgent = remaining < 5 * 60;
 
   return (
-    <div
-      role="status"
+    <aside
+      aria-label="Estado de apartado"
       className={cn(
-        'relative flex shrink-0 items-center gap-3 overflow-hidden border-b px-4 py-2',
-        urgent ? 'border-live/30 bg-live/10' : 'border-pending/30 bg-pending/10',
+        'flex h-10 shrink-0 items-center justify-between border-b px-4 text-xs font-medium transition-colors',
+        urgent ? 'border-live/30 bg-live/10 text-live' : 'border-pending/30 bg-pending/10 text-pending',
       )}
     >
-      <Clock className={cn('size-4 shrink-0', urgent ? 'text-live' : 'text-pending')} aria-hidden />
-      <p className="min-w-0 flex-1 text-xs">
-        <span className="font-semibold">Apartado </span>
-        <span className="font-mono font-bold">{money(amount)} MXN</span>
-        <span className="text-muted-foreground"> · Vence en </span>
-        <span className={cn('font-mono font-bold', urgent ? 'text-live' : 'text-pending')}>{clock(remaining)}</span>
-      </p>
-      <Button variant="success" size="xs" onClick={onApprove} className="h-7 px-2.5 font-semibold">
-        <Check aria-hidden />
-        Aprobar Pago
+      <div className="flex items-center gap-2">
+        <Clock className="size-3.5" aria-hidden />
+        <span>
+          Apartado activo por <strong>{money(amount)} MXN</strong>
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span>
+          Vence en <strong className={cn('font-mono', urgent && 'animate-pulse')}>{clock(remaining)}</strong>
+        </span>
+      </div>
+      <Button variant="success" size="sm" className="h-6 px-2 text-[11px] font-bold" onClick={onApprove}>
+        <Check className="size-3" aria-hidden />
+        Aprobar pago
       </Button>
-      <span
-        aria-hidden
-        className={cn('absolute bottom-0 left-0 h-0.5 transition-[width] duration-1000 ease-linear', urgent ? 'bg-live' : 'bg-pending')}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  )
+    </aside>
+  );
 }
 
-function Composer({ onSend }: { onSend: (text: string, image?: string) => void }) {
-  const [text, setText] = useState('')
-  const [image, setImage] = useState<string | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+function Composer({
+  onSend,
+  disabled = false,
+}: {
+  onSend: (text: string, image?: string) => void;
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState('');
+  const [pastedImage, setPastedImage] = useState<string | null>(null);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) setPastedImage(event.target.result as string);
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  };
 
   const submit = () => {
-    if (!text.trim() && !image) return
-    onSend(text.trim(), image ?? undefined)
-    setText('')
-    setImage(null)
-  }
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const file = Array.from(e.clipboardData.items)
-      .find((i) => i.type.startsWith('image/'))
-      ?.getAsFile()
-    if (!file) return
-    e.preventDefault()
-    setImage(URL.createObjectURL(file))
-  }
+    if ((!text.trim() && !pastedImage) || disabled) return;
+    onSend(text.trim(), pastedImage || undefined);
+    setText('');
+    setPastedImage(null);
+  };
 
   return (
-    <div className="shrink-0 border-t border-border bg-card/40 px-4 pt-2.5 pb-3">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Atajos de respuesta">
-          {SHORTCUTS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => {
-                setText(s.text)
-                textareaRef.current?.focus()
-              }}
-              className="h-6 rounded-md border border-border bg-background px-2 font-mono text-[11px] text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground active:scale-[0.98]"
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-        <div className="rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/40">
-          {image && (
-            <div className="flex items-center gap-2 border-b border-border p-2">
-              <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element -- blob URL preview from clipboard */}
-                <img src={image} alt="Imagen pegada lista para enviar" className="size-14 rounded-md border border-border object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImage(null)}
-                  aria-label="Quitar imagen"
-                  className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-              <span className="text-[11px] text-muted-foreground">Imagen pegada desde portapapeles</span>
-            </div>
-          )}
-          <div className="flex items-end gap-2 p-1.5">
-            <label className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-              <ImagePlus className="size-4" aria-hidden />
-              <span className="sr-only">Adjuntar imagen</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setImage(URL.createObjectURL(f))
-                }}
-              />
-            </label>
-            <label className="sr-only" htmlFor="composer">
-              Mensaje
-            </label>
-            <textarea
-              id="composer"
-              ref={textareaRef}
-              rows={1}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onPaste={handlePaste}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  if (e.nativeEvent.isComposing || e.keyCode === 229) return
-                  e.preventDefault()
-                  submit()
-                }
-              }}
-              placeholder="Escribe un mensaje… pega imágenes con Ctrl+V"
-              className="max-h-32 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-[13px] outline-none placeholder:text-muted-foreground field-sizing-content"
-            />
-            <Button size="icon" onClick={submit} disabled={!text.trim() && !image} aria-label="Enviar mensaje">
-              <SendHorizontal aria-hidden />
-            </Button>
-          </div>
-        </div>
-        <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <Kbd>Enter</Kbd> enviar <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd> salto de línea <Kbd>Ctrl</Kbd>+<Kbd>V</Kbd> pegar imagen
-        </p>
+    <footer className="flex flex-col border-t border-border bg-card p-3 gap-2">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        <span className="text-[11px] font-medium text-muted-foreground shrink-0">Atajos:</span>
+        {SHORTCUTS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            disabled={disabled}
+            onClick={() => setText(s.text)}
+            className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] font-medium hover:bg-muted text-foreground transition-colors disabled:opacity-50"
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
-    </div>
-  )
+
+      {pastedImage && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-2">
+          <div className="flex items-center gap-2">
+            <img src={pastedImage} alt="Pegada" className="size-12 rounded object-cover border border-border" />
+            <span className="text-xs font-semibold text-foreground">Imagen lista para enviar</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPastedImage(null)}
+            className="text-xs text-muted-foreground hover:text-foreground font-semibold"
+          >
+            ✕ Quitar
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onPaste={handlePaste}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          disabled={disabled}
+          placeholder={disabled ? 'Selecciona una conversación para responder...' : "Escribe un mensaje o pega una captura con Ctrl+V..."}
+          className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50"
+        />
+        <Button size="sm" onClick={submit} disabled={disabled || (!text.trim() && !pastedImage)}>
+          <SendHorizontal className="size-3.5" />
+          Enviar
+        </Button>
+      </div>
+    </footer>
+  );
 }

@@ -12,10 +12,6 @@ import { LiveStatusBar } from './live-status-bar';
 import type { Conversation as UIConversation, Message as UIMessage, Product as UIProduct, ConversationStatus as UIStatus } from '@/lib/liveflow-data';
 import type { Conversation as DBConversation, Message as DBMessage, LiveSession } from '@/types';
 
-function nowTime() {
-  return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-
 function mapDBStatusToUI(status: string): UIStatus {
   switch (status) {
     case 'NEW':
@@ -321,6 +317,18 @@ export function Workspace() {
     }
   };
 
+  const seedDemo = async () => {
+    try {
+      const res = await fetch('/api/demo/seed', { method: 'POST' });
+      if (res.ok) {
+        toast.success('5 chats de prueba cargados');
+        fetchConversations();
+      }
+    } catch {
+      toast.error('Error cargando demo');
+    }
+  };
+
   if (loading && dbConversations.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -343,6 +351,7 @@ export function Workspace() {
               conversations={conversations}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onSeedDemo={seedDemo}
             />
             <ChatColumn
               conversation={currentConv}
@@ -360,9 +369,28 @@ export function Workspace() {
             />
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            No hay conversaciones activas. Conecta WhatsApp en Configuración.
-          </div>
+          <>
+            <InboxColumn
+              conversations={[]}
+              selectedId=""
+              onSelect={setSelectedId}
+              onSeedDemo={seedDemo}
+            />
+            <ChatColumn
+              conversation={null}
+              messages={[]}
+              deadline={null}
+              onApprove={() => {}}
+              onOpenCharge={() => {}}
+              onSend={send}
+              onAddProduct={addProduct}
+            />
+            <CustomerPanel
+              conversation={null}
+              bag={[]}
+              folio="LF-DEMO8941"
+            />
+          </>
         )}
       </div>
 

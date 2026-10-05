@@ -1,17 +1,56 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Loader2, MapPin, PackageCheck, Printer, Save, StickyNote, Truck, UserRound } from 'lucide-react'
-import { toast } from 'sonner'
-import { money } from '@/lib/format'
-import type { Conversation, Product } from '@/lib/liveflow-data'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Badge, SectionLabel, TierBadge } from '@/components/liveflow/primitives'
+import { useState } from 'react';
+import { Loader2, MapPin, PackageCheck, Printer, Save, StickyNote, Truck, UserRound } from 'lucide-react';
+import { toast } from 'sonner';
+import { money } from '@/lib/format';
+import type { Conversation, Product } from '@/lib/liveflow-data';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge, SectionLabel, TierBadge } from '@/components/liveflow/primitives';
 
-type Note = { id: string; author: string; text: string; time: string }
+type Note = { id: string; author: string; text: string; time: string };
 
-export function CustomerPanel({ conversation, bag, folio }: { conversation: Conversation; bag: Product[]; folio: string }) {
+export function CustomerPanel({
+  conversation,
+  bag,
+  folio,
+}: {
+  conversation?: Conversation | null;
+  bag: Product[];
+  folio: string;
+}) {
+  if (!conversation) {
+    return (
+      <aside aria-label="Perfil del cliente en espera" className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40 p-4 space-y-4">
+        <div className="border-b border-border pb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ficha de la Clienta</h3>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground mx-auto font-mono text-sm font-bold">
+            --
+          </div>
+          <p className="text-xs font-semibold text-foreground">Sin conversación activa</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Selecciona un chat en la bandeja para ver el scoring, compras pasadas o imprimir su etiqueta.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg border border-border bg-background p-2.5">
+            <span className="text-[10px] text-muted-foreground uppercase font-medium">Total Gastado</span>
+            <p className="font-mono text-sm font-bold text-foreground mt-0.5">$0.00</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background p-2.5">
+            <span className="text-[10px] text-muted-foreground uppercase font-medium">Compras</span>
+            <p className="font-mono text-sm font-bold text-foreground mt-0.5">0</p>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside aria-label="Perfil del cliente" className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40">
       <Tabs defaultValue="ficha" className="min-h-0 flex-1 gap-0">
@@ -42,7 +81,7 @@ export function CustomerPanel({ conversation, bag, folio }: { conversation: Conv
         </TabsContent>
       </Tabs>
     </aside>
-  )
+  );
 }
 
 function Stat({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
@@ -51,7 +90,7 @@ function Stat({ label, value, mono = true }: { label: string; value: string; mon
       <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={mono ? 'mt-0.5 font-mono text-sm font-bold' : 'mt-0.5 text-sm font-semibold'}>{value}</p>
     </div>
-  )
+  );
 }
 
 function ProfileTab({ conversation: c }: { conversation: Conversation }) {
@@ -61,10 +100,10 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
           { id: 'n1', author: 'Lucía', text: 'Prefiere envío a oficina L–V. Siempre paga en < 10 min.', time: 'Live #46' },
           { id: 'n2', author: 'Mariana', text: 'Talla M en vestidos, CH en blusas.', time: 'Live #47' },
         ]
-      : [],
-  )
-  const [draft, setDraft] = useState('')
-  const avg = c.paidOrders ? c.totalSpent / c.paidOrders : 0
+      : []
+  );
+  const [draft, setDraft] = useState('');
+  const avg = c.paidOrders ? c.totalSpent / c.paidOrders : 0;
 
   return (
     <div className="flex flex-col gap-4 p-3">
@@ -134,10 +173,10 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
         </ul>
         <form
           onSubmit={(e) => {
-            e.preventDefault()
-            if (!draft.trim()) return
-            setNotes((ns) => [...ns, { id: crypto.randomUUID(), author: 'Mariana', text: draft.trim(), time: 'Ahora' }])
-            setDraft('')
+            e.preventDefault();
+            if (!draft.trim()) return;
+            setNotes((ns) => [...ns, { id: crypto.randomUUID(), author: 'Mariana', text: draft.trim(), time: 'Ahora' }]);
+            setDraft('');
           }}
           className="flex flex-col gap-1.5"
         >
@@ -152,13 +191,13 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
             placeholder="Solo visible para el equipo…"
             className="resize-none rounded-md border border-input bg-background p-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
           />
-          <Button type="submit" size="xs" variant="outline" className="self-end" disabled={!draft.trim()}>
+          <Button type="submit" size="sm" variant="outline" className="self-end text-xs" disabled={!draft.trim()}>
             Guardar nota
           </Button>
         </form>
       </div>
     </div>
-  )
+  );
 }
 
 const ADDRESS_FIELDS = [
@@ -169,10 +208,10 @@ const ADDRESS_FIELDS = [
   { id: 'ciudad', label: 'Ciudad', span: 1 },
   { id: 'estado', label: 'Estado', span: 1 },
   { id: 'referencias', label: 'Referencias', span: 2 },
-] as const
+] as const;
 
 function AddressTab({ conversation: c }: { conversation: Conversation }) {
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false);
   const defaults: Record<string, string> = {
     nombre: c.name,
     calle: 'Av. Álvaro Obregón 182, Int. 4',
@@ -181,18 +220,18 @@ function AddressTab({ conversation: c }: { conversation: Conversation }) {
     ciudad: 'Cuauhtémoc',
     estado: 'CDMX',
     referencias: 'Portón negro, frente a cafetería',
-  }
+  };
 
   return (
     <form
       className="flex flex-col gap-3 p-3"
       onSubmit={(e) => {
-        e.preventDefault()
-        setSaving(true)
+        e.preventDefault();
+        setSaving(true);
         setTimeout(() => {
-          setSaving(false)
-          toast.success('Dirección guardada', { description: `Envío de ${c.name} listo para guía.` })
-        }, 700)
+          setSaving(false);
+          toast.success('Dirección guardada', { description: `Envío de ${c.name} listo para guía.` });
+        }, 700);
       }}
     >
       <div className="grid grid-cols-2 gap-2.5">
@@ -226,15 +265,15 @@ function AddressTab({ conversation: c }: { conversation: Conversation }) {
         </div>
       </div>
       <Button type="submit" disabled={saving} className="mt-1">
-        {saving ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />}
+        {saving ? <Loader2 className="animate-spin size-3.5" aria-hidden /> : <Save className="size-3.5" aria-hidden />}
         {saving ? 'Guardando…' : 'Guardar dirección'}
       </Button>
     </form>
-  )
+  );
 }
 
 function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation; bag: Product[]; folio: string }) {
-  const items = bag.length ? bag : [{ sku: 'VST-014', name: 'Vestido satinado esmeralda', size: 'M', price: 450 } as Product]
+  const items = bag.length ? bag : [{ sku: 'VST-014', name: 'Vestido satinado esmeralda', size: 'M', price: 450 } as Product];
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="rounded-lg border-2 border-dashed border-border bg-background p-3" id="shipping-label">
@@ -274,7 +313,7 @@ function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation;
                   className="bg-foreground"
                   style={{ flex: ((ch.charCodeAt(0) * k) % 3) + 1, opacity: (ch.charCodeAt(0) + k) % 4 === 0 ? 0 : 1 }}
                 />
-              )),
+              ))
             )}
           </div>
           <p className="font-mono text-sm font-bold tracking-[0.2em]">{folio}</p>
@@ -283,13 +322,13 @@ function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation;
       <Button
         variant="outline"
         onClick={() => {
-          toast('Enviando a impresora térmica…', { icon: <PackageCheck className="size-4" /> })
-          window.print()
+          toast('Enviando a impresora térmica…', { icon: <PackageCheck className="size-4" /> });
+          window.print();
         }}
       >
         <Printer aria-hidden />
         Imprimir etiqueta
       </Button>
     </div>
-  )
+  );
 }
