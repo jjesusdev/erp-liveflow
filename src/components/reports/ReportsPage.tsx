@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/date-utils';
 import {
   TrendingUp,
   Users,

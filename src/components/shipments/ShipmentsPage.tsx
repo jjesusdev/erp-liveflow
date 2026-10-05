@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { formatDate, formatCurrency, cn } from '@/lib/date-utils';
 import {
   Truck,
   Package,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSocket } from '@/lib/socket';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/date-utils';
 import {
   Radio,
   Flame,

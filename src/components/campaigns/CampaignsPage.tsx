@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatTime, cn } from '@/lib/utils';
+import { formatDate, formatTime, cn } from '@/lib/date-utils';
 import { useSocket } from '@/lib/socket';
 import {
   Megaphone,

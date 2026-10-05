@@ -1,6 +1,6 @@
 'use client';
 
-import { timeAgo, formatCurrency, cn } from '@/lib/utils';
+import { timeAgo, formatCurrency, cn } from '@/lib/date-utils';
 import { GripVertical, UserCheck } from 'lucide-react';
 import type { Conversation } from '@/types';
 

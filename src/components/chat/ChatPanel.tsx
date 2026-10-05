@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useSocket } from '@/lib/socket';
 import { PaymentModal } from '@/components/payment/PaymentModal';
-import { formatTime, formatCurrency } from '@/lib/utils';
+import { formatTime, formatCurrency } from '@/lib/date-utils';
 import { money } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {

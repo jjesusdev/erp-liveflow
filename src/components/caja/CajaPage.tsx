@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSocket } from '@/lib/socket';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { formatCurrency, formatDate, cn } from '@/lib/date-utils';
 import {
   CreditCard,
   Clock,

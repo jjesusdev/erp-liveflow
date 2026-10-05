@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/date-utils';
 import { Plus, Pencil, Trash2, Search, PackageX, Upload, FileSpreadsheet, Download, Check } from 'lucide-react';
 import type { Product } from '@/types';
 
