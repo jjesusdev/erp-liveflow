@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { resolveOperatorId } from '@/lib/operator';
-import { parseEnum, PAYMENT_STATUSES } from '@/lib/enums';
-import { logActivity } from '@/lib/audit';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { resolveOperatorId } from "@/lib/operator";
+import { parseEnum, PAYMENT_STATUSES } from "@/lib/enums";
+import { logActivity } from "@/lib/audit";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -17,7 +14,7 @@ export async function PATCH(
       include: { lead: true, conversation: true },
     });
     if (!existing) {
-      return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
     }
 
     const data: any = {};
@@ -26,12 +23,12 @@ export async function PATCH(
     if (body.status !== undefined) {
       const status = parseEnum(PAYMENT_STATUSES, body.status);
       if (!status) {
-        return NextResponse.json({ error: 'Estado invalido' }, { status: 400 });
+        return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
       }
       data.status = status;
-      if (status === 'PAID') {
+      if (status === "PAID") {
         data.paidAt = new Date();
-        if (existing.status !== 'PAID') {
+        if (existing.status !== "PAID") {
           isStatusPaidTransition = true;
         }
       } else {
@@ -40,65 +37,63 @@ export async function PATCH(
     }
 
     if (body.concept !== undefined) data.concept = body.concept;
-    if (body.amount !== undefined && body.amount !== null && body.amount !== '') {
+    if (body.amount !== undefined && body.amount !== null && body.amount !== "") {
       const numeric = Number(body.amount);
       if (Number.isNaN(numeric) || numeric < 0) {
-        return NextResponse.json({ error: 'Monto invalido' }, { status: 400 });
+        return NextResponse.json({ error: "Monto invalido" }, { status: 400 });
       }
       data.amount = numeric;
     }
 
     // Ejecutar mutaciones críticas en una transacción atómica
-    const [paymentOrder, updatedConv, createdShipment] = await prisma.$transaction(
-      async (tx) => {
-        const order = await tx.paymentOrder.update({
-          where: { id },
-          data,
-          include: { lead: true, conversation: true },
+    const [paymentOrder, updatedConv, createdShipment] = await prisma.$transaction(async (tx) => {
+      const order = await tx.paymentOrder.update({
+        where: { id },
+        data,
+        include: { lead: true, conversation: true },
+      });
+
+      let conv = null;
+      let ship = null;
+
+      if (data.status === "PAID") {
+        conv = await tx.conversation.update({
+          where: { id: order.conversationId },
+          data: { status: "PAID" },
+          include: {
+            lead: true,
+            messages: { orderBy: { sentAt: "desc" }, take: 1 },
+            paymentOrders: { orderBy: { createdAt: "desc" }, take: 1 },
+          },
         });
 
-        let conv = null;
-        let ship = null;
+        const existingShipment = await tx.shipment.findUnique({
+          where: { paymentOrderId: order.id },
+        });
 
-        if (data.status === 'PAID') {
-          conv = await tx.conversation.update({
-            where: { id: order.conversationId },
-            data: { status: 'PAID' },
+        if (!existingShipment) {
+          ship = await tx.shipment.create({
+            data: {
+              paymentOrderId: order.id,
+              leadId: order.leadId,
+              status: "PENDING",
+            },
             include: {
               lead: true,
-              messages: { orderBy: { sentAt: 'desc' }, take: 1 },
-              paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+              paymentOrder: true,
             },
           });
-
-          const existingShipment = await tx.shipment.findUnique({
-            where: { paymentOrderId: order.id },
-          });
-
-          if (!existingShipment) {
-            ship = await tx.shipment.create({
-              data: {
-                paymentOrderId: order.id,
-                leadId: order.leadId,
-                status: 'PENDING',
-              },
-              include: {
-                lead: true,
-                paymentOrder: true,
-              },
-            });
-          } else {
-            ship = existingShipment;
-          }
+        } else {
+          ship = existingShipment;
         }
-
-        return [order, conv, ship];
       }
-    );
+
+      return [order, conv, ship];
+    });
 
     // Registrar en auditoría
     await logActivity({
-      action: data.status === 'PAID' ? 'PAYMENT_APPROVED' : 'PAYMENT_UPDATED',
+      action: data.status === "PAID" ? "PAYMENT_APPROVED" : "PAYMENT_UPDATED",
       conversationId: paymentOrder.conversationId,
       details: {
         orderId: paymentOrder.id,
@@ -108,14 +103,14 @@ export async function PATCH(
       },
     });
 
-    if (data.status === 'PAID') {
+    if (data.status === "PAID") {
       // Envío de mensaje automático de confirmación por WhatsApp si global.whatsappClient está disponible
       const client = (global as any).whatsappClient;
       if (client && paymentOrder.lead?.phone) {
         try {
-          const jid = `${paymentOrder.lead.phone.replace(/\D/g, '')}@s.whatsapp.net`;
-          const currency = paymentOrder.currency || 'MXN';
-          const formattedAmount = Number(paymentOrder.amount).toLocaleString('es-MX', {
+          const jid = `${paymentOrder.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
+          const currency = paymentOrder.currency || "MXN";
+          const formattedAmount = Number(paymentOrder.amount).toLocaleString("es-MX", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
@@ -127,8 +122,8 @@ export async function PATCH(
           const savedMsg = await prisma.message.create({
             data: {
               conversationId: paymentOrder.conversationId,
-              direction: 'OUTBOUND',
-              type: 'TEXT',
+              direction: "OUTBOUND",
+              type: "TEXT",
               content: confirmMsg,
               sentAt: new Date(),
             },
@@ -141,28 +136,28 @@ export async function PATCH(
 
           const io = (global as any).io;
           if (io) {
-            io.emit('message:new', savedMsg);
+            io.emit("message:new", savedMsg);
           }
         } catch (error) {
-          console.error('Error enviando mensaje de confirmación por WhatsApp:', error);
+          console.error("Error enviando mensaje de confirmación por WhatsApp:", error);
         }
       }
 
       const io = (global as any).io;
       if (io) {
-        if (updatedConv) io.emit('conversation:updated', updatedConv);
-        if (createdShipment) io.emit('shipment:created', createdShipment);
+        if (updatedConv) io.emit("conversation:updated", updatedConv);
+        if (createdShipment) io.emit("shipment:created", createdShipment);
       }
     }
 
     const io = (global as any).io;
     if (io) {
-      io.emit('payment:updated', {
+      io.emit("payment:updated", {
         ...paymentOrder,
         amount: Number(paymentOrder.amount),
       });
-      if (data.status === 'PAID') {
-        io.emit('payment:confirmed', {
+      if (data.status === "PAID") {
+        io.emit("payment:confirmed", {
           id: paymentOrder.id,
           status: paymentOrder.status,
         });
@@ -175,7 +170,7 @@ export async function PATCH(
       shipment: createdShipment,
     });
   } catch (error) {
-    console.error('Error updating payment order:', error);
-    return NextResponse.json({ error: 'Error updating payment order' }, { status: 500 });
+    console.error("Error updating payment order:", error);
+    return NextResponse.json({ error: "Error updating payment order" }, { status: 500 });
   }
 }

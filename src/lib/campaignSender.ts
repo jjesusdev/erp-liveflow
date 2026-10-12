@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { prisma } from "./prisma";
 
 const running = new Set<string>();
 
@@ -17,7 +17,7 @@ function getWhatsapp() {
 
 async function emitUpdate(campaignId: string) {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  if (campaign) getIo()?.emit('campaign:updated', campaign);
+  if (campaign) getIo()?.emit("campaign:updated", campaign);
 }
 
 export function isSendingCampaign(campaignId: string) {
@@ -29,7 +29,7 @@ export function isSendingCampaign(campaignId: string) {
  */
 function interpolateMessage(template: string, lead: { name?: string | null; phone: string }) {
   let result = template;
-  const clientName = lead.name?.trim() || 'Amiga';
+  const clientName = lead.name?.trim() || "Amiga";
   result = result.replace(/\{\{nombre\}\}/gi, clientName);
   result = result.replace(/\{\{name\}\}/gi, clientName);
   result = result.replace(/\{\{telefono\}\}/gi, lead.phone);
@@ -45,13 +45,13 @@ export async function sendCampaign(
   campaignId: string
 ): Promise<{ started: boolean; error?: string }> {
   if (running.has(campaignId)) {
-    return { started: false, error: 'La campana ya se esta enviando' };
+    return { started: false, error: "La campana ya se esta enviando" };
   }
 
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  if (!campaign) return { started: false, error: 'Campana no encontrada' };
+  if (!campaign) return { started: false, error: "Campana no encontrada" };
 
-  if (!['DRAFT', 'SCHEDULED', 'CANCELLED'].includes(campaign.status)) {
+  if (!["DRAFT", "SCHEDULED", "CANCELLED"].includes(campaign.status)) {
     return {
       started: false,
       error: `No se puede enviar una campana en estado ${campaign.status}`,
@@ -59,13 +59,13 @@ export async function sendCampaign(
   }
 
   if (!getWhatsapp()) {
-    return { started: false, error: 'WhatsApp no esta conectado' };
+    return { started: false, error: "WhatsApp no esta conectado" };
   }
 
   // Destinatarios: los leads existentes que todavia no tengan registro.
   const leads = await prisma.lead.findMany({ select: { id: true, phone: true } });
   if (leads.length === 0) {
-    return { started: false, error: 'No hay clientes para enviar' };
+    return { started: false, error: "No hay clientes para enviar" };
   }
 
   const existing = await prisma.campaignRecipient.findMany({
@@ -77,7 +77,7 @@ export async function sendCampaign(
 
   if (missing.length > 0) {
     await prisma.campaignRecipient.createMany({
-      data: missing.map((lead) => ({ campaignId, leadId: lead.id, status: 'PENDING' })),
+      data: missing.map((lead) => ({ campaignId, leadId: lead.id, status: "PENDING" })),
       skipDuplicates: true,
     });
   }
@@ -86,11 +86,11 @@ export async function sendCampaign(
 
   await prisma.campaign.update({
     where: { id: campaignId },
-    data: { status: 'SENDING', totalLeads, sentCount: 0, failedCount: 0 },
+    data: { status: "SENDING", totalLeads, sentCount: 0, failedCount: 0 },
   });
   await prisma.campaignRecipient.updateMany({
-    where: { campaignId, status: { in: ['SENT', 'DELIVERED', 'READ'] } },
-    data: { status: 'PENDING', sentAt: null },
+    where: { campaignId, status: { in: ["SENT", "DELIVERED", "READ"] } },
+    data: { status: "PENDING", sentAt: null },
   });
 
   running.add(campaignId);
@@ -101,43 +101,43 @@ export async function sendCampaign(
 
 export async function cancelCampaign(campaignId: string) {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  if (!campaign) return { ok: false, error: 'Campana no encontrada' };
+  if (!campaign) return { ok: false, error: "Campana no encontrada" };
 
-  if (campaign.status === 'SENDING' || campaign.status === 'SCHEDULED') {
+  if (campaign.status === "SENDING" || campaign.status === "SCHEDULED") {
     await prisma.campaign.update({
       where: { id: campaignId },
-      data: { status: 'CANCELLED' },
+      data: { status: "CANCELLED" },
     });
     await emitUpdate(campaignId);
     return { ok: true };
   }
 
-  if (campaign.status === 'DRAFT') {
+  if (campaign.status === "DRAFT") {
     await prisma.campaign.update({
       where: { id: campaignId },
-      data: { status: 'CANCELLED' },
+      data: { status: "CANCELLED" },
     });
     await emitUpdate(campaignId);
     return { ok: true };
   }
 
-  return { ok: false, error: 'Esta campana ya no se puede cancelar' };
+  return { ok: false, error: "Esta campana ya no se puede cancelar" };
 }
 
 async function runSendLoop(campaignId: string) {
   try {
     const client = getWhatsapp();
-    if (!client) throw new Error('WhatsApp se desconecto antes de enviar');
+    if (!client) throw new Error("WhatsApp se desconecto antes de enviar");
 
     let finished = false;
 
     while (!finished) {
       // Relee el estado en cada pasada: asi la cancelacion corta el loop.
       const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-      if (!campaign || campaign.status === 'CANCELLED') break;
+      if (!campaign || campaign.status === "CANCELLED") break;
 
       const pending = await prisma.campaignRecipient.findFirst({
-        where: { campaignId, status: 'PENDING' },
+        where: { campaignId, status: "PENDING" },
         include: { lead: true },
       });
 
@@ -146,11 +146,11 @@ async function runSendLoop(campaignId: string) {
         break;
       }
 
-      const phone = pending.lead?.phone?.replace(/\D/g, '');
+      const phone = pending.lead?.phone?.replace(/\D/g, "");
       if (!phone) {
         await prisma.campaignRecipient.update({
           where: { id: pending.id },
-          data: { status: 'FAILED', errorMessage: 'Telefono invalido' },
+          data: { status: "FAILED", errorMessage: "Telefono invalido" },
         });
         await prisma.campaign.update({
           where: { id: campaignId },
@@ -172,19 +172,19 @@ async function runSendLoop(campaignId: string) {
 
         await prisma.campaignRecipient.update({
           where: { id: pending.id },
-          data: { status: 'SENT', sentAt: new Date() },
+          data: { status: "SENT", sentAt: new Date() },
         });
         await prisma.campaign.update({
           where: { id: campaignId },
           data: { sentCount: { increment: 1 } },
         });
       } catch (error: any) {
-        console.error('[campaigns] fallo el envio a', phone, error?.message || error);
+        console.error("[campaigns] fallo el envio a", phone, error?.message || error);
         await prisma.campaignRecipient.update({
           where: { id: pending.id },
           data: {
-            status: 'FAILED',
-            errorMessage: String(error?.message || 'Error desconocido').slice(0, 300),
+            status: "FAILED",
+            errorMessage: String(error?.message || "Error desconocido").slice(0, 300),
           },
         });
         await prisma.campaign.update({
@@ -205,19 +205,19 @@ async function runSendLoop(campaignId: string) {
       select: { status: true },
     });
 
-    if (stillSending?.status === 'SENDING') {
+    if (stillSending?.status === "SENDING") {
       await prisma.campaign.update({
         where: { id: campaignId },
-        data: { status: 'SENT', sentAt: new Date() },
+        data: { status: "SENT", sentAt: new Date() },
       });
     }
     await emitUpdate(campaignId);
   } catch (error) {
-    console.error('[campaigns] error en el loop de envio:', error);
+    console.error("[campaigns] error en el loop de envio:", error);
     await prisma.campaign
       .update({
         where: { id: campaignId },
-        data: { status: 'CANCELLED' },
+        data: { status: "CANCELLED" },
       })
       .catch(() => undefined);
     await emitUpdate(campaignId);
@@ -232,7 +232,7 @@ async function runSendLoop(campaignId: string) {
  */
 export async function processScheduledCampaigns() {
   const due = await prisma.campaign.findMany({
-    where: { status: 'SCHEDULED', scheduledAt: { lte: new Date() } },
+    where: { status: "SCHEDULED", scheduledAt: { lte: new Date() } },
     select: { id: true },
   });
 

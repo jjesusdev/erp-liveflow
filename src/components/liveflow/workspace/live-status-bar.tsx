@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { MonitorPlay, Radio, Users } from 'lucide-react';
-import { clock, money } from '@/lib/format';
-import { Badge, LiveDot } from '@/components/liveflow/primitives';
-import type { LiveSession } from '@/types';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { MonitorPlay, Radio, Users } from "lucide-react";
+import { clock, money } from "@/lib/format";
+import { Badge, LiveDot } from "@/components/liveflow/primitives";
+import type { LiveSession } from "@/types";
 
 export function LiveStatusBar({
   activeSession,
@@ -34,9 +34,11 @@ export function LiveStatusBar({
             <LiveDot className="size-1.5" />
             EN VIVO
           </Badge>
-          <span className="text-muted-foreground truncate max-w-xs">{activeSession.platform} • {activeSession.title}</span>
+          <span className="text-muted-foreground truncate max-w-xs">
+            {activeSession.platform} • {activeSession.title}
+          </span>
           <span className="font-mono text-muted-foreground">
-            {String(h).padStart(2, '0')}:{clock(elapsed % 3600)}
+            {String(h).padStart(2, "0")}:{clock(elapsed % 3600)}
           </span>
           <div className="ml-auto flex items-center gap-4">
             <span className="font-mono font-bold text-emerald-500">

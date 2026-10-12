@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useSocket } from '@/lib/socket';
-import { formatCurrency, cn } from '@/lib/date-utils';
+import { useCallback, useEffect, useState } from "react";
+import { useSocket } from "@/lib/socket";
+import { formatCurrency, cn } from "@/lib/date-utils";
 import {
   Radio,
   Flame,
@@ -12,8 +12,8 @@ import {
   Sparkles,
   ShoppingBag,
   Users,
-} from 'lucide-react';
-import type { LiveSession, PaymentOrder } from '@/types';
+} from "lucide-react";
+import type { LiveSession, PaymentOrder } from "@/types";
 
 export function LiveHudPage() {
   const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
@@ -23,7 +23,7 @@ export function LiveHudPage() {
 
   const fetchLiveState = useCallback(async () => {
     try {
-      const res = await fetch('/api/live-sessions?active=true');
+      const res = await fetch("/api/live-sessions?active=true");
       if (res.ok) {
         const sessions = await res.json();
         if (Array.isArray(sessions) && sessions.length > 0) {
@@ -34,7 +34,7 @@ export function LiveHudPage() {
       }
 
       // Traer últimos cobros pagados del live
-      const paymentsRes = await fetch('/api/caja?status=PAID&range=today');
+      const paymentsRes = await fetch("/api/caja?status=PAID&range=today");
       if (paymentsRes.ok) {
         const p = await paymentsRes.json();
         if (Array.isArray(p)) setRecentPayments(p.slice(0, 10));
@@ -60,27 +60,28 @@ export function LiveHudPage() {
     };
 
     const onLiveUpdated = (session: LiveSession) => {
-      if (session.status === 'ENDED') {
+      if (session.status === "ENDED") {
         setActiveSession(null);
       } else {
         setActiveSession(session);
       }
     };
 
-    socket.on('payment:confirmed', onPaymentConfirmed);
-    socket.on('payment:updated', onPaymentConfirmed);
-    socket.on('live:session:started', onLiveStarted);
-    socket.on('live:session:updated', onLiveUpdated);
+    socket.on("payment:confirmed", onPaymentConfirmed);
+    socket.on("payment:updated", onPaymentConfirmed);
+    socket.on("live:session:started", onLiveStarted);
+    socket.on("live:session:updated", onLiveUpdated);
 
     return () => {
-      socket.off('payment:confirmed', onPaymentConfirmed);
-      socket.off('payment:updated', onPaymentConfirmed);
-      socket.off('live:session:started', onLiveStarted);
-      socket.off('live:session:updated', onLiveUpdated);
+      socket.off("payment:confirmed", onPaymentConfirmed);
+      socket.off("payment:updated", onPaymentConfirmed);
+      socket.off("live:session:started", onLiveStarted);
+      socket.off("live:session:updated", onLiveUpdated);
     };
   }, [socket, fetchLiveState]);
 
-  const totalSales = activeSession?.totalSales || recentPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalSales =
+    activeSession?.totalSales || recentPayments.reduce((sum, p) => sum + Number(p.amount), 0);
   const totalTickets = activeSession?.ordersCount || recentPayments.length;
 
   return (
@@ -97,17 +98,17 @@ export function LiveHudPage() {
               <Radio className="h-6 w-6" /> MONITOR EN VIVO
             </h1>
             <p className="text-xs text-slate-400">
-              {activeSession?.title || 'Transmisión de Live Shopping (Modo Conductor)'}
+              {activeSession?.title || "Transmisión de Live Shopping (Modo Conductor)"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-slate-900 border border-slate-800 px-3 py-1 text-xs font-mono text-slate-300">
-            {activeSession?.platform || 'TIKTOK LIVE'}
+            {activeSession?.platform || "TIKTOK LIVE"}
           </span>
           <span className="text-xs text-slate-500 font-mono">
-            {new Date().toLocaleTimeString('es-MX')}
+            {new Date().toLocaleTimeString("es-MX")}
           </span>
         </div>
       </div>
@@ -129,7 +130,9 @@ export function LiveHudPage() {
             <span className="bg-emerald-950 border border-emerald-800 px-2.5 py-1 rounded-md text-emerald-300">
               {totalTickets} Ventas Confirmadas
             </span>
-            <span>Ticket promedio: {formatCurrency(totalTickets > 0 ? totalSales / totalTickets : 0)}</span>
+            <span>
+              Ticket promedio: {formatCurrency(totalTickets > 0 ? totalSales / totalTickets : 0)}
+            </span>
           </div>
         </div>
 
@@ -161,7 +164,8 @@ export function LiveHudPage() {
       {/* Feed en Vivo de Pagos Entrando */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 flex-1">
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Últimos Pagos Confirmados en Tiempo Real
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Últimos Pagos Confirmados en Tiempo
+          Real
         </h3>
 
         <div className="space-y-2.5">
@@ -179,7 +183,7 @@ export function LiveHudPage() {
                     {p.concept}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {p.lead?.name || p.lead?.phone || 'Clienta'}
+                    {p.lead?.name || p.lead?.phone || "Clienta"}
                   </p>
                 </div>
               </div>
@@ -189,7 +193,12 @@ export function LiveHudPage() {
                   +${Number(p.amount).toFixed(2)}
                 </span>
                 <span className="block text-[10px] text-slate-500">
-                  {p.paidAt ? new Date(p.paidAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : 'Recién'}
+                  {p.paidAt
+                    ? new Date(p.paidAt).toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Recién"}
                 </span>
               </div>
             </div>

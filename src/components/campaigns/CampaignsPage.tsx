@@ -1,32 +1,23 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { formatDate, formatTime, cn } from '@/lib/date-utils';
-import { useSocket } from '@/lib/socket';
-import {
-  Megaphone,
-  Plus,
-  Trash2,
-  Send,
-  Users,
-  Clock,
-  XCircle,
-  Loader2,
-} from 'lucide-react';
-import type { Campaign, CampaignStatus } from '@/types';
+import { useCallback, useEffect, useState } from "react";
+import { formatDate, formatTime, cn } from "@/lib/date-utils";
+import { useSocket } from "@/lib/socket";
+import { Megaphone, Plus, Trash2, Send, Users, Clock, XCircle, Loader2 } from "lucide-react";
+import type { Campaign, CampaignStatus } from "@/types";
 
 const STATUS_META: Record<CampaignStatus, { label: string; className: string }> = {
-  DRAFT: { label: 'Borrador', className: 'bg-muted text-muted-foreground' },
-  SCHEDULED: { label: 'Programada', className: 'bg-blue-100 text-blue-800' },
-  SENDING: { label: 'Enviando', className: 'bg-yellow-100 text-yellow-800' },
-  SENT: { label: 'Enviada', className: 'bg-green-100 text-green-800' },
-  CANCELLED: { label: 'Cancelada', className: 'bg-red-100 text-red-800' },
+  DRAFT: { label: "Borrador", className: "bg-muted text-muted-foreground" },
+  SCHEDULED: { label: "Programada", className: "bg-blue-100 text-blue-800" },
+  SENDING: { label: "Enviando", className: "bg-yellow-100 text-yellow-800" },
+  SENT: { label: "Enviada", className: "bg-green-100 text-green-800" },
+  CANCELLED: { label: "Cancelada", className: "bg-red-100 text-red-800" },
 };
 
 export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', message: '', scheduledAt: '' });
+  const [form, setForm] = useState({ name: "", message: "", scheduledAt: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -35,12 +26,12 @@ export function CampaignsPage() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await fetch('/api/campaigns');
-      if (!res.ok) throw new Error('No se pudieron cargar las campanas');
+      const res = await fetch("/api/campaigns");
+      if (!res.ok) throw new Error("No se pudieron cargar las campanas");
       setCampaigns(await res.json());
       setError(null);
     } catch (err: any) {
-      setError(err?.message || 'Error al cargar las campanas');
+      setError(err?.message || "Error al cargar las campanas");
     } finally {
       setLoading(false);
     }
@@ -55,14 +46,12 @@ export function CampaignsPage() {
     if (!socket) return;
 
     const onUpdated = (campaign: Campaign) => {
-      setCampaigns((prev) =>
-        prev.map((c) => (c.id === campaign.id ? { ...c, ...campaign } : c))
-      );
+      setCampaigns((prev) => prev.map((c) => (c.id === campaign.id ? { ...c, ...campaign } : c)));
     };
 
-    socket.on('campaign:updated', onUpdated);
+    socket.on("campaign:updated", onUpdated);
     return () => {
-      socket.off('campaign:updated', onUpdated);
+      socket.off("campaign:updated", onUpdated);
     };
   }, [socket]);
 
@@ -82,21 +71,21 @@ export function CampaignsPage() {
         payload.scheduledAt = new Date(form.scheduledAt).toISOString();
       }
 
-      const res = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo crear la campana');
+      if (!res.ok) throw new Error(data?.error || "No se pudo crear la campana");
       if (data?.warning) setError(data.warning);
 
       setShowModal(false);
-      setForm({ name: '', message: '', scheduledAt: '' });
+      setForm({ name: "", message: "", scheduledAt: "" });
       fetchCampaigns();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo crear la campana');
+      setError(err?.message || "No se pudo crear la campana");
     } finally {
       setSaving(false);
     }
@@ -106,43 +95,43 @@ export function CampaignsPage() {
     setBusyId(id);
     setError(null);
     try {
-      const res = await fetch(`/api/campaigns/${id}/send`, { method: 'POST' });
+      const res = await fetch(`/api/campaigns/${id}/send`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo iniciar el envio');
+      if (!res.ok) throw new Error(data?.error || "No se pudo iniciar el envio");
       fetchCampaigns();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo iniciar el envio');
+      setError(err?.message || "No se pudo iniciar el envio");
     } finally {
       setBusyId(null);
     }
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('¿Cancelar esta campana?')) return;
+    if (!confirm("¿Cancelar esta campana?")) return;
     setBusyId(id);
     setError(null);
     try {
-      const res = await fetch(`/api/campaigns/${id}/cancel`, { method: 'POST' });
+      const res = await fetch(`/api/campaigns/${id}/cancel`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo cancelar');
+      if (!res.ok) throw new Error(data?.error || "No se pudo cancelar");
       fetchCampaigns();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo cancelar');
+      setError(err?.message || "No se pudo cancelar");
     } finally {
       setBusyId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta campana?')) return;
+    if (!confirm("¿Eliminar esta campana?")) return;
 
     try {
-      const res = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo eliminar');
+      if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
       fetchCampaigns();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo eliminar la campana');
+      setError(err?.message || "No se pudo eliminar la campana");
     }
   };
 
@@ -151,9 +140,7 @@ export function CampaignsPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Campanas</h1>
-          <p className="text-sm text-muted-foreground">
-            Mensajes masivos a tus clientes
-          </p>
+          <p className="text-sm text-muted-foreground">Mensajes masivos a tus clientes</p>
         </div>
         <button
           onClick={() => {
@@ -168,16 +155,14 @@ export function CampaignsPage() {
       </div>
 
       {error && !showModal && (
-        <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
-          {error}
-        </div>
+        <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">{error}</div>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {campaigns.map((campaign) => {
-          const isSending = campaign.status === 'SENDING';
-          const canSend = ['DRAFT', 'SCHEDULED', 'CANCELLED'].includes(campaign.status);
-          const canCancel = ['DRAFT', 'SCHEDULED', 'SENDING'].includes(campaign.status);
+          const isSending = campaign.status === "SENDING";
+          const canSend = ["DRAFT", "SCHEDULED", "CANCELLED"].includes(campaign.status);
+          const canCancel = ["DRAFT", "SCHEDULED", "SENDING"].includes(campaign.status);
           const progress =
             campaign.totalLeads > 0
               ? Math.round(
@@ -208,7 +193,7 @@ export function CampaignsPage() {
               <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-xs font-medium',
+                    "rounded-full px-2 py-0.5 text-xs font-medium",
                     STATUS_META[campaign.status]?.className
                   )}
                 >
@@ -220,14 +205,14 @@ export function CampaignsPage() {
                   {campaign.totalLeads} destinatarios
                 </span>
 
-                {campaign.scheduledAt && campaign.status === 'SCHEDULED' && (
+                {campaign.scheduledAt && campaign.status === "SCHEDULED" && (
                   <span className="flex items-center gap-1 text-blue-600">
                     <Clock className="h-3.5 w-3.5" />
                     {formatDate(campaign.scheduledAt)} {formatTime(campaign.scheduledAt)}
                   </span>
                 )}
 
-                {campaign.sentAt && campaign.status === 'SENT' && (
+                {campaign.sentAt && campaign.status === "SENT" && (
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
                     {formatDate(campaign.sentAt)}
@@ -251,8 +236,7 @@ export function CampaignsPage() {
                     />
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Enviando... {campaign.sentCount + campaign.failedCount}/
-                    {campaign.totalLeads}
+                    Enviando... {campaign.sentCount + campaign.failedCount}/{campaign.totalLeads}
                   </p>
                 </div>
               )}
@@ -270,7 +254,7 @@ export function CampaignsPage() {
                       ) : (
                         <Send className="h-3.5 w-3.5" />
                       )}
-                      {campaign.status === 'CANCELLED' ? 'Reenviar' : 'Enviar ahora'}
+                      {campaign.status === "CANCELLED" ? "Reenviar" : "Enviar ahora"}
                     </button>
                   )}
                   {canCancel && (
@@ -297,16 +281,14 @@ export function CampaignsPage() {
                         key={recipient.id}
                         className="flex items-center justify-between rounded border px-2 py-1 text-xs"
                       >
-                        <span>
-                          {recipient.lead?.name || recipient.lead?.phone}
-                        </span>
+                        <span>{recipient.lead?.name || recipient.lead?.phone}</span>
                         <span
                           className={cn(
-                            recipient.status === 'SENT' && 'text-green-600',
-                            recipient.status === 'FAILED' && 'text-red-600'
+                            recipient.status === "SENT" && "text-green-600",
+                            recipient.status === "FAILED" && "text-red-600"
                           )}
                         >
-                          {recipient.status === 'FAILED' && recipient.errorMessage
+                          {recipient.status === "FAILED" && recipient.errorMessage
                             ? `Fallo: ${recipient.errorMessage}`
                             : recipient.status}
                         </span>
@@ -321,9 +303,7 @@ export function CampaignsPage() {
       </div>
 
       {!loading && campaigns.length === 0 && (
-        <div className="py-12 text-center text-muted-foreground">
-          Todavia no hay campanas
-        </div>
+        <div className="py-12 text-center text-muted-foreground">Todavia no hay campanas</div>
       )}
 
       {loading && (
@@ -338,9 +318,7 @@ export function CampaignsPage() {
             <h2 className="text-lg font-semibold">Nueva campana</h2>
 
             {error && (
-              <div className="mt-3 rounded-md bg-red-50 p-2 text-sm text-red-800">
-                {error}
-              </div>
+              <div className="mt-3 rounded-md bg-red-50 p-2 text-sm text-red-800">{error}</div>
             )}
 
             <form className="mt-4 space-y-4">
@@ -359,25 +337,26 @@ export function CampaignsPage() {
                 />
               </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium" htmlFor="campaign-msg">
-                  Mensaje
-                </label>
-                <span className="text-[11px] text-muted-foreground">
-                  Variables: <code className="bg-muted px-1 rounded">{'{{nombre}}'}</code> <code className="bg-muted px-1 rounded">{'{{telefono}}'}</code>
-                </span>
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium" htmlFor="campaign-msg">
+                    Mensaje
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Variables: <code className="bg-muted px-1 rounded">{"{{nombre}}"}</code>{" "}
+                    <code className="bg-muted px-1 rounded">{"{{telefono}}"}</code>
+                  </span>
+                </div>
+                <textarea
+                  id="campaign-msg"
+                  value={form.message}
+                  onChange={(e) => setForm({ ...form, message: e.target.value })}
+                  rows={4}
+                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  placeholder="¡Hola {{nombre}}! Ya estamos EN VIVO con ofertas relámpago y combos exclusivos. ¡Entra aquí: https://tiktok.com/@mitienda/live !"
+                  required
+                />
               </div>
-              <textarea
-                id="campaign-msg"
-                value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
-                rows={4}
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="¡Hola {{nombre}}! Ya estamos EN VIVO con ofertas relámpago y combos exclusivos. ¡Entra aquí: https://tiktok.com/@mitienda/live !"
-                required
-              />
-            </div>
 
               <div>
                 <label className="text-sm font-medium" htmlFor="c-date">
@@ -412,7 +391,7 @@ export function CampaignsPage() {
                   disabled={saving}
                   className="flex-1 rounded-md border py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : 'Guardar'}
+                  {saving ? "Guardando..." : "Guardar"}
                 </button>
                 <button
                   type="button"

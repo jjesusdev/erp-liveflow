@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
@@ -11,8 +11,8 @@ export function useSocket() {
   useEffect(() => {
     if (!socket) {
       socket = io({
-        path: '/api/socketio',
-        transports: ['websocket', 'polling'],
+        path: "/api/socketio",
+        transports: ["websocket", "polling"],
       });
     }
 
@@ -24,16 +24,16 @@ export function useSocket() {
       setConnectedSocket(null);
     };
 
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
 
     if (socket.connected) {
       setConnectedSocket(socket);
     }
 
     return () => {
-      socket?.off('connect', onConnect);
-      socket?.off('disconnect', onDisconnect);
+      socket?.off("connect", onConnect);
+      socket?.off("disconnect", onDisconnect);
     };
   }, []);
 

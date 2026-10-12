@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { prisma } from "./prisma";
 
 export async function logActivity({
   action,
@@ -22,11 +22,11 @@ export async function logActivity({
     });
 
     const io = (globalThis as any).io;
-    io?.emit('activity:new', log);
+    io?.emit("activity:new", log);
 
     return log;
   } catch (error) {
-    console.error('[audit] Error registrando actividad:', error);
+    console.error("[audit] Error registrando actividad:", error);
     return null;
   }
 }

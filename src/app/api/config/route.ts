@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { apiHandler } from '@/lib/api-handler';
-import { businessConfigSchema, type BusinessConfigInput } from '@/lib/schemas';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { apiHandler } from "@/lib/api-handler";
+import { businessConfigSchema, type BusinessConfigInput } from "@/lib/schemas";
 
 export async function GET() {
   const config = await prisma.businessConfig.findFirst();
 
   if (!config) {
     return NextResponse.json({
-      businessName: 'Mi Negocio',
-      currency: 'MXN',
-      timezone: 'America/Mexico_City',
+      businessName: "Mi Negocio",
+      currency: "MXN",
+      timezone: "America/Mexico_City",
       bankName: null,
       bankBeneficiary: null,
       bankAccountNumber: null,
@@ -19,7 +19,7 @@ export async function GET() {
       soundAlertsEnabled: false,
       autoReplyEnabled: true,
       autoReplyDelayMs: 1000,
-      welcomeMessage: '¡Hola! Bienvenido. Envíanos captura de lo que te gusta.',
+      welcomeMessage: "¡Hola! Bienvenido. Envíanos captura de lo que te gusta.",
       awayMessage: null,
       queueMessage: null,
     });
@@ -45,13 +45,13 @@ export const PUT = apiHandler<BusinessConfigInput>({
   body: businessConfigSchema,
   handler: async (_req, body) => {
     const config = await prisma.businessConfig.upsert({
-      where: { id: 'default' },
+      where: { id: "default" },
       update: toPrismaUpdate(body),
       create: {
-        id: 'default',
-        businessName: body.businessName || 'Mi Negocio',
-        currency: body.currency || 'MXN',
-        timezone: body.timezone || 'America/Mexico_City',
+        id: "default",
+        businessName: body.businessName || "Mi Negocio",
+        currency: body.currency || "MXN",
+        timezone: body.timezone || "America/Mexico_City",
         bankName: body.bankName || null,
         bankBeneficiary: body.bankBeneficiary || null,
         bankAccountNumber: body.bankAccountNumber || null,
@@ -60,7 +60,7 @@ export const PUT = apiHandler<BusinessConfigInput>({
         soundAlertsEnabled: body.soundAlertsEnabled ?? false,
         autoReplyEnabled: body.autoReplyEnabled ?? true,
         autoReplyDelayMs: body.autoReplyDelayMs ?? 1000,
-        welcomeMessage: body.welcomeMessage || '¡Hola! Bienvenido.',
+        welcomeMessage: body.welcomeMessage || "¡Hola! Bienvenido.",
         awayMessage: body.awayMessage ?? null,
         queueMessage: body.queueMessage ?? null,
       },

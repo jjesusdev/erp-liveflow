@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { Download, Sparkles } from 'lucide-react';
-import { useCaja } from '@/hooks/useCaja';
-import { CajaMetrics } from './CajaMetrics';
-import { CajaFilters } from './CajaFilters';
-import { CajaTable } from './CajaTable';
-import { SweepModal } from './SweepModal';
+import { Download, Sparkles } from "lucide-react";
+import { useCaja } from "@/hooks/useCaja";
+import { CajaMetrics } from "./CajaMetrics";
+import { CajaFilters } from "./CajaFilters";
+import { CajaTable } from "./CajaTable";
+import { SweepModal } from "./SweepModal";
 
 export function CajaPage() {
   const caja = useCaja();

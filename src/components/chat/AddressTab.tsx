@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { AddressFormData } from '@/hooks/useChatPanel';
+import { Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { AddressFormData } from "@/hooks/useChatPanel";
 
 interface AddressTabProps {
   form: AddressFormData;
@@ -33,7 +33,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
         <label className="text-xs font-medium">Nombre Completo del Receptor</label>
         <input
           type="text"
-          {...field('name')}
+          {...field("name")}
           placeholder="Ej: Maria Gonzalez"
           className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
         />
@@ -44,7 +44,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Calle / Avenida</label>
           <input
             type="text"
-            {...field('addressStreet')}
+            {...field("addressStreet")}
             placeholder="Ej: Av. Hidalgo"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -53,7 +53,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Numero (Ext/Int)</label>
           <input
             type="text"
-            {...field('addressNumber')}
+            {...field("addressNumber")}
             placeholder="Ej: #123 Int 4"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -65,7 +65,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Colonia / Barrio</label>
           <input
             type="text"
-            {...field('addressColonia')}
+            {...field("addressColonia")}
             placeholder="Ej: Centro"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -74,7 +74,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Codigo Postal</label>
           <input
             type="text"
-            {...field('addressZipCode')}
+            {...field("addressZipCode")}
             placeholder="Ej: 06000"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -86,7 +86,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Ciudad / Municipio</label>
           <input
             type="text"
-            {...field('addressCity')}
+            {...field("addressCity")}
             placeholder="Ej: Guadalajara"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -95,7 +95,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
           <label className="text-xs font-medium">Estado</label>
           <input
             type="text"
-            {...field('addressState')}
+            {...field("addressState")}
             placeholder="Ej: Jalisco"
             className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
           />
@@ -106,7 +106,7 @@ export function AddressTab({ form, onChange, onSave, saving }: AddressTabProps) 
         <label className="text-xs font-medium">Referencias de Entrega</label>
         <textarea
           rows={2}
-          {...field('addressNotes')}
+          {...field("addressNotes")}
           placeholder="Ej: Porton cafe, entre Juarez y Morelos."
           className="mt-1 w-full rounded-lg border border-border px-2.5 py-1.5 text-xs bg-background"
         />

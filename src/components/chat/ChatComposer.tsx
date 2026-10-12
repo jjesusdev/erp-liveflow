@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { MessageTemplate } from '@/types';
+import { Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { MessageTemplate } from "@/types";
 
 interface ChatComposerProps {
   newMessage: string;
@@ -53,7 +53,7 @@ export function ChatComposer({
           onChange={onInputChange}
           onPaste={onPaste}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               if (pastingImage) {
                 onSendImage();

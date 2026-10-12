@@ -1,8 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Copy, Check, Building2, CreditCard, Send, ShoppingBag, Plus, Trash2, PackagePlus } from 'lucide-react';
-import type { Product } from '@/types';
+import { useEffect, useState } from "react";
+import {
+  Copy,
+  Check,
+  Building2,
+  CreditCard,
+  Send,
+  ShoppingBag,
+  Plus,
+  Trash2,
+  PackagePlus,
+} from "lucide-react";
+import type { Product } from "@/types";
 
 interface PaymentModalProps {
   open: boolean;
@@ -48,12 +58,12 @@ export function PaymentModal({
 }: PaymentModalProps) {
   // Modo Cajita / Bolsa Consolidada
   const [items, setItems] = useState<CartItem[]>([]);
-  const [shippingFee, setShippingFee] = useState<string>('0');
-  const [singleAmount, setSingleAmount] = useState('');
-  const [singleConcept, setSingleConcept] = useState('');
+  const [shippingFee, setShippingFee] = useState<string>("0");
+  const [singleAmount, setSingleAmount] = useState("");
+  const [singleConcept, setSingleConcept] = useState("");
   const [useCartMode, setUseCartMode] = useState(false);
 
-  const [provider, setProvider] = useState<'TRANSFER' | 'MERCADOPAGO' | 'CASH'>('TRANSFER');
+  const [provider, setProvider] = useState<"TRANSFER" | "MERCADOPAGO" | "CASH">("TRANSFER");
   const [products, setProducts] = useState<Product[]>([]);
   const [showCatalog, setShowCatalog] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,11 +74,13 @@ export function PaymentModal({
   useEffect(() => {
     if (open) {
       if (initialProduct) {
-        setItems([{ id: initialProduct.id, name: initialProduct.name, price: Number(initialProduct.price) }]);
+        setItems([
+          { id: initialProduct.id, name: initialProduct.name, price: Number(initialProduct.price) },
+        ]);
         setSingleConcept(initialProduct.name);
         setSingleAmount(String(initialProduct.price));
       }
-      fetch('/api/products?available=true')
+      fetch("/api/products?available=true")
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) setProducts(data);
@@ -97,7 +109,7 @@ export function PaymentModal({
 
   const getConsolidatedConcept = () => {
     if (useCartMode) {
-      const names = items.map((i) => i.name).join(' + ');
+      const names = items.map((i) => i.name).join(" + ");
       const fee = parseFloat(shippingFee) || 0;
       return fee > 0 ? `${names} (+ Envío $${fee})` : names;
     }
@@ -106,11 +118,11 @@ export function PaymentModal({
 
   const reset = () => {
     setItems([]);
-    setShippingFee('0');
-    setSingleAmount('');
-    setSingleConcept('');
+    setShippingFee("0");
+    setSingleAmount("");
+    setSingleConcept("");
     setUseCartMode(false);
-    setProvider('TRANSFER');
+    setProvider("TRANSFER");
     setShowCatalog(false);
     setError(null);
     setCreated(null);
@@ -128,12 +140,12 @@ export function PaymentModal({
     const finalConcept = getConsolidatedConcept();
 
     if (!finalAmount || finalAmount <= 0) {
-      setError('El monto total debe ser mayor a 0');
+      setError("El monto total debe ser mayor a 0");
       return;
     }
 
     if (!finalConcept.trim()) {
-      setError('Debes especificar al menos una prenda o concepto');
+      setError("Debes especificar al menos una prenda o concepto");
       return;
     }
 
@@ -141,9 +153,9 @@ export function PaymentModal({
     setError(null);
 
     try {
-      const res = await fetch('/api/payment-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/payment-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
           amount: finalAmount,
@@ -155,12 +167,12 @@ export function PaymentModal({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || 'No se pudo generar el cobro');
+        throw new Error(data?.error || "No se pudo generar el cobro");
       }
 
       setCreated(data);
     } catch (err: any) {
-      setError(err?.message || 'No se pudo generar el cobro');
+      setError(err?.message || "No se pudo generar el cobro");
     } finally {
       setLoading(false);
     }
@@ -174,7 +186,7 @@ export function PaymentModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('No se pudo copiar el texto');
+      setError("No se pudo copiar el texto");
     }
   };
 
@@ -187,7 +199,8 @@ export function PaymentModal({
           <div>
             <h2 className="text-lg font-bold">Generar Cobro Express</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Clienta: <span className="font-semibold text-foreground">{leadName || 'Desconocido'}</span>
+              Clienta:{" "}
+              <span className="font-semibold text-foreground">{leadName || "Desconocido"}</span>
             </p>
           </div>
           {!created && (
@@ -197,7 +210,7 @@ export function PaymentModal({
               className="inline-flex items-center gap-1 rounded bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
             >
               <PackagePlus className="h-3.5 w-3.5 text-primary" />
-              {useCartMode ? 'Cobro Simple' : 'Bolsa / Cajita Live'}
+              {useCartMode ? "Cobro Simple" : "Bolsa / Cajita Live"}
             </button>
           )}
         </div>
@@ -231,7 +244,7 @@ export function PaymentModal({
               >
                 <span className="font-medium text-foreground truncate">{p.name}</span>
                 <span className="font-bold text-primary shrink-0 ml-2">
-                  ${Number(p.price).toFixed(2)} {p.currency || 'MXN'}
+                  ${Number(p.price).toFixed(2)} {p.currency || "MXN"}
                 </span>
               </button>
             ))}
@@ -248,8 +261,8 @@ export function PaymentModal({
                 </p>
                 <p className="text-green-700 mt-0.5">
                   {created.whatsappSent
-                    ? '✓ Datos bancarios enviados a la clienta por WhatsApp.'
-                    : '⚠ WhatsApp desconectado: Envía los datos manualmente.'}
+                    ? "✓ Datos bancarios enviados a la clienta por WhatsApp."
+                    : "⚠ WhatsApp desconectado: Envía los datos manualmente."}
                 </p>
               </div>
             </div>
@@ -258,16 +271,24 @@ export function PaymentModal({
               <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1.5">
                 <div className="flex justify-between font-bold text-foreground border-b pb-1">
                   <span>Referencia / Folio:</span>
-                  <span className="font-mono text-primary">{created.transferDetails.reference}</span>
+                  <span className="font-mono text-primary">
+                    {created.transferDetails.reference}
+                  </span>
                 </div>
                 {created.transferDetails.bankName && (
-                  <p><strong>Banco:</strong> {created.transferDetails.bankName}</p>
+                  <p>
+                    <strong>Banco:</strong> {created.transferDetails.bankName}
+                  </p>
                 )}
                 {created.transferDetails.bankBeneficiary && (
-                  <p><strong>Titular:</strong> {created.transferDetails.bankBeneficiary}</p>
+                  <p>
+                    <strong>Titular:</strong> {created.transferDetails.bankBeneficiary}
+                  </p>
                 )}
                 {created.transferDetails.bankClabe && (
-                  <p className="font-mono"><strong>CLABE:</strong> {created.transferDetails.bankClabe}</p>
+                  <p className="font-mono">
+                    <strong>CLABE:</strong> {created.transferDetails.bankClabe}
+                  </p>
                 )}
               </div>
             )}
@@ -319,7 +340,10 @@ export function PaymentModal({
 
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs bg-background p-1.5 rounded border">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between text-xs bg-background p-1.5 rounded border"
+                    >
                       <span className="truncate font-medium">{item.name}</span>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
                         <span className="font-bold font-mono">${item.price.toFixed(2)}</span>
@@ -344,7 +368,9 @@ export function PaymentModal({
                   <div>
                     <label className="font-semibold text-muted-foreground">Costo de Envío</label>
                     <div className="relative mt-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">$</span>
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">
+                        $
+                      </span>
                       <input
                         type="number"
                         step="0.01"
@@ -357,7 +383,9 @@ export function PaymentModal({
                     </div>
                   </div>
                   <div className="text-right flex flex-col justify-end">
-                    <span className="text-[10px] text-muted-foreground font-semibold uppercase">Total a Cobrar</span>
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase">
+                      Total a Cobrar
+                    </span>
                     <span className="text-base font-black text-foreground font-mono">
                       ${calculateTotal().toFixed(2)} MXN
                     </span>
@@ -389,7 +417,9 @@ export function PaymentModal({
                 <div>
                   <label className="text-xs font-semibold text-foreground">Monto</label>
                   <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">
+                      $
+                    </span>
                     <input
                       type="number"
                       step="0.01"
@@ -412,11 +442,11 @@ export function PaymentModal({
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setProvider('TRANSFER')}
+                  onClick={() => setProvider("TRANSFER")}
                   className={`flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-semibold transition-all ${
-                    provider === 'TRANSFER'
-                      ? 'border-green-600 bg-green-50/70 text-green-900 ring-1 ring-green-600'
-                      : 'hover:bg-accent'
+                    provider === "TRANSFER"
+                      ? "border-green-600 bg-green-50/70 text-green-900 ring-1 ring-green-600"
+                      : "hover:bg-accent"
                   }`}
                 >
                   <Building2 className="h-3.5 w-3.5 text-green-700" />
@@ -424,11 +454,11 @@ export function PaymentModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProvider('MERCADOPAGO')}
+                  onClick={() => setProvider("MERCADOPAGO")}
                   className={`flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-semibold transition-all ${
-                    provider === 'MERCADOPAGO'
-                      ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-1 ring-blue-600'
-                      : 'hover:bg-accent'
+                    provider === "MERCADOPAGO"
+                      ? "border-blue-600 bg-blue-50/70 text-blue-900 ring-1 ring-blue-600"
+                      : "hover:bg-accent"
                   }`}
                 >
                   <CreditCard className="h-3.5 w-3.5 text-blue-700" />
@@ -451,7 +481,7 @@ export function PaymentModal({
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-green-600 py-2 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-50"
               >
                 <Send className="h-3.5 w-3.5" />
-                {loading ? 'Enviando...' : `Cobrar $${calculateTotal().toFixed(2)}`}
+                {loading ? "Enviando..." : `Cobrar $${calculateTotal().toFixed(2)}`}
               </button>
             </div>
           </form>

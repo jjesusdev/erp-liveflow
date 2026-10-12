@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 function normalizePhone(raw: string) {
   // Conserva el + inicial y elimina espacios/guiones/paréntesis.
-  const plus = raw.trim().startsWith('+');
-  const digits = raw.replace(/\D/g, '');
+  const plus = raw.trim().startsWith("+");
+  const digits = raw.replace(/\D/g, "");
   if (!digits) return null;
-  return (plus ? '+' : '') + digits;
+  return (plus ? "+" : "") + digits;
 }
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const search = searchParams.get('search');
-    const phone = searchParams.get('phone');
+    const search = searchParams.get("search");
+    const phone = searchParams.get("phone");
 
     const where: any = {};
 
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
         { phone: { contains: search } },
       ];
     }
@@ -32,35 +32,35 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         conversations: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
         paymentOrders: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
         shipments: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: [{ lastInteractionAt: { sort: 'desc', nulls: 'last' } }],
+      orderBy: [{ lastInteractionAt: { sort: "desc", nulls: "last" } }],
     });
 
     return NextResponse.json(
       leads.map((lead) => {
-        const paidOrders = lead.paymentOrders.filter((o) => o.status === 'PAID');
+        const paidOrders = lead.paymentOrders.filter((o) => o.status === "PAID");
         const totalPaidCount = paidOrders.length;
         const totalSpent = paidOrders.reduce((sum, o) => sum + Number(o.amount), 0);
 
-        let tier: 'VIP' | 'FREQUENT' | 'NEW' | 'GHOST' = 'NEW';
+        let tier: "VIP" | "FREQUENT" | "NEW" | "GHOST" = "NEW";
         if (totalPaidCount >= 3 || totalSpent >= 2000) {
-          tier = 'VIP';
+          tier = "VIP";
         } else if (totalPaidCount >= 1) {
-          tier = 'FREQUENT';
+          tier = "FREQUENT";
         } else {
           const hasExpiredOrCancelled = lead.paymentOrders.some(
-            (o) => o.status === 'EXPIRED' || o.status === 'CANCELLED'
+            (o) => o.status === "EXPIRED" || o.status === "CANCELLED"
           );
           if (hasExpiredOrCancelled) {
-            tier = 'GHOST';
+            tier = "GHOST";
           }
         }
 
@@ -77,49 +77,40 @@ export async function GET(req: NextRequest) {
       })
     );
   } catch (error) {
-    console.error('Error fetching leads:', error);
-    return NextResponse.json({ error: 'Error fetching leads' }, { status: 500 });
+    console.error("Error fetching leads:", error);
+    return NextResponse.json({ error: "Error fetching leads" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const phone = normalizePhone(String(body.phone || ''));
+    const phone = normalizePhone(String(body.phone || ""));
 
-    if (!phone || phone.replace(/\D/g, '').length < 8) {
-      return NextResponse.json(
-        { error: 'Telefono invalido (minimo 8 digitos)' },
-        { status: 400 }
-      );
+    if (!phone || phone.replace(/\D/g, "").length < 8) {
+      return NextResponse.json({ error: "Telefono invalido (minimo 8 digitos)" }, { status: 400 });
     }
 
     const existing = await prisma.lead.findUnique({ where: { phone } });
     if (existing) {
-      return NextResponse.json(
-        { error: 'Ya existe un cliente con ese telefono' },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Ya existe un cliente con ese telefono" }, { status: 409 });
     }
 
     const lead = await prisma.lead.create({
       data: {
         phone,
         name: body.name?.trim() || null,
-        source: body.source?.trim() || 'manual',
+        source: body.source?.trim() || "manual",
         lastInteractionAt: new Date(),
       },
     });
 
     return NextResponse.json(lead, { status: 201 });
   } catch (error: any) {
-    if (error?.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Ya existe un cliente con ese telefono' },
-        { status: 409 }
-      );
+    if (error?.code === "P2002") {
+      return NextResponse.json({ error: "Ya existe un cliente con ese telefono" }, { status: 409 });
     }
-    console.error('Error creating lead:', error);
-    return NextResponse.json({ error: 'Error creating lead' }, { status: 500 });
+    console.error("Error creating lead:", error);
+    return NextResponse.json({ error: "Error creating lead" }, { status: 500 });
   }
 }

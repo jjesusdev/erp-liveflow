@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   BookOpen,
@@ -14,7 +14,7 @@ import {
   Copy,
   Printer,
   HelpCircle,
-} from 'lucide-react';
+} from "lucide-react";
 
 export function ManualPage() {
   return (
@@ -26,7 +26,8 @@ export function ManualPage() {
           <h1 className="text-2xl font-black">Manual de Operación Rápida para Vendedoras</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          Guía práctica para atención a clientas, cobros express y despacho de prendas durante y después de los Lives.
+          Guía práctica para atención a clientas, cobros express y despacho de prendas durante y
+          después de los Lives.
         </p>
       </div>
 
@@ -94,7 +95,8 @@ export function ManualPage() {
             </span>
             <p className="font-bold text-foreground pt-1">Apartado en el Chat</p>
             <p className="text-muted-foreground leading-relaxed">
-              La clienta escribe pidiendo una prenda. Al abrir el chat, se <strong>bloquea a tu nombre</strong> para que otra vendedora no se cruce.
+              La clienta escribe pidiendo una prenda. Al abrir el chat, se{" "}
+              <strong>bloquea a tu nombre</strong> para que otra vendedora no se cruce.
             </p>
           </div>
 
@@ -105,7 +107,9 @@ export function ManualPage() {
             </span>
             <p className="font-bold text-foreground pt-1">Generar Cobro Express</p>
             <p className="text-muted-foreground leading-relaxed">
-              Presiona <strong>&quot;Cobro&quot;</strong> o selecciona del <strong>&quot;Catálogo&quot;</strong>. Si la clienta pide varias prendas, usa <strong>&quot;Bolsa / Cajita Live&quot;</strong> para consolidar.
+              Presiona <strong>&quot;Cobro&quot;</strong> o selecciona del{" "}
+              <strong>&quot;Catálogo&quot;</strong>. Si la clienta pide varias prendas, usa{" "}
+              <strong>&quot;Bolsa / Cajita Live&quot;</strong> para consolidar.
             </p>
           </div>
 
@@ -116,7 +120,9 @@ export function ManualPage() {
             </span>
             <p className="font-bold text-foreground pt-1">Validación del Comprobante</p>
             <p className="text-muted-foreground leading-relaxed">
-              La clienta manda su foto de transferencia. Haz clic en <strong>&quot;Aprobar Pago&quot;</strong> sobre la imagen. La orden pasa a Pagada automáticamente.
+              La clienta manda su foto de transferencia. Haz clic en{" "}
+              <strong>&quot;Aprobar Pago&quot;</strong> sobre la imagen. La orden pasa a Pagada
+              automáticamente.
             </p>
           </div>
 
@@ -127,7 +133,9 @@ export function ManualPage() {
             </span>
             <p className="font-bold text-foreground pt-1">Dirección y Etiqueta</p>
             <p className="text-muted-foreground leading-relaxed">
-              Entra a la pestaña <strong>&quot;Dirección&quot;</strong> para guardar los datos de entrega y luego a <strong>&quot;Etiqueta&quot;</strong> para imprimir el paquete listo.
+              Entra a la pestaña <strong>&quot;Dirección&quot;</strong> para guardar los datos de
+              entrega y luego a <strong>&quot;Etiqueta&quot;</strong> para imprimir el paquete
+              listo.
             </p>
           </div>
         </div>
@@ -141,13 +149,18 @@ export function ManualPage() {
         </div>
         <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
           <p>
-            • <strong>Tiempo de Tolerancia:</strong> Cada apartado tiene <strong>30 minutos</strong> para recibir el comprobante de transferencia bancaria.
+            • <strong>Tiempo de Tolerancia:</strong> Cada apartado tiene <strong>30 minutos</strong>{" "}
+            para recibir el comprobante de transferencia bancaria.
           </p>
           <p>
-            • <strong>Liberación Automática:</strong> Si pasan los 30 minutos sin pago, el sistema cancela el apartado, libera el stock para volver a ofrecer la prenda en el Live y avisa a la clienta por WhatsApp.
+            • <strong>Liberación Automática:</strong> Si pasan los 30 minutos sin pago, el sistema
+            cancela el apartado, libera el stock para volver a ofrecer la prenda en el Live y avisa
+            a la clienta por WhatsApp.
           </p>
           <p>
-            • <strong>Barrido Post-Live:</strong> Al día siguiente, la administradora puede usar el botón <strong>&quot;Barrido de Carritos Abandonados&quot;</strong> en Caja para dar un último recordatorio con descuento a quienes no pagaron.
+            • <strong>Barrido Post-Live:</strong> Al día siguiente, la administradora puede usar el
+            botón <strong>&quot;Barrido de Carritos Abandonados&quot;</strong> en Caja para dar un
+            último recordatorio con descuento a quienes no pagaron.
           </p>
         </div>
       </section>
@@ -172,7 +185,9 @@ export function ManualPage() {
 
           <div className="rounded-lg border bg-muted/20 p-3">
             <div className="flex items-center gap-1.5 font-bold text-foreground">
-              <code className="text-primary font-mono bg-muted px-1.5 py-0.5 rounded">/apartar</code>
+              <code className="text-primary font-mono bg-muted px-1.5 py-0.5 rounded">
+                /apartar
+              </code>
               <span>Aviso de Apartado</span>
             </div>
             <p className="text-muted-foreground mt-1">

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const status = searchParams.get('status');
-    const carrier = searchParams.get('carrier');
-    const leadId = searchParams.get('leadId');
+    const status = searchParams.get("status");
+    const carrier = searchParams.get("carrier");
+    const leadId = searchParams.get("leadId");
 
     const where: any = {};
 
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (carrier) {
-      where.carrier = { contains: carrier, mode: 'insensitive' };
+      where.carrier = { contains: carrier, mode: "insensitive" };
     }
 
     if (leadId) {
@@ -28,13 +28,13 @@ export async function GET(req: NextRequest) {
         lead: true,
         paymentOrder: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(shipments);
   } catch (error) {
-    console.error('Error fetching shipments:', error);
-    return NextResponse.json({ error: 'Error fetching shipments' }, { status: 500 });
+    console.error("Error fetching shipments:", error);
+    return NextResponse.json({ error: "Error fetching shipments" }, { status: 500 });
   }
 }
 
@@ -44,10 +44,7 @@ export async function POST(req: NextRequest) {
     const { paymentOrderId, trackingNumber, carrier, notes } = body;
 
     if (!paymentOrderId) {
-      return NextResponse.json(
-        { error: 'paymentOrderId es obligatorio' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "paymentOrderId es obligatorio" }, { status: 400 });
     }
 
     const paymentOrder = await prisma.paymentOrder.findUnique({
@@ -55,7 +52,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!paymentOrder) {
-      return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
     }
 
     const existing = await prisma.shipment.findUnique({
@@ -64,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'Este cobro ya tiene un envio registrado' },
+        { error: "Este cobro ya tiene un envio registrado" },
         { status: 409 }
       );
     }
@@ -76,7 +73,7 @@ export async function POST(req: NextRequest) {
         trackingNumber: trackingNumber || null,
         carrier: carrier || null,
         notes: notes || null,
-        status: 'PENDING',
+        status: "PENDING",
       },
       include: { lead: true, paymentOrder: true },
     });
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(shipment);
   } catch (error) {
-    console.error('Error creating shipment:', error);
-    return NextResponse.json({ error: 'Error creating shipment' }, { status: 500 });
+    console.error("Error creating shipment:", error);
+    return NextResponse.json({ error: "Error creating shipment" }, { status: 500 });
   }
 }

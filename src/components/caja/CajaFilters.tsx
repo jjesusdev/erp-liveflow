@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { Search } from 'lucide-react';
+import { Search } from "lucide-react";
 
 const STATUS_FILTERS = [
-  { id: 'all', label: 'Todos los estados' },
-  { id: 'PAID', label: 'Pagados' },
-  { id: 'SENT', label: 'Por pagar / Enviados' },
-  { id: 'PENDING', label: 'Pendientes' },
-  { id: 'CANCELLED', label: 'Cancelados' },
+  { id: "all", label: "Todos los estados" },
+  { id: "PAID", label: "Pagados" },
+  { id: "SENT", label: "Por pagar / Enviados" },
+  { id: "PENDING", label: "Pendientes" },
+  { id: "CANCELLED", label: "Cancelados" },
 ];
 
 const PROVIDER_FILTERS = [
-  { id: 'all', label: 'Todos los metodos' },
-  { id: 'TRANSFER', label: 'Transferencia Directa' },
-  { id: 'MERCADOPAGO', label: 'MercadoPago' },
-  { id: 'CASH', label: 'Efectivo' },
+  { id: "all", label: "Todos los metodos" },
+  { id: "TRANSFER", label: "Transferencia Directa" },
+  { id: "MERCADOPAGO", label: "MercadoPago" },
+  { id: "CASH", label: "Efectivo" },
 ];
 
 const DATE_RANGES = [
-  { id: 'today', label: 'Hoy (Live actual)' },
-  { id: 'week', label: 'Ultimos 7 dias' },
-  { id: 'month', label: 'Este mes' },
-  { id: 'all', label: 'Historico completo' },
+  { id: "today", label: "Hoy (Live actual)" },
+  { id: "week", label: "Ultimos 7 dias" },
+  { id: "month", label: "Este mes" },
+  { id: "all", label: "Historico completo" },
 ];
 
 interface CajaFiltersProps {

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import type { Shipment } from '@/types';
+import { Button } from "@/components/ui/button";
+import type { Shipment } from "@/types";
 
 interface BulkPrintViewProps {
   shipments: Shipment[];
@@ -23,15 +23,22 @@ export function BulkPrintView({ shipments, selectedIds, onClose }: BulkPrintView
         {shipments
           .filter((s) => selectedIds.includes(s.id))
           .map((s) => (
-            <div key={s.id} className="rounded-xl border-2 border-dashed border-black p-4 space-y-2.5 break-inside-avoid">
+            <div
+              key={s.id}
+              className="rounded-xl border-2 border-dashed border-black p-4 space-y-2.5 break-inside-avoid"
+            >
               <div className="flex justify-between items-start border-b border-black pb-1.5">
                 <div>
                   <h3 className="font-black text-xs uppercase">LIVEFLOW BOUTIQUE</h3>
-                  <p className="text-[11px]">Destino: <strong>{s.lead?.name || s.lead?.phone}</strong></p>
-                  <p className="text-[11px]">Tel: <strong>{s.lead?.phone}</strong></p>
+                  <p className="text-[11px]">
+                    Destino: <strong>{s.lead?.name || s.lead?.phone}</strong>
+                  </p>
+                  <p className="text-[11px]">
+                    Tel: <strong>{s.lead?.phone}</strong>
+                  </p>
                 </div>
                 <span className="text-xs font-bold border border-black px-1.5 py-0.5 rounded">
-                  {s.paymentOrder?.id?.slice(0, 8)?.toUpperCase() || 'REF-LIVE'}
+                  {s.paymentOrder?.id?.slice(0, 8)?.toUpperCase() || "REF-LIVE"}
                 </span>
               </div>
 
@@ -40,18 +47,24 @@ export function BulkPrintView({ shipments, selectedIds, onClose }: BulkPrintView
                   {s.lead?.addressStreet} {s.lead?.addressNumber}
                 </p>
                 <p>
-                  {s.lead?.addressColonia ? `Col. ${s.lead.addressColonia}, ` : ''}
+                  {s.lead?.addressColonia ? `Col. ${s.lead.addressColonia}, ` : ""}
                   {s.lead?.addressCity} {s.lead?.addressState}
                 </p>
-                <p className="font-bold">CP: {s.lead?.addressZipCode || 'N/A'}</p>
+                <p className="font-bold">CP: {s.lead?.addressZipCode || "N/A"}</p>
                 {s.lead?.addressNotes && (
-                  <p className="italic text-[10px] bg-gray-100 p-1 rounded mt-1">Ref: {s.lead.addressNotes}</p>
+                  <p className="italic text-[10px] bg-gray-100 p-1 rounded mt-1">
+                    Ref: {s.lead.addressNotes}
+                  </p>
                 )}
               </div>
 
               <div className="border-t border-black pt-1.5 text-[11px] flex justify-between">
-                <span>Prendas: <strong>{s.paymentOrder?.concept}</strong></span>
-                <span>Metodo: <strong>{s.carrier || 'Estafeta'}</strong></span>
+                <span>
+                  Prendas: <strong>{s.paymentOrder?.concept}</strong>
+                </span>
+                <span>
+                  Metodo: <strong>{s.carrier || "Estafeta"}</strong>
+                </span>
               </div>
             </div>
           ))}

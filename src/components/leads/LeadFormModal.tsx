@@ -1,27 +1,41 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import type { Lead } from '@/types';
+import { Button } from "@/components/ui/button";
+import type { Lead } from "@/types";
 
 interface LeadFormModalProps {
   editingLead: Lead | null;
   form: { phone: string; name: string; source: string; internalNotes: string };
-  onFormChange: (form: { phone: string; name: string; source: string; internalNotes: string }) => void;
+  onFormChange: (form: {
+    phone: string;
+    name: string;
+    source: string;
+    internalNotes: string;
+  }) => void;
   saving: boolean;
   onSave: (e: React.FormEvent) => void;
   onClose: () => void;
 }
 
-export function LeadFormModal({ editingLead, form, onFormChange, saving, onSave, onClose }: LeadFormModalProps) {
+export function LeadFormModal({
+  editingLead,
+  form,
+  onFormChange,
+  saving,
+  onSave,
+  onClose,
+}: LeadFormModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-popover p-5 text-popover-foreground shadow-xl space-y-4">
         <h2 className="text-sm font-semibold tracking-tight">
-          {editingLead ? 'Editar perfil de clienta' : 'Nueva clienta'}
+          {editingLead ? "Editar perfil de clienta" : "Nueva clienta"}
         </h2>
         <form onSubmit={onSave} className="space-y-3 text-xs">
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Telefono WhatsApp</label>
+            <label className="text-[11px] font-medium text-muted-foreground">
+              Telefono WhatsApp
+            </label>
             <input
               type="text"
               value={form.phone}
@@ -59,7 +73,7 @@ export function LeadFormModal({ editingLead, form, onFormChange, saving, onSave,
               Cancelar
             </Button>
             <Button type="submit" size="sm" disabled={saving} className="flex-1 font-semibold">
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? "Guardando..." : "Guardar"}
             </Button>
           </div>
         </form>

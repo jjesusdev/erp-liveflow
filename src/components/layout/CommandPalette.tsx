@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   LayoutDashboard,
@@ -15,57 +15,75 @@ import {
   BarChart2,
   BookOpen,
   X,
-} from 'lucide-react';
+} from "lucide-react";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const router = useRouter();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || e.key === '/') {
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || e.key === "/") {
         // Si el foco está en un input/textarea, ignoramos el '/'
         const target = e.target as HTMLElement;
-        if (e.key === '/' && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        if (e.key === "/" && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
           return;
         }
         e.preventDefault();
         setOpen((prev) => !prev);
       }
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setOpen(false);
       }
     };
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, []);
 
   const navigate = (path: string) => {
     router.push(path);
     setOpen(false);
-    setSearch('');
+    setSearch("");
   };
 
   if (!open) return null;
 
   const actions = [
-    { label: 'Tablero de Ventas (Kanban)', path: '/', icon: LayoutDashboard, shortcut: 'G + K' },
-    { label: 'Caja & Cuadre Financiero', path: '/caja', icon: CreditCard, shortcut: 'G + C' },
-    { label: 'Gestión de Envíos y Reparto', path: '/shipments', icon: Truck, shortcut: 'G + S' },
-    { label: 'Monitor Live HUD (Pantalla Conductor)', path: '/live-hud', icon: Radio, shortcut: 'G + L' },
-    { label: 'Prendas & Catálogo en Vivo', path: '/products', icon: ShoppingBag, shortcut: 'G + P' },
-    { label: 'Clientas & Historial', path: '/leads', icon: Users, shortcut: 'G + U' },
-    { label: 'Campañas de Difusión WhatsApp', path: '/campaigns', icon: Megaphone, shortcut: 'G + M' },
-    { label: 'Reportes y Métricas', path: '/reports', icon: BarChart2, shortcut: 'G + R' },
-    { label: 'Manual & Atajos de Vendedoras', path: '/manual', icon: BookOpen, shortcut: 'G + H' },
-    { label: 'Configuración & Cuentas Bancarias', path: '/config', icon: Settings, shortcut: 'G + O' },
+    { label: "Tablero de Ventas (Kanban)", path: "/", icon: LayoutDashboard, shortcut: "G + K" },
+    { label: "Caja & Cuadre Financiero", path: "/caja", icon: CreditCard, shortcut: "G + C" },
+    { label: "Gestión de Envíos y Reparto", path: "/shipments", icon: Truck, shortcut: "G + S" },
+    {
+      label: "Monitor Live HUD (Pantalla Conductor)",
+      path: "/live-hud",
+      icon: Radio,
+      shortcut: "G + L",
+    },
+    {
+      label: "Prendas & Catálogo en Vivo",
+      path: "/products",
+      icon: ShoppingBag,
+      shortcut: "G + P",
+    },
+    { label: "Clientas & Historial", path: "/leads", icon: Users, shortcut: "G + U" },
+    {
+      label: "Campañas de Difusión WhatsApp",
+      path: "/campaigns",
+      icon: Megaphone,
+      shortcut: "G + M",
+    },
+    { label: "Reportes y Métricas", path: "/reports", icon: BarChart2, shortcut: "G + R" },
+    { label: "Manual & Atajos de Vendedoras", path: "/manual", icon: BookOpen, shortcut: "G + H" },
+    {
+      label: "Configuración & Cuentas Bancarias",
+      path: "/config",
+      icon: Settings,
+      shortcut: "G + O",
+    },
   ];
 
-  const filtered = actions.filter((a) =>
-    a.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = actions.filter((a) => a.label.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div

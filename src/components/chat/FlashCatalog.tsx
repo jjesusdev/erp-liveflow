@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Zap } from 'lucide-react';
-import { money } from '@/lib/format';
-import type { Product } from '@/types';
+import { Zap } from "lucide-react";
+import { money } from "@/lib/format";
+import type { Product } from "@/types";
 
 interface FlashCatalogProps {
   products: Product[];
@@ -15,7 +15,8 @@ export function FlashCatalog({ products, onSelect, onClose }: FlashCatalogProps)
     <div className="border-b border-border bg-card p-3 shadow-lg max-h-52 overflow-y-auto">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-foreground flex items-center gap-1">
-          <Zap className="size-3.5 text-amber-500" /> Catalogo en Vivo (Clic para agregar a la orden):
+          <Zap className="size-3.5 text-amber-500" /> Catalogo en Vivo (Clic para agregar a la
+          orden):
         </span>
         <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
           x

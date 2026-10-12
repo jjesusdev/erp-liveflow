@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const date = searchParams.get('date'); // YYYY-MM-DD
-    const limit = parseInt(searchParams.get('limit') || '100', 10);
+    const date = searchParams.get("date"); // YYYY-MM-DD
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
 
     const where: any = {};
 
@@ -23,13 +23,13 @@ export async function GET(req: NextRequest) {
 
     const logs = await prisma.activityLog.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
     return NextResponse.json(logs);
   } catch (error) {
-    console.error('Error fetching activity logs:', error);
-    return NextResponse.json({ error: 'Error fetching logs' }, { status: 500 });
+    console.error("Error fetching activity logs:", error);
+    return NextResponse.json({ error: "Error fetching logs" }, { status: 500 });
   }
 }

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Printer, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useShipments } from '@/hooks/useShipments';
-import { ShipmentTable } from './ShipmentTable';
-import { BulkPrintView } from './BulkPrintView';
+import { Printer, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useShipments } from "@/hooks/useShipments";
+import { ShipmentTable } from "./ShipmentTable";
+import { BulkPrintView } from "./BulkPrintView";
 
 export function ShipmentsPage() {
   const s = useShipments();
@@ -17,16 +17,27 @@ export function ShipmentsPage() {
             <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
               LOGISTICA · {s.stats.total} PAQUETES REGISTRADOS
             </p>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">Despacho & Envios</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Despacho & Envios
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             {s.selectedIds.length > 0 && (
-              <Button size="sm" onClick={s.printBulkLabels} className="gap-1.5 text-xs font-bold shadow-xs">
+              <Button
+                size="sm"
+                onClick={s.printBulkLabels}
+                className="gap-1.5 text-xs font-bold shadow-xs"
+              >
                 <Printer className="size-3.5" aria-hidden />
                 Imprimir {s.selectedIds.length} etiquetas
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={s.exportManifestCSV} className="gap-1.5 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={s.exportManifestCSV}
+              className="gap-1.5 text-xs"
+            >
               <Download className="size-3.5" aria-hidden />
               Exportar Manifiesto CSV
             </Button>
@@ -35,23 +46,37 @@ export function ShipmentsPage() {
 
         <section aria-label="Resumen de Envios" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Por empaquetar</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Por empaquetar
+            </p>
             <p className="mt-1 text-2xl font-bold tracking-tight text-pending">{s.stats.pending}</p>
             <p className="mt-1 text-xs text-muted-foreground">Pagos confirmados en espera</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">En camino</p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-transit">{s.stats.inTransit}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              En camino
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-transit">
+              {s.stats.inTransit}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">Despachados con chofer / guia</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Entregados con exito</p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-success">{s.stats.delivered}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Entregados con exito
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-success">
+              {s.stats.delivered}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">Ciclo completado</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total de envios</p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{s.stats.total}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Total de envios
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              {s.stats.total}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">Historico acumulado</p>
           </div>
         </section>

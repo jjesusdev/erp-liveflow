@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { parseEnum, CONVERSATION_STATUSES } from '@/lib/enums';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
@@ -14,30 +11,27 @@ export async function GET(
       include: {
         lead: true,
         messages: {
-          orderBy: { sentAt: 'asc' },
+          orderBy: { sentAt: "asc" },
         },
         paymentOrders: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
         assignedTo: true,
       },
     });
 
     if (!conversation) {
-      return NextResponse.json({ error: 'Conversation no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: "Conversation no encontrada" }, { status: 404 });
     }
 
     return NextResponse.json(conversation);
   } catch (error) {
-    console.error('Error fetching conversation:', error);
-    return NextResponse.json({ error: 'Error fetching conversation' }, { status: 500 });
+    console.error("Error fetching conversation:", error);
+    return NextResponse.json({ error: "Error fetching conversation" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -48,7 +42,7 @@ export async function PATCH(
     });
 
     if (!existing) {
-      return NextResponse.json({ error: 'Conversation no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: "Conversation no encontrada" }, { status: 404 });
     }
 
     const data: any = {};
@@ -56,11 +50,10 @@ export async function PATCH(
     if (body.status !== undefined) {
       const status = parseEnum(CONVERSATION_STATUSES, body.status);
       if (!status) {
-        return NextResponse.json({ error: 'Estado invalido' }, { status: 400 });
+        return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
       }
       data.status = status;
-      data.closedAt =
-        status === 'CLOSED' || status === 'LOST' ? new Date() : null;
+      data.closedAt = status === "CLOSED" || status === "LOST" ? new Date() : null;
     }
 
     if (body.priority !== undefined) {
@@ -77,11 +70,11 @@ export async function PATCH(
       include: {
         lead: true,
         messages: {
-          orderBy: { sentAt: 'desc' },
+          orderBy: { sentAt: "desc" },
           take: 1,
         },
         paymentOrders: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 1,
         },
       },
@@ -89,12 +82,12 @@ export async function PATCH(
 
     const io = (global as any).io;
     if (io) {
-      io.emit('conversation:updated', conversation);
+      io.emit("conversation:updated", conversation);
     }
 
     return NextResponse.json(conversation);
   } catch (error) {
-    console.error('Error updating conversation:', error);
-    return NextResponse.json({ error: 'Error updating conversation' }, { status: 500 });
+    console.error("Error updating conversation:", error);
+    return NextResponse.json({ error: "Error updating conversation" }, { status: 500 });
   }
 }

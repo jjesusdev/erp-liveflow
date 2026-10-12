@@ -1,13 +1,13 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
 afterEach(() => {
   cleanup();
 });
 
 // Mock matchMedia for Radix/Base UI
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -27,7 +27,7 @@ class ResizeObserverMock {
   unobserve() {}
   disconnect() {}
 }
-Object.defineProperty(window, 'ResizeObserver', {
+Object.defineProperty(window, "ResizeObserver", {
   writable: true,
   value: ResizeObserverMock,
 });
@@ -41,13 +41,13 @@ class IntersectionObserverMock {
     return [];
   }
 }
-Object.defineProperty(window, 'IntersectionObserver', {
+Object.defineProperty(window, "IntersectionObserver", {
   writable: true,
   value: IntersectionObserverMock,
 });
 
 // Mock scrollTo
-Object.defineProperty(window, 'scrollTo', {
+Object.defineProperty(window, "scrollTo", {
   writable: true,
   value: vi.fn(),
 });

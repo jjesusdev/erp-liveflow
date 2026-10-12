@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 // In-memory rate limiter: IP -> { count, resetAt }
 const hits = new Map<string, { count: number; resetAt: number }>();
@@ -12,9 +12,9 @@ const MAX_REQUESTS = 120; // per window
  */
 export function rateLimit(req: NextRequest): NextResponse | null {
   const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    'unknown';
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
 
   const now = Date.now();
   const entry = hits.get(ip);
@@ -29,13 +29,13 @@ export function rateLimit(req: NextRequest): NextResponse | null {
   if (entry.count > MAX_REQUESTS) {
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
     return NextResponse.json(
-      { error: 'Demasiadas solicitudes. Intenta de nuevo en unos segundos.' },
+      { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
       {
         status: 429,
         headers: {
-          'Retry-After': String(retryAfter),
-          'X-RateLimit-Limit': String(MAX_REQUESTS),
-          'X-RateLimit-Remaining': '0',
+          "Retry-After": String(retryAfter),
+          "X-RateLimit-Limit": String(MAX_REQUESTS),
+          "X-RateLimit-Remaining": "0",
         },
       }
     );
@@ -47,7 +47,7 @@ export function rateLimit(req: NextRequest): NextResponse | null {
 /**
  * Periodically clear expired entries to prevent memory leaks.
  */
-if (typeof setInterval !== 'undefined') {
+if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of hits) {

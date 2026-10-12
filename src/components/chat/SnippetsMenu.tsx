@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Sparkles } from 'lucide-react';
-import type { MessageTemplate } from '@/types';
+import { Sparkles } from "lucide-react";
+import type { MessageTemplate } from "@/types";
 
 interface SnippetsMenuProps {
   templates: MessageTemplate[];
@@ -38,9 +38,7 @@ export function SnippetsMenu({ templates, onSelect }: SnippetsMenuProps) {
               </div>
               <p className="truncate text-muted-foreground text-[11px] mt-0.5">{t.content}</p>
             </div>
-            <span className="text-[10px] text-primary font-medium shrink-0 pt-0.5">
-              Insertar ↵
-            </span>
+            <span className="text-[10px] text-primary font-medium shrink-0 pt-0.5">Insertar ↵</span>
           </button>
         ))}
       </div>

@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { formatCurrency, formatDate, cn } from '@/lib/date-utils';
-import { CreditCard, Copy, Check, Ban, Truck, Building2, CheckCircle2 } from 'lucide-react';
-import type { PaymentOrder } from '@/types';
+import { formatCurrency, formatDate, cn } from "@/lib/date-utils";
+import { CreditCard, Copy, Check, Ban, Truck, Building2, CheckCircle2 } from "lucide-react";
+import type { PaymentOrder } from "@/types";
 
 const STATUS_STYLES: Record<string, string> = {
-  PAID: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-  SENT: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300',
-  EXPIRED: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
-  CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-  REFUNDED: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
+  PAID: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+  SENT: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
+  EXPIRED: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
+  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  REFUNDED: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  PAID: 'Pagado',
-  SENT: 'Por pagar',
-  PENDING: 'Pendiente',
-  EXPIRED: 'Expirado',
-  CANCELLED: 'Cancelado',
-  REFUNDED: 'Reembolsado',
+  PAID: "Pagado",
+  SENT: "Por pagar",
+  PENDING: "Pendiente",
+  EXPIRED: "Expirado",
+  CANCELLED: "Cancelado",
+  REFUNDED: "Reembolsado",
 };
 
 interface CajaTableProps {
@@ -57,7 +57,7 @@ export function CajaTable({
         <tbody className="divide-y text-sm">
           {payments.map((payment) => {
             const folio = payment.id.slice(0, 8).toUpperCase();
-            const isTransfer = payment.provider === 'TRANSFER' || !payment.provider;
+            const isTransfer = payment.provider === "TRANSFER" || !payment.provider;
 
             return (
               <tr key={payment.id} className="hover:bg-muted/30">
@@ -77,7 +77,7 @@ export function CajaTable({
                 </td>
 
                 <td className="px-4 py-3 font-medium">
-                  <p className="truncate">{payment.lead?.name || 'Cliente'}</p>
+                  <p className="truncate">{payment.lead?.name || "Cliente"}</p>
                   <p className="text-xs text-muted-foreground">{payment.lead?.phone}</p>
                 </td>
 
@@ -94,7 +94,7 @@ export function CajaTable({
                         <Building2 className="h-3.5 w-3.5 text-emerald-600" />
                         Transferencia
                       </>
-                    ) : payment.provider === 'MERCADOPAGO' ? (
+                    ) : payment.provider === "MERCADOPAGO" ? (
                       <>
                         <CreditCard className="h-3.5 w-3.5 text-blue-600" />
                         MercadoPago
@@ -108,8 +108,8 @@ export function CajaTable({
                 <td className="px-4 py-3">
                   <span
                     className={cn(
-                      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                      STATUS_STYLES[payment.status] || 'bg-muted text-muted-foreground'
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                      STATUS_STYLES[payment.status] || "bg-muted text-muted-foreground"
                     )}
                   >
                     {STATUS_LABELS[payment.status] || payment.status}
@@ -122,9 +122,9 @@ export function CajaTable({
 
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end items-center gap-1.5">
-                    {payment.status !== 'PAID' && (
+                    {payment.status !== "PAID" && (
                       <button
-                        onClick={() => onUpdateStatus(payment.id, 'PAID')}
+                        onClick={() => onUpdateStatus(payment.id, "PAID")}
                         disabled={busyId === payment.id}
                         className="inline-flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm hover:bg-green-700 disabled:opacity-50"
                         title="Aprobar pago de transferencia"
@@ -134,16 +134,16 @@ export function CajaTable({
                       </button>
                     )}
 
-                    {payment.status === 'PAID' && payment.shipment && (
+                    {payment.status === "PAID" && payment.shipment && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-800 dark:bg-purple-950 dark:text-purple-300">
                         <Truck className="h-3 w-3" />
                         Envios OK
                       </span>
                     )}
 
-                    {payment.status === 'PENDING' && (
+                    {payment.status === "PENDING" && (
                       <button
-                        onClick={() => onUpdateStatus(payment.id, 'CANCELLED')}
+                        onClick={() => onUpdateStatus(payment.id, "CANCELLED")}
                         disabled={busyId === payment.id}
                         title="Cancelar cobro"
                         className="rounded p-1 text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:opacity-50"

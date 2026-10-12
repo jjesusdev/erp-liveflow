@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { timeAgo, formatCurrency, cn } from '@/lib/date-utils';
-import { GripVertical, UserCheck } from 'lucide-react';
-import type { Conversation } from '@/types';
+import { timeAgo, formatCurrency, cn } from "@/lib/date-utils";
+import { GripVertical, UserCheck } from "lucide-react";
+import type { Conversation } from "@/types";
 
 interface ConversationCardProps {
   conversation: Conversation;
@@ -25,15 +25,15 @@ export function ConversationCard({
     <div
       draggable
       onDragStart={(event) => {
-        event.dataTransfer.setData('text/plain', conversation.id);
-        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData("text/plain", conversation.id);
+        event.dataTransfer.effectAllowed = "move";
         onDragStart(conversation.id);
       }}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg border bg-card p-3 transition-all hover:bg-accent relative',
-        draggingId === conversation.id && 'opacity-40',
-        isLocked && 'border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/30'
+        "cursor-pointer rounded-lg border bg-card p-3 transition-all hover:bg-accent relative",
+        draggingId === conversation.id && "opacity-40",
+        isLocked && "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/30"
       )}
     >
       <div className="flex items-start gap-2">
@@ -51,22 +51,20 @@ export function ConversationCard({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <p className="truncate font-semibold text-foreground">
-                  {conversation.lead?.name || conversation.lead?.phone || 'Sin nombre'}
+                  {conversation.lead?.name || conversation.lead?.phone || "Sin nombre"}
                 </p>
-                {conversation.lead?.tier === 'VIP' && (
+                {conversation.lead?.tier === "VIP" && (
                   <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[9px] font-black text-amber-600 dark:text-amber-400">
                     ★ VIP
                   </span>
                 )}
-                {conversation.lead?.tier === 'FREQUENT' && (
+                {conversation.lead?.tier === "FREQUENT" && (
                   <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-bold text-blue-600 dark:text-blue-400">
                     RECURRENTE
                   </span>
                 )}
               </div>
-              <p className="truncate text-xs text-muted-foreground">
-                {conversation.lead?.phone}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{conversation.lead?.phone}</p>
             </div>
             <span className="shrink-0 text-xs text-muted-foreground">
               {conversation.lastMessageAt && timeAgo(conversation.lastMessageAt)}
@@ -75,11 +73,11 @@ export function ConversationCard({
 
           {lastMessage && (
             <p className="mt-2 truncate text-xs text-muted-foreground">
-              {lastMessage.type === 'IMAGE'
-                ? '📷 Imagen'
-                : lastMessage.type === 'PAYMENT_LINK'
-                ? '🔗 Link de pago'
-                : lastMessage.content}
+              {lastMessage.type === "IMAGE"
+                ? "📷 Imagen"
+                : lastMessage.type === "PAYMENT_LINK"
+                  ? "🔗 Link de pago"
+                  : lastMessage.content}
             </p>
           )}
 
@@ -87,11 +85,11 @@ export function ConversationCard({
             <div className="mt-2 flex items-center gap-2">
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  lastPayment.status === 'PAID'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
-                    : lastPayment.status === 'SENT'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300'
+                  lastPayment.status === "PAID"
+                    ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+                    : lastPayment.status === "SENT"
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"
                 }`}
               >
                 {formatCurrency(Number(lastPayment.amount))}

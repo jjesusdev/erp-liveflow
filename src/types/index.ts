@@ -14,7 +14,7 @@ export interface Lead {
   firstContactAt: string;
   lastInteractionAt?: string | null;
   metadata?: any;
-  tier?: 'VIP' | 'FREQUENT' | 'NEW' | 'GHOST';
+  tier?: "VIP" | "FREQUENT" | "NEW" | "GHOST";
   totalPaidCount?: number;
   totalSpent?: number;
   conversations?: Conversation[];
@@ -24,13 +24,7 @@ export interface Lead {
 }
 
 export type ConversationStatus =
-  | 'NEW'
-  | 'ATTENTION'
-  | 'AWAITING_PAYMENT'
-  | 'PAID'
-  | 'SHIPPED'
-  | 'CLOSED'
-  | 'LOST';
+  "NEW" | "ATTENTION" | "AWAITING_PAYMENT" | "PAID" | "SHIPPED" | "CLOSED" | "LOST";
 
 export interface Conversation {
   id: string;
@@ -56,19 +50,12 @@ export interface Conversation {
 }
 
 export type MessageType =
-  | 'TEXT'
-  | 'IMAGE'
-  | 'VIDEO'
-  | 'AUDIO'
-  | 'DOCUMENT'
-  | 'LOCATION'
-  | 'PAYMENT_LINK'
-  | 'SYSTEM';
+  "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT" | "LOCATION" | "PAYMENT_LINK" | "SYSTEM";
 
 export interface Message {
   id: string;
   conversationId: string;
-  direction: 'INBOUND' | 'OUTBOUND';
+  direction: "INBOUND" | "OUTBOUND";
   type: MessageType;
   content?: string | null;
   mediaUrl?: string | null;
@@ -83,19 +70,13 @@ export interface Message {
   pendingPaymentOrderId?: string | null;
 }
 
-export type PaymentStatus =
-  | 'PENDING'
-  | 'SENT'
-  | 'PAID'
-  | 'EXPIRED'
-  | 'CANCELLED'
-  | 'REFUNDED';
+export type PaymentStatus = "PENDING" | "SENT" | "PAID" | "EXPIRED" | "CANCELLED" | "REFUNDED";
 
 export interface LiveSession {
   id: string;
   title: string;
   platform: string;
-  status: 'ACTIVE' | 'ENDED';
+  status: "ACTIVE" | "ENDED";
   startedAt: string;
   endedAt?: string | null;
   notes?: string | null;
@@ -118,7 +99,7 @@ export interface PaymentOrder {
   currency: string;
   concept: string;
   status: PaymentStatus;
-  provider?: 'MERCADOPAGO' | 'STRIPE' | 'PAYPAL' | 'CASH' | 'TRANSFER' | null;
+  provider?: "MERCADOPAGO" | "STRIPE" | "PAYPAL" | "CASH" | "TRANSFER" | null;
   providerLinkId?: string | null;
   providerLinkUrl?: string | null;
   createdById?: string | null;
@@ -131,7 +112,7 @@ export interface PaymentOrder {
   shipment?: Shipment | null;
 }
 
-export type OperatorRole = 'ADMIN' | 'AGENT' | 'VIEWER';
+export type OperatorRole = "ADMIN" | "AGENT" | "VIEWER";
 
 export interface Operator {
   id: string;
@@ -146,12 +127,7 @@ export interface Operator {
   avatarUrl?: string | null;
 }
 
-export type ShipmentStatus =
-  | 'PENDING'
-  | 'IN_TRANSIT'
-  | 'DELIVERED'
-  | 'RETURNED'
-  | 'LOST';
+export type ShipmentStatus = "PENDING" | "IN_TRANSIT" | "DELIVERED" | "RETURNED" | "LOST";
 
 export interface Shipment {
   id: string;
@@ -184,12 +160,7 @@ export interface Product {
   updatedAt: string;
 }
 
-export type CampaignStatus =
-  | 'DRAFT'
-  | 'SCHEDULED'
-  | 'SENDING'
-  | 'SENT'
-  | 'CANCELLED';
+export type CampaignStatus = "DRAFT" | "SCHEDULED" | "SENDING" | "SENT" | "CANCELLED";
 
 export interface Campaign {
   id: string;
@@ -207,7 +178,7 @@ export interface Campaign {
   recipients?: CampaignRecipient[];
 }
 
-export type RecipientStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+export type RecipientStatus = "PENDING" | "SENT" | "DELIVERED" | "READ" | "FAILED";
 
 export interface CampaignRecipient {
   id: string;

@@ -6,7 +6,7 @@ import {
   CampaignStatus,
   MessageType,
   Direction,
-} from '@prisma/client';
+} from "@prisma/client";
 
 export const CONVERSATION_STATUSES = Object.values(ConversationStatus);
 export const PAYMENT_STATUSES = Object.values(PaymentStatus);
@@ -16,17 +16,11 @@ export const CAMPAIGN_STATUSES = Object.values(CampaignStatus);
 export const MESSAGE_TYPES = Object.values(MessageType);
 export const DIRECTIONS = Object.values(Direction);
 
-export function parseEnum<T extends string>(
-  allowed: readonly T[],
-  value: unknown
-): T | undefined {
-  if (typeof value !== 'string') return undefined;
+export function parseEnum<T extends string>(allowed: readonly T[], value: unknown): T | undefined {
+  if (typeof value !== "string") return undefined;
   return (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
 }
 
-export function isValidEnum<T extends string>(
-  allowed: readonly T[],
-  value: unknown
-): value is T {
+export function isValidEnum<T extends string>(allowed: readonly T[], value: unknown): value is T {
   return parseEnum(allowed, value) !== undefined;
 }

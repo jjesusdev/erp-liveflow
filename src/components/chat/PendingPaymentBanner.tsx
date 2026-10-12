@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { money } from '@/lib/format';
-import type { PaymentOrder } from '@/types';
+import { CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { money } from "@/lib/format";
+import type { PaymentOrder } from "@/types";
 
 interface PendingPaymentBannerProps {
   payment: PaymentOrder;
@@ -30,7 +30,7 @@ export function PendingPaymentBanner({ payment, approving, onApprove }: PendingP
         className="h-7 text-xs font-bold shrink-0"
       >
         <CheckCircle2 className="size-3.5" />
-        {approving === payment.id ? 'Aprobando...' : 'Aprobar Pago'}
+        {approving === payment.id ? "Aprobando..." : "Aprobar Pago"}
       </Button>
     </div>
   );

@@ -1,17 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     const hasRange = Boolean(startDate && endDate);
 
-    const range = hasRange
-      ? { gte: new Date(startDate!), lte: new Date(endDate!) }
-      : undefined;
+    const range = hasRange ? { gte: new Date(startDate!), lte: new Date(endDate!) } : undefined;
 
     const [
       totalRevenue,
@@ -31,20 +29,20 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
-        where: { status: 'PAID', ...(range && { paidAt: range }) },
+        where: { status: "PAID", ...(range && { paidAt: range }) },
       }),
       prisma.paymentOrder.count({
-        where: { status: 'PAID', ...(range && { paidAt: range }) },
+        where: { status: "PAID", ...(range && { paidAt: range }) },
       }),
       prisma.paymentOrder.count({
-        where: { status: { in: ['PENDING', 'SENT'] } },
+        where: { status: { in: ["PENDING", "SENT"] } },
       }),
       prisma.conversation.count({
         where: range ? { createdAt: range } : undefined,
       }),
       prisma.conversation.count(),
       prisma.conversation.count({
-        where: { status: { in: ['NEW', 'ATTENTION', 'AWAITING_PAYMENT'] } },
+        where: { status: { in: ["NEW", "ATTENTION", "AWAITING_PAYMENT"] } },
       }),
       prisma.lead.count(),
       prisma.lead.count({
@@ -54,36 +52,35 @@ export async function GET(req: NextRequest) {
         where: range ? { lastInteractionAt: range } : undefined,
       }),
       prisma.shipment.groupBy({
-        by: ['status'],
+        by: ["status"],
         _count: { status: true },
       }),
       prisma.product.count({ where: { isActive: true } }),
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'PAID',
-          provider: { in: ['TRANSFER', 'CASH'] },
+          status: "PAID",
+          provider: { in: ["TRANSFER", "CASH"] },
           ...(range && { paidAt: range }),
         },
       }),
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
         where: {
-          status: 'PAID',
-          provider: { in: ['MERCADOPAGO', 'STRIPE'] },
+          status: "PAID",
+          provider: { in: ["MERCADOPAGO", "STRIPE"] },
           ...(range && { paidAt: range }),
         },
       }),
       prisma.paymentOrder.findMany({
-        where: { status: 'PAID', ...(range && { paidAt: range }) },
+        where: { status: "PAID", ...(range && { paidAt: range }) },
         select: { paidAt: true, amount: true, concept: true },
-        orderBy: { paidAt: 'desc' },
+        orderBy: { paidAt: "desc" },
         take: 50,
       }),
     ]);
 
-    const conversionRate =
-      periodConversations > 0 ? (paidOrders / periodConversations) * 100 : 0;
+    const conversionRate = periodConversations > 0 ? (paidOrders / periodConversations) * 100 : 0;
 
     const totalRevNum = Number(totalRevenue._sum.amount || 0);
     const avgTicket = paidOrders > 0 ? totalRevNum / paidOrders : 0;
@@ -116,7 +113,7 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching reports:', error);
-    return NextResponse.json({ error: 'Error fetching reports' }, { status: 500 });
+    console.error("Error fetching reports:", error);
+    return NextResponse.json({ error: "Error fetching reports" }, { status: 500 });
   }
 }

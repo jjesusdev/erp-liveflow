@@ -1,23 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
 
     const existing = await prisma.liveSession.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
     }
 
     const data: any = {};
-    if (body.status === 'ENDED' || body.status === 'ACTIVE') {
+    if (body.status === "ENDED" || body.status === "ACTIVE") {
       data.status = body.status;
-      if (body.status === 'ENDED') {
+      if (body.status === "ENDED") {
         data.endedAt = new Date();
       }
     }
@@ -30,11 +27,11 @@ export async function PATCH(
     });
 
     const io = (globalThis as any).io;
-    io?.emit('live:session:updated', session);
+    io?.emit("live:session:updated", session);
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error updating live session:', error);
-    return NextResponse.json({ error: 'Error updating live session' }, { status: 500 });
+    console.error("Error updating live session:", error);
+    return NextResponse.json({ error: "Error updating live session" }, { status: 500 });
   }
 }

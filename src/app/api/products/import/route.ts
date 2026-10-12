@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { logActivity } from '@/lib/audit';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { products } = body;
 
     if (!Array.isArray(products) || products.length === 0) {
-      return NextResponse.json({ error: 'Lista de productos inválida' }, { status: 400 });
+      return NextResponse.json({ error: "Lista de productos inválida" }, { status: 400 });
     }
 
     const createdList = [];
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
           name,
           description: item.description?.trim() || null,
           price,
-          currency: item.currency || 'MXN',
+          currency: item.currency || "MXN",
           category: item.category?.trim() || null,
           stock: parseInt(item.stock, 10) || 10,
           imageUrl: item.imageUrl?.trim() || null,
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     await logActivity({
-      action: 'BULK_PRODUCTS_IMPORTED',
+      action: "BULK_PRODUCTS_IMPORTED",
       details: {
         totalImported: createdList.length,
       },
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       products: createdList,
     });
   } catch (error) {
-    console.error('Error importing products:', error);
-    return NextResponse.json({ error: 'Error importando productos' }, { status: 500 });
+    console.error("Error importing products:", error);
+    return NextResponse.json({ error: "Error importando productos" }, { status: 500 });
   }
 }

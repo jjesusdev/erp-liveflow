@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { logActivity } from '@/lib/audit';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
 
-    if (action === 'PURGE_OLD_LOGS') {
+    if (action === "PURGE_OLD_LOGS") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (action === 'RESET_TEST_DATA') {
+    if (action === "RESET_TEST_DATA") {
       // Solo borra órdenes CANCELLED o EXPIRED para depurar la base de datos
       const deleted = await prisma.paymentOrder.deleteMany({
         where: {
-          status: { in: ['CANCELLED', 'EXPIRED'] },
+          status: { in: ["CANCELLED", "EXPIRED"] },
         },
       });
 
@@ -39,9 +39,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: 'Acción de mantenimiento no reconocida' }, { status: 400 });
+    return NextResponse.json({ error: "Acción de mantenimiento no reconocida" }, { status: 400 });
   } catch (error) {
-    console.error('Error executing maintenance:', error);
-    return NextResponse.json({ error: 'Error ejecutando mantenimiento' }, { status: 500 });
+    console.error("Error executing maintenance:", error);
+    return NextResponse.json({ error: "Error ejecutando mantenimiento" }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ZodSchema, ZodError } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { ZodSchema, ZodError } from "zod";
 
 type ApiContext = { params: Promise<Record<string, string>> };
 
@@ -25,22 +25,18 @@ export function apiHandler<TBody = unknown>({
   handler,
 }: {
   body?: ZodSchema<TBody>;
-  handler: (
-    req: NextRequest,
-    parsedBody: TBody,
-    context: ApiContext
-  ) => Promise<NextResponse>;
+  handler: (req: NextRequest, parsedBody: TBody, context: ApiContext) => Promise<NextResponse>;
 }): (req: NextRequest, context: ApiContext) => Promise<NextResponse> {
   return async (req: NextRequest, context: ApiContext) => {
     try {
       let parsedBody: TBody = undefined as TBody;
 
-      if (bodySchema && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+      if (bodySchema && (req.method === "POST" || req.method === "PUT" || req.method === "PATCH")) {
         const raw = await req.json();
         const result = bodySchema.safeParse(raw);
         if (!result.success) {
-          const details = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-          return jsonError('Validacion fallida', 400, details);
+          const details = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+          return jsonError("Validacion fallida", 400, details);
         }
         parsedBody = result.data;
       }
@@ -48,12 +44,12 @@ export function apiHandler<TBody = unknown>({
       return await handler(req, parsedBody, context);
     } catch (error) {
       if (error instanceof ZodError) {
-        const details = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-        return jsonError('Validacion fallida', 400, details);
+        const details = error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+        return jsonError("Validacion fallida", 400, details);
       }
 
       console.error(`[API] ${req.method} ${req.nextUrl.pathname}:`, error);
-      return jsonError('Error interno del servidor', 500);
+      return jsonError("Error interno del servidor", 500);
     }
   };
 }
@@ -61,17 +57,17 @@ export function apiHandler<TBody = unknown>({
 /**
  * Returns a consistent 404 response for missing resources.
  */
-export function notFound(resource: string = 'Recurso'): NextResponse {
+export function notFound(resource: string = "Recurso"): NextResponse {
   return jsonError(`${resource} no encontrado`, 404);
 }
 
 /**
  * Returns a consistent 401/403 response.
  */
-export function unauthorized(message: string = 'No autorizado'): NextResponse {
+export function unauthorized(message: string = "No autorizado"): NextResponse {
   return jsonError(message, 401);
 }
 
-export function forbidden(message: string = 'Prohibido'): NextResponse {
+export function forbidden(message: string = "Prohibido"): NextResponse {
   return jsonError(message, 403);
 }

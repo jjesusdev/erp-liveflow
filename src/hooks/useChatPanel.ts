@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSocket } from '@/lib/socket';
-import type { Conversation, Message, MessageTemplate, Product } from '@/types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSocket } from "@/lib/socket";
+import type { Conversation, Message, MessageTemplate, Product } from "@/types";
 
-export type ChatTab = 'chat' | 'profile' | 'address' | 'packing';
+export type ChatTab = "chat" | "profile" | "address" | "packing";
 
 export interface AddressFormData {
   name: string;
@@ -19,34 +19,34 @@ export interface AddressFormData {
 }
 
 const EMPTY_ADDRESS: AddressFormData = {
-  name: '',
-  addressStreet: '',
-  addressNumber: '',
-  addressColonia: '',
-  addressCity: '',
-  addressState: '',
-  addressZipCode: '',
-  addressNotes: '',
-  internalNotes: '',
+  name: "",
+  addressStreet: "",
+  addressNumber: "",
+  addressColonia: "",
+  addressCity: "",
+  addressState: "",
+  addressZipCode: "",
+  addressNotes: "",
+  internalNotes: "",
 };
 
 export function useChatPanel(conversationId: string) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ChatTab>('chat');
+  const [activeTab, setActiveTab] = useState<ChatTab>("chat");
   const [addressForm, setAddressForm] = useState<AddressFormData>(EMPTY_ADDRESS);
   const [savingAddress, setSavingAddress] = useState(false);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [showSnippetsMenu, setShowSnippetsMenu] = useState(false);
   const [showFlashCatalog, setShowFlashCatalog] = useState(false);
-  const [snippetFilter, setSnippetFilter] = useState('');
+  const [snippetFilter, setSnippetFilter] = useState("");
   const [pastingImage, setPastingImage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -55,25 +55,25 @@ export function useChatPanel(conversationId: string) {
   const fetchConversation = useCallback(async () => {
     try {
       const res = await fetch(`/api/conversations/${conversationId}`);
-      if (!res.ok) throw new Error('No se pudo cargar la conversación');
+      if (!res.ok) throw new Error("No se pudo cargar la conversación");
       const data: Conversation = await res.json();
       setConversation(data);
 
       if (data.lead) {
         setAddressForm({
-          name: data.lead.name || '',
-          addressStreet: data.lead.addressStreet || '',
-          addressNumber: data.lead.addressNumber || '',
-          addressColonia: data.lead.addressColonia || '',
-          addressCity: data.lead.addressCity || '',
-          addressState: data.lead.addressState || '',
-          addressZipCode: data.lead.addressZipCode || '',
-          addressNotes: data.lead.addressNotes || '',
-          internalNotes: data.lead.internalNotes || '',
+          name: data.lead.name || "",
+          addressStreet: data.lead.addressStreet || "",
+          addressNumber: data.lead.addressNumber || "",
+          addressColonia: data.lead.addressColonia || "",
+          addressCity: data.lead.addressCity || "",
+          addressState: data.lead.addressState || "",
+          addressZipCode: data.lead.addressZipCode || "",
+          addressNotes: data.lead.addressNotes || "",
+          internalNotes: data.lead.internalNotes || "",
         });
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al cargar la conversación');
+      setError(err instanceof Error ? err.message : "Error al cargar la conversación");
     } finally {
       setLoading(false);
     }
@@ -82,11 +82,11 @@ export function useChatPanel(conversationId: string) {
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/messages?conversationId=${conversationId}`);
-      if (!res.ok) throw new Error('No se pudieron cargar los mensajes');
+      if (!res.ok) throw new Error("No se pudieron cargar los mensajes");
       const data = await res.json();
       setMessages(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al cargar los mensajes');
+      setError(err instanceof Error ? err.message : "Error al cargar los mensajes");
     }
   }, [conversationId]);
 
@@ -96,14 +96,14 @@ export function useChatPanel(conversationId: string) {
     fetchConversation();
     fetchMessages();
 
-    fetch('/api/templates')
+    fetch("/api/templates")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setTemplates(data);
       })
       .catch(() => undefined);
 
-    fetch('/api/products?available=true')
+    fetch("/api/products?available=true")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setProducts(data);
@@ -111,18 +111,18 @@ export function useChatPanel(conversationId: string) {
       .catch(() => undefined);
 
     if (socket && conversationId) {
-      socket.emit('chat:lock', { conversationId, operatorName: 'Mariana' });
+      socket.emit("chat:lock", { conversationId, operatorName: "Mariana" });
     }
 
     return () => {
       if (socket && conversationId) {
-        socket.emit('chat:unlock', { conversationId });
+        socket.emit("chat:unlock", { conversationId });
       }
     };
   }, [fetchConversation, fetchMessages, socket, conversationId]);
 
   useEffect(() => {
-    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: 'smooth' });
+    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   useEffect(() => {
@@ -144,21 +144,21 @@ export function useChatPanel(conversationId: string) {
       }
     };
 
-    socket.on('message:new', onMessageNew);
-    socket.on('payment:updated', onPaymentUpdated);
-    socket.on('payment:confirmed', onPaymentUpdated);
-    socket.on('conversation:updated', onConversationUpdated);
+    socket.on("message:new", onMessageNew);
+    socket.on("payment:updated", onPaymentUpdated);
+    socket.on("payment:confirmed", onPaymentUpdated);
+    socket.on("conversation:updated", onConversationUpdated);
 
     return () => {
-      socket.off('message:new', onMessageNew);
-      socket.off('payment:updated', onPaymentUpdated);
-      socket.off('payment:confirmed', onPaymentUpdated);
-      socket.off('conversation:updated', onConversationUpdated);
+      socket.off("message:new", onMessageNew);
+      socket.off("payment:updated", onPaymentUpdated);
+      socket.off("payment:confirmed", onPaymentUpdated);
+      socket.off("conversation:updated", onConversationUpdated);
     };
   }, [socket, conversationId, fetchConversation]);
 
   const pendingPayment = conversation?.paymentOrders?.find(
-    (p) => p.status === 'PENDING' || p.status === 'SENT'
+    (p) => p.status === "PENDING" || p.status === "SENT"
   );
 
   const approvePaymentOrder = async (orderId: string) => {
@@ -166,21 +166,21 @@ export function useChatPanel(conversationId: string) {
     setError(null);
     try {
       const res = await fetch(`/api/payment-orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'PAID' }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID" }),
       });
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d?.error || 'No se pudo aprobar el pago');
+        throw new Error(d?.error || "No se pudo aprobar el pago");
       }
 
-      setSuccessToast('Pago aprobado con exito y paquete listo en Envios!');
+      setSuccessToast("Pago aprobado con exito y paquete listo en Envios!");
       setTimeout(() => setSuccessToast(null), 4000);
       fetchConversation();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al aprobar el cobro');
+      setError(err instanceof Error ? err.message : "Error al aprobar el cobro");
     } finally {
       setApproving(null);
     }
@@ -193,16 +193,16 @@ export function useChatPanel(conversationId: string) {
     setError(null);
     try {
       const res = await fetch(`/api/leads/${conversation.leadId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(addressForm),
       });
-      if (!res.ok) throw new Error('No se pudo guardar la informacion');
-      setSuccessToast('Datos de clienta y direccion guardados!');
+      if (!res.ok) throw new Error("No se pudo guardar la informacion");
+      setSuccessToast("Datos de clienta y direccion guardados!");
       setTimeout(() => setSuccessToast(null), 3000);
       fetchConversation();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error guardando datos');
+      setError(err instanceof Error ? err.message : "Error guardando datos");
     } finally {
       setSavingAddress(false);
     }
@@ -212,7 +212,7 @@ export function useChatPanel(conversationId: string) {
     const value = e.target.value;
     setNewMessage(value);
 
-    if (value.startsWith('/')) {
+    if (value.startsWith("/")) {
       setShowSnippetsMenu(true);
       setSnippetFilter(value.slice(1).toLowerCase());
     } else {
@@ -225,7 +225,7 @@ export function useChatPanel(conversationId: string) {
     if (!items) return;
 
     for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
+      if (items[i].type.indexOf("image") !== -1) {
         const file = items[i].getAsFile();
         if (file) {
           const reader = new FileReader();
@@ -247,12 +247,12 @@ export function useChatPanel(conversationId: string) {
     setSending(true);
     setError(null);
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
-          type: 'IMAGE',
+          type: "IMAGE",
           mediaUrl: pastingImage,
           content: newMessage.trim() || undefined,
         }),
@@ -260,14 +260,14 @@ export function useChatPanel(conversationId: string) {
 
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d?.error || 'No se pudo enviar la imagen');
+        throw new Error(d?.error || "No se pudo enviar la imagen");
       }
 
       setPastingImage(null);
-      setNewMessage('');
+      setNewMessage("");
       fetchMessages();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al enviar imagen');
+      setError(err instanceof Error ? err.message : "Error al enviar imagen");
     } finally {
       setSending(false);
     }
@@ -275,7 +275,7 @@ export function useChatPanel(conversationId: string) {
 
   const insertSnippet = (template: MessageTemplate) => {
     let content = template.content;
-    const clientName = conversation?.lead?.name || 'Amiga';
+    const clientName = conversation?.lead?.name || "Amiga";
     content = content.replace(/\{\{nombre\}\}/gi, clientName);
     content = content.replace(/\{\{name\}\}/gi, clientName);
     setNewMessage(content);
@@ -291,28 +291,28 @@ export function useChatPanel(conversationId: string) {
     setError(null);
 
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId, content }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || 'No se pudo enviar el mensaje');
+        throw new Error(data?.error || "No se pudo enviar el mensaje");
       }
 
-      setNewMessage('');
+      setNewMessage("");
       setShowSnippetsMenu(false);
 
       if (!data.delivered) {
-        setError('WhatsApp desconectado: el mensaje se guardo en el CRM pero no llego al cliente.');
+        setError("WhatsApp desconectado: el mensaje se guardo en el CRM pero no llego al cliente.");
       }
 
       fetchMessages();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo enviar el mensaje');
+      setError(err instanceof Error ? err.message : "No se pudo enviar el mensaje");
     } finally {
       setSending(false);
     }

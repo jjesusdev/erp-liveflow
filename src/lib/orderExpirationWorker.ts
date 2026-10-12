@@ -1,5 +1,5 @@
-import { prisma } from './prisma';
-import { logActivity } from './audit';
+import { prisma } from "./prisma";
+import { logActivity } from "./audit";
 
 /**
  * Worker en segundo plano para procesar la expiración automática de pedidos
@@ -17,7 +17,7 @@ export async function processExpiredPaymentOrders() {
     // Buscar pedidos en PENDING o SENT cuya fecha de expiración ya pasó
     const expiredOrders = await prisma.paymentOrder.findMany({
       where: {
-        status: { in: ['PENDING', 'SENT'] },
+        status: { in: ["PENDING", "SENT"] },
         expiresAt: { lte: now },
       },
       include: {
@@ -34,12 +34,12 @@ export async function processExpiredPaymentOrders() {
       // 1. Actualizar estado a EXPIRED
       const updated = await prisma.paymentOrder.update({
         where: { id: order.id },
-        data: { status: 'EXPIRED' },
+        data: { status: "EXPIRED" },
       });
 
       // 2. Registrar en la auditoría diaria
       await logActivity({
-        action: 'ORDER_AUTO_EXPIRED',
+        action: "ORDER_AUTO_EXPIRED",
         conversationId: order.conversationId,
         details: {
           orderId: order.id,
@@ -52,28 +52,28 @@ export async function processExpiredPaymentOrders() {
       // 3. Avisar a la clienta por WhatsApp de la liberación del apartado
       if (client && order.lead?.phone) {
         try {
-          const jid = `${order.lead.phone.replace(/\D/g, '')}@s.whatsapp.net`;
-          const clientName = order.lead.name || 'Hola';
+          const jid = `${order.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
+          const clientName = order.lead.name || "Hola";
           const msg = `${clientName}, el tiempo de apartado para tu pedido "${order.concept}" ha vencido y la prenda ha sido liberada para el Live. Si aún la deseas, por favor contáctanos para verificar disponibilidad. ✨`;
           await client.sendMessage(jid, { text: msg });
 
           await prisma.message.create({
             data: {
               conversationId: order.conversationId,
-              direction: 'OUTBOUND',
-              type: 'TEXT',
+              direction: "OUTBOUND",
+              type: "TEXT",
               content: msg,
               sentAt: new Date(),
             },
           });
         } catch (e) {
-          console.error('[expiration-worker] Error notificando expiracion:', e);
+          console.error("[expiration-worker] Error notificando expiracion:", e);
         }
       }
 
       // 4. Emitir evento por Socket.io
       if (io) {
-        io.emit('payment:updated', {
+        io.emit("payment:updated", {
           ...updated,
           amount: Number(updated.amount),
         });
@@ -82,7 +82,7 @@ export async function processExpiredPaymentOrders() {
 
     return expiredOrders.length;
   } catch (error) {
-    console.error('[expiration-worker] Error procesando ordenes expiradas:', error);
+    console.error("[expiration-worker] Error procesando ordenes expiradas:", error);
     return 0;
   }
 }

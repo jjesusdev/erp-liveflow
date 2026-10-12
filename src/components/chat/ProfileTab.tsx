@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { Save, FileText, History } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { TierBadge } from '@/components/liveflow/primitives';
-import { money } from '@/lib/format';
-import type { Conversation } from '@/types';
-import type { AddressFormData } from '@/hooks/useChatPanel';
+import { Save, FileText, History } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TierBadge } from "@/components/liveflow/primitives";
+import { money } from "@/lib/format";
+import type { Conversation } from "@/types";
+import type { AddressFormData } from "@/hooks/useChatPanel";
 
 interface ProfileTabProps {
   conversation: Conversation | null;
@@ -28,17 +28,17 @@ export function ProfileTab({
         <div className="flex items-center justify-between border-b border-border pb-2">
           <div>
             <h4 className="font-bold text-sm text-foreground">
-              {conversation?.lead?.name || 'Clienta'}
+              {conversation?.lead?.name || "Clienta"}
             </h4>
             <p className="text-xs text-muted-foreground">{conversation?.lead?.phone}</p>
           </div>
           <TierBadge
             tier={
-              conversation?.lead?.tier === 'VIP'
-                ? 'vip'
-                : conversation?.lead?.tier === 'FREQUENT'
-                  ? 'recurrente'
-                  : 'nueva'
+              conversation?.lead?.tier === "VIP"
+                ? "vip"
+                : conversation?.lead?.tier === "FREQUENT"
+                  ? "recurrente"
+                  : "nueva"
             }
           />
         </div>

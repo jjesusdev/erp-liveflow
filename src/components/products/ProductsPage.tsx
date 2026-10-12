@@ -1,9 +1,19 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { formatCurrency, cn } from '@/lib/date-utils';
-import { Plus, Pencil, Trash2, Search, PackageX, Upload, FileSpreadsheet, Download, Check } from 'lucide-react';
-import type { Product } from '@/types';
+import { useCallback, useEffect, useState } from "react";
+import { formatCurrency, cn } from "@/lib/date-utils";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  PackageX,
+  Upload,
+  FileSpreadsheet,
+  Download,
+  Check,
+} from "lucide-react";
+import type { Product } from "@/types";
 
 interface FormState {
   name: string;
@@ -16,21 +26,21 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  name: '',
-  description: '',
-  price: '',
-  category: '',
-  imageUrl: '',
-  stock: '10',
+  name: "",
+  description: "",
+  price: "",
+  category: "",
+  imageUrl: "",
+  stock: "10",
   isAvailable: true,
 };
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [csvText, setCsvText] = useState('');
+  const [csvText, setCsvText] = useState("");
   const [importing, setImporting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -41,13 +51,13 @@ export function ProductsPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const url = search ? `/api/products?search=${encodeURIComponent(search)}` : '/api/products';
+      const url = search ? `/api/products?search=${encodeURIComponent(search)}` : "/api/products";
       const res = await fetch(url);
-      if (!res.ok) throw new Error('No se pudieron cargar los productos');
+      if (!res.ok) throw new Error("No se pudieron cargar los productos");
       setProducts(await res.json());
       setError(null);
     } catch (err: any) {
-      setError(err?.message || 'Error al cargar los productos');
+      setError(err?.message || "Error al cargar los productos");
     } finally {
       setLoading(false);
     }
@@ -69,10 +79,10 @@ export function ProductsPage() {
     setEditingId(product.id);
     setForm({
       name: product.name,
-      description: product.description || '',
+      description: product.description || "",
       price: String(product.price),
-      category: product.category || '',
-      imageUrl: product.imageUrl || '',
+      category: product.category || "",
+      imageUrl: product.imageUrl || "",
       stock: String(product.stock ?? 10),
       isAvailable: product.isAvailable,
     });
@@ -86,27 +96,24 @@ export function ProductsPage() {
     setError(null);
 
     try {
-      const res = await fetch(
-        editingId ? `/api/products/${editingId}` : '/api/products',
-        {
-          method: editingId ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...form,
-            stock: parseInt(form.stock, 10) || 10,
-          }),
-        }
-      );
+      const res = await fetch(editingId ? `/api/products/${editingId}` : "/api/products", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          stock: parseInt(form.stock, 10) || 10,
+        }),
+      });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo guardar el producto');
+      if (!res.ok) throw new Error(data?.error || "No se pudo guardar el producto");
 
       setShowModal(false);
       setEditingId(null);
       setForm(EMPTY_FORM);
       fetchProducts();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo guardar el producto');
+      setError(err?.message || "No se pudo guardar el producto");
     } finally {
       setSaving(false);
     }
@@ -118,45 +125,47 @@ export function ProductsPage() {
     setError(null);
 
     try {
-      const lines = csvText.trim().split('\n');
+      const lines = csvText.trim().split("\n");
       const parsedProducts = [];
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line || (i === 0 && line.toLowerCase().includes('nombre'))) continue; // Saltar cabecera
+        if (!line || (i === 0 && line.toLowerCase().includes("nombre"))) continue; // Saltar cabecera
 
-        const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+        const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
         if (cols.length >= 2) {
           parsedProducts.push({
             name: cols[0],
             price: parseFloat(cols[1]),
-            category: cols[2] || 'Prendas',
+            category: cols[2] || "Prendas",
             stock: parseInt(cols[3], 10) || 10,
-            description: cols[4] || '',
+            description: cols[4] || "",
           });
         }
       }
 
       if (parsedProducts.length === 0) {
-        throw new Error('No se detectaron filas válidas en el formato Nombre, Precio, Categoría, Stock');
+        throw new Error(
+          "No se detectaron filas válidas en el formato Nombre, Precio, Categoría, Stock"
+        );
       }
 
-      const res = await fetch('/api/products/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ products: parsedProducts }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Error importando catálogo');
+      if (!res.ok) throw new Error(data?.error || "Error importando catálogo");
 
       setSuccessToast(`🎉 ¡${data.importedCount} productos importados correctamente!`);
       setShowImportModal(false);
-      setCsvText('');
+      setCsvText("");
       setTimeout(() => setSuccessToast(null), 4000);
       fetchProducts();
     } catch (err: any) {
-      setError(err?.message || 'Error en la importación masiva');
+      setError(err?.message || "Error en la importación masiva");
     } finally {
       setImporting(false);
     }
@@ -165,30 +174,30 @@ export function ProductsPage() {
   const toggleAvailability = async (product: Product) => {
     try {
       const res = await fetch(`/api/products/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isAvailable: !product.isAvailable }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar');
+      if (!res.ok) throw new Error(data?.error || "No se pudo actualizar");
 
       fetchProducts();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo actualizar el producto');
+      setError(err?.message || "No se pudo actualizar el producto");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este producto del catalogo?')) return;
+    if (!confirm("¿Eliminar este producto del catalogo?")) return;
 
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo eliminar');
+      if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
       fetchProducts();
     } catch (err: any) {
-      setError(err?.message || 'No se pudo eliminar el producto');
+      setError(err?.message || "No se pudo eliminar el producto");
     }
   };
 
@@ -225,11 +234,7 @@ export function ProductsPage() {
         </div>
       )}
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -244,7 +249,10 @@ export function ProductsPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
-          <div key={product.id} className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-md transition-shadow">
+          <div
+            key={product.id}
+            className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-md transition-shadow"
+          >
             <div className="relative">
               {product.imageUrl ? (
                 <img
@@ -259,13 +267,13 @@ export function ProductsPage() {
               )}
               <span
                 className={cn(
-                  'absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                  "absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold",
                   product.isAvailable
-                    ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
-                    : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                    ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+                    : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
                 )}
               >
-                {product.isAvailable ? 'Disponible' : 'Agotado'}
+                {product.isAvailable ? "Disponible" : "Agotado"}
               </span>
 
               <span className="absolute right-2 top-2 rounded-full bg-black/70 text-white px-2 py-0.5 text-[10px] font-mono font-semibold">
@@ -278,7 +286,7 @@ export function ProductsPage() {
                 <div className="min-w-0">
                   <h3 className="truncate font-semibold text-sm text-foreground">{product.name}</h3>
                   <p className="truncate text-xs text-muted-foreground">
-                    {product.category || 'General'}
+                    {product.category || "General"}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">
@@ -312,13 +320,13 @@ export function ProductsPage() {
                 <button
                   onClick={() => toggleAvailability(product)}
                   className={cn(
-                    'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
+                    "rounded px-2 py-0.5 text-[11px] font-semibold transition-colors",
                     product.isAvailable
-                      ? 'border border-red-200 text-red-700 hover:bg-red-50'
-                      : 'border border-green-200 text-green-700 hover:bg-green-50'
+                      ? "border border-red-200 text-red-700 hover:bg-red-50"
+                      : "border border-green-200 text-green-700 hover:bg-green-50"
                   )}
                 >
-                  {product.isAvailable ? 'Agotar' : 'Reactivar'}
+                  {product.isAvailable ? "Agotar" : "Reactivar"}
                 </button>
               </div>
             </div>
@@ -337,7 +345,7 @@ export function ProductsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-2xl">
             <h2 className="text-base font-bold mb-3">
-              {editingId ? 'Editar Prenda' : 'Nueva Prenda para el Live'}
+              {editingId ? "Editar Prenda" : "Nueva Prenda para el Live"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
@@ -425,7 +433,7 @@ export function ProductsPage() {
                   disabled={saving}
                   className="flex-1 rounded-md bg-primary py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : 'Guardar Prenda'}
+                  {saving ? "Guardando..." : "Guardar Prenda"}
                 </button>
               </div>
             </form>
@@ -442,7 +450,8 @@ export function ProductsPage() {
               <h3 className="text-base font-bold">Importación Rápida de Catálogo</h3>
             </div>
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-              Pega el texto de tu Excel o CSV con el formato: <code>Nombre, Precio, Categoría, Stock</code> (una prenda por línea).
+              Pega el texto de tu Excel o CSV con el formato:{" "}
+              <code>Nombre, Precio, Categoría, Stock</code> (una prenda por línea).
             </p>
 
             <textarea
@@ -467,7 +476,7 @@ export function ProductsPage() {
                 disabled={importing || !csvText.trim()}
                 className="flex-1 rounded-md bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                {importing ? 'Importando...' : 'Importar al Catálogo'}
+                {importing ? "Importando..." : "Importar al Catálogo"}
               </button>
             </div>
           </div>

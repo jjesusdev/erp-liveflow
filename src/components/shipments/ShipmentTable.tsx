@@ -1,43 +1,44 @@
-'use client';
+"use client";
 
-import { cn } from '@/lib/utils';
-import { CheckSquare, Square, Search, Pencil, Send, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/liveflow/primitives';
-import type { Shipment, ShipmentStatus } from '@/types';
+import { cn } from "@/lib/utils";
+import { CheckSquare, Square, Search, Pencil, Send, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/liveflow/primitives";
+import type { Shipment, ShipmentStatus } from "@/types";
 
 const FILTERS = [
-  { id: 'all', label: 'Todos' },
-  { id: 'PENDING', label: 'Pendientes' },
-  { id: 'IN_TRANSIT', label: 'En camino' },
-  { id: 'DELIVERED', label: 'Entregados' },
+  { id: "all", label: "Todos" },
+  { id: "PENDING", label: "Pendientes" },
+  { id: "IN_TRANSIT", label: "En camino" },
+  { id: "DELIVERED", label: "Entregados" },
 ] as const;
 
 const CARRIER_PRESETS = [
-  'Envio Local / Moto',
-  'Estafeta',
-  'DHL Express',
-  'FedEx',
-  '99Minutos',
-  'Uber Flash / Didi',
-  'Entrega Personal',
-  'Recoge en tienda',
+  "Envio Local / Moto",
+  "Estafeta",
+  "DHL Express",
+  "FedEx",
+  "99Minutos",
+  "Uber Flash / Didi",
+  "Entrega Personal",
+  "Recoge en tienda",
 ];
 
-const STATUS_TONE: Record<ShipmentStatus, 'pending' | 'transit' | 'success' | 'live' | 'neutral'> = {
-  PENDING: 'pending',
-  IN_TRANSIT: 'transit',
-  DELIVERED: 'success',
-  RETURNED: 'pending',
-  LOST: 'live',
-};
+const STATUS_TONE: Record<ShipmentStatus, "pending" | "transit" | "success" | "live" | "neutral"> =
+  {
+    PENDING: "pending",
+    IN_TRANSIT: "transit",
+    DELIVERED: "success",
+    RETURNED: "pending",
+    LOST: "live",
+  };
 
 const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  PENDING: 'Pendiente',
-  IN_TRANSIT: 'En camino',
-  DELIVERED: 'Entregado',
-  RETURNED: 'Devuelto',
-  LOST: 'Perdido',
+  PENDING: "Pendiente",
+  IN_TRANSIT: "En camino",
+  DELIVERED: "Entregado",
+  RETURNED: "Devuelto",
+  LOST: "Perdido",
 };
 
 interface ShipmentTableProps {
@@ -79,9 +80,16 @@ export function ShipmentTable({
   onCancelEdit,
 }: ShipmentTableProps) {
   return (
-    <section aria-label="Movimientos de Envios" className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+    <section
+      aria-label="Movimientos de Envios"
+      className="overflow-hidden rounded-lg border border-border bg-card shadow-xs"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
-        <div role="tablist" aria-label="Filtrar por estado" className="flex gap-1 rounded-md bg-muted p-0.5">
+        <div
+          role="tablist"
+          aria-label="Filtrar por estado"
+          className="flex gap-1 rounded-md bg-muted p-0.5"
+        >
           {FILTERS.map((f) => (
             <button
               key={f.id}
@@ -90,10 +98,10 @@ export function ShipmentTable({
               aria-selected={filter === f.id}
               onClick={() => onFilterChange(f.id)}
               className={cn(
-                'h-6 rounded px-2.5 text-xs font-medium transition-colors',
+                "h-6 rounded px-2.5 text-xs font-medium transition-colors",
                 filter === f.id
-                  ? 'bg-background text-foreground shadow-sm font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? "bg-background text-foreground shadow-sm font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {f.label}
@@ -103,7 +111,10 @@ export function ShipmentTable({
 
         <label className="relative">
           <span className="sr-only">Buscar por cliente o destino</span>
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
@@ -118,7 +129,11 @@ export function ShipmentTable({
           <thead className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
             <tr>
               <th scope="col" className="w-8 px-3 py-2.5">
-                <button type="button" onClick={onToggleSelectAll} className="flex size-4 items-center justify-center">
+                <button
+                  type="button"
+                  onClick={onToggleSelectAll}
+                  className="flex size-4 items-center justify-center"
+                >
                   {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
                     <CheckSquare className="size-4 text-primary" />
                   ) : (
@@ -126,13 +141,27 @@ export function ShipmentTable({
                   )}
                 </button>
               </th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Folio</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Destinatario</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Direccion</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Prendas</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Metodo</th>
-              <th scope="col" className="px-3 py-2.5 font-medium">Estado</th>
-              <th scope="col" className="px-3 py-2.5 text-right font-medium">Accion</th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Folio
+              </th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Destinatario
+              </th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Direccion
+              </th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Prendas
+              </th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Metodo
+              </th>
+              <th scope="col" className="px-3 py-2.5 font-medium">
+                Estado
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                Accion
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -141,30 +170,45 @@ export function ShipmentTable({
               const isSelected = selectedIds.includes(shipment.id);
 
               return (
-                <tr key={shipment.id} className={cn('transition-colors hover:bg-muted/30', isSelected && 'bg-muted/50')}>
+                <tr
+                  key={shipment.id}
+                  className={cn("transition-colors hover:bg-muted/30", isSelected && "bg-muted/50")}
+                >
                   <td className="px-3 py-2.5">
-                    <button type="button" onClick={() => onToggleSelect(shipment.id)} className="flex size-4 items-center justify-center">
-                      {isSelected ? <CheckSquare className="size-4 text-primary" /> : <Square className="size-4 text-muted-foreground/60" />}
+                    <button
+                      type="button"
+                      onClick={() => onToggleSelect(shipment.id)}
+                      className="flex size-4 items-center justify-center"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="size-4 text-primary" />
+                      ) : (
+                        <Square className="size-4 text-muted-foreground/60" />
+                      )}
                     </button>
                   </td>
 
                   <td className="px-3 py-2.5 font-semibold text-foreground">
-                    {shipment.paymentOrder?.id ? `LF-${shipment.paymentOrder.id.slice(0, 8).toUpperCase()}` : 'LF-ENV'}
+                    {shipment.paymentOrder?.id
+                      ? `LF-${shipment.paymentOrder.id.slice(0, 8).toUpperCase()}`
+                      : "LF-ENV"}
                   </td>
 
                   <td className="px-3 py-2.5">
-                    <p className="font-semibold text-foreground">{shipment.lead?.name || 'Clienta'}</p>
+                    <p className="font-semibold text-foreground">
+                      {shipment.lead?.name || "Clienta"}
+                    </p>
                     <p className="text-[11px] text-muted-foreground">{shipment.lead?.phone}</p>
                   </td>
 
                   <td className="px-3 py-2.5 text-[11px] text-muted-foreground max-w-56 truncate">
                     {shipment.lead?.addressStreet
-                      ? `${shipment.lead.addressStreet} ${shipment.lead.addressNumber || ''}, ${shipment.lead.addressCity || ''}`
-                      : 'Sin capturar'}
+                      ? `${shipment.lead.addressStreet} ${shipment.lead.addressNumber || ""}, ${shipment.lead.addressCity || ""}`
+                      : "Sin capturar"}
                   </td>
 
                   <td className="px-3 py-2.5 text-foreground max-w-48 truncate">
-                    {shipment.paymentOrder?.concept || 'Prendas Live'}
+                    {shipment.paymentOrder?.concept || "Prendas Live"}
                   </td>
 
                   <td className="px-3 py-2.5 text-muted-foreground">
@@ -177,7 +221,7 @@ export function ShipmentTable({
                         className="h-6 w-32 rounded border border-input bg-background px-1.5 text-xs"
                       />
                     ) : (
-                      <span>{shipment.carrier || 'Estafeta'}</span>
+                      <span>{shipment.carrier || "Estafeta"}</span>
                     )}
                     <datalist id={`carrier-opts-${shipment.id}`}>
                       {CARRIER_PRESETS.map((p) => (
@@ -196,27 +240,55 @@ export function ShipmentTable({
                     <div className="flex items-center justify-end gap-1.5">
                       {isEditing ? (
                         <>
-                          <Button size="xs" variant="default" disabled={busyId === shipment.id} onClick={() => onUpdate(shipment.id, draft)} className="h-6 px-2 text-[11px]">
+                          <Button
+                            size="xs"
+                            variant="default"
+                            disabled={busyId === shipment.id}
+                            onClick={() => onUpdate(shipment.id, draft)}
+                            className="h-6 px-2 text-[11px]"
+                          >
                             Guardar
                           </Button>
-                          <Button size="xs" variant="ghost" onClick={onCancelEdit} className="h-6 px-2 text-[11px]">
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={onCancelEdit}
+                            className="h-6 px-2 text-[11px]"
+                          >
                             Cancelar
                           </Button>
                         </>
                       ) : (
                         <>
-                          <Button variant="ghost" size="icon" onClick={() => onStartEdit(shipment)} className="size-6 text-muted-foreground hover:text-foreground">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onStartEdit(shipment)}
+                            className="size-6 text-muted-foreground hover:text-foreground"
+                          >
                             <Pencil className="size-3" />
                           </Button>
 
-                          {shipment.status === 'PENDING' && (
-                            <Button size="xs" variant="default" disabled={busyId === shipment.id} onClick={() => onUpdate(shipment.id, { status: 'IN_TRANSIT' })} className="h-6 px-2 text-[11px] gap-1 font-semibold">
+                          {shipment.status === "PENDING" && (
+                            <Button
+                              size="xs"
+                              variant="default"
+                              disabled={busyId === shipment.id}
+                              onClick={() => onUpdate(shipment.id, { status: "IN_TRANSIT" })}
+                              className="h-6 px-2 text-[11px] gap-1 font-semibold"
+                            >
                               <Send className="size-2.5" /> Despachar
                             </Button>
                           )}
 
-                          {shipment.status === 'IN_TRANSIT' && (
-                            <Button size="xs" variant="success" disabled={busyId === shipment.id} onClick={() => onUpdate(shipment.id, { status: 'DELIVERED' })} className="h-6 px-2 text-[11px] gap-1 font-semibold">
+                          {shipment.status === "IN_TRANSIT" && (
+                            <Button
+                              size="xs"
+                              variant="success"
+                              disabled={busyId === shipment.id}
+                              onClick={() => onUpdate(shipment.id, { status: "DELIVERED" })}
+                              className="h-6 px-2 text-[11px] gap-1 font-semibold"
+                            >
                               <Check className="size-2.5" /> Entregado
                             </Button>
                           )}

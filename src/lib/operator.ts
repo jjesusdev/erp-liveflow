@@ -1,9 +1,9 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 
 const DEFAULT_OPERATOR = {
-  name: 'Administrador',
-  email: 'admin@erp.local',
-  role: 'ADMIN' as const,
+  name: "Administrador",
+  email: "admin@erp.local",
+  role: "ADMIN" as const,
 };
 
 /**

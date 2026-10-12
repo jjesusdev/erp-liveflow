@@ -1,15 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { formatCurrency } from '@/lib/date-utils';
-import {
-  TrendingUp,
-  Users,
-  MessageSquare,
-  CreditCard,
-  Package,
-  Clock,
-} from 'lucide-react';
+import { useCallback, useEffect, useState } from "react";
+import { formatCurrency } from "@/lib/date-utils";
+import { TrendingUp, Users, MessageSquare, CreditCard, Package, Clock } from "lucide-react";
 
 interface Stats {
   totalRevenue: number;
@@ -35,23 +28,23 @@ interface Stats {
 }
 
 const PERIODS = [
-  { id: 'today', label: 'Hoy' },
-  { id: 'week', label: '7 dias' },
-  { id: 'month', label: 'Este mes' },
-  { id: 'all', label: 'Todo' },
+  { id: "today", label: "Hoy" },
+  { id: "week", label: "7 dias" },
+  { id: "month", label: "Este mes" },
+  { id: "all", label: "Todo" },
 ];
 
 const SHIPMENT_LABELS: Record<string, string> = {
-  PENDING: 'Pendiente',
-  IN_TRANSIT: 'En transito',
-  DELIVERED: 'Entregado',
-  RETURNED: 'Devuelto',
-  LOST: 'Perdido',
+  PENDING: "Pendiente",
+  IN_TRANSIT: "En transito",
+  DELIVERED: "Entregado",
+  RETURNED: "Devuelto",
+  LOST: "Perdido",
 };
 
 export function ReportsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState("week");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,13 +52,13 @@ export function ReportsPage() {
     setLoading(true);
     try {
       const now = new Date();
-      let url = '/api/reports';
+      let url = "/api/reports";
 
-      if (period !== 'all') {
+      if (period !== "all") {
         let startDate: Date;
-        if (period === 'today') {
+        if (period === "today") {
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        } else if (period === 'week') {
+        } else if (period === "week") {
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         } else {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -76,11 +69,11 @@ export function ReportsPage() {
       }
 
       const res = await fetch(url);
-      if (!res.ok) throw new Error('No se pudieron cargar los reportes');
+      if (!res.ok) throw new Error("No se pudieron cargar los reportes");
       setStats(await res.json());
       setError(null);
     } catch (err: any) {
-      setError(err?.message || 'Error al cargar los reportes');
+      setError(err?.message || "Error al cargar los reportes");
     } finally {
       setLoading(false);
     }
@@ -120,9 +113,7 @@ export function ReportsPage() {
               key={p.id}
               onClick={() => setPeriod(p.id)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                period === p.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted hover:bg-accent'
+                period === p.id ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
               }`}
             >
               {p.label}
@@ -156,19 +147,17 @@ export function ReportsPage() {
           <p className="mt-2 text-2xl font-black text-foreground">
             {formatCurrency(stats.averageTicket || 0)}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Por cada venta concretada
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Por cada venta concretada</p>
         </div>
 
         <div className="rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Conversión en Vivo</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Conversión en Vivo
+            </span>
             <Clock className="h-4 w-4 text-purple-600" />
           </div>
-          <p className="mt-2 text-2xl font-black text-purple-600">
-            {stats.conversionRate}%
-          </p>
+          <p className="mt-2 text-2xl font-black text-purple-600">{stats.conversionRate}%</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
             {stats.paidOrders} de {stats.totalConversations} chats
           </p>
@@ -176,12 +165,12 @@ export function ReportsPage() {
 
         <div className="rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Clientas Captadas</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Clientas Captadas
+            </span>
             <Users className="h-4 w-4 text-primary" />
           </div>
-          <p className="mt-2 text-2xl font-black text-foreground">
-            {stats.totalLeads}
-          </p>
+          <p className="mt-2 text-2xl font-black text-foreground">{stats.totalLeads}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
             +{stats.newLeads} nuevas en el periodo
           </p>
@@ -222,8 +211,8 @@ export function ReportsPage() {
                 <span className="font-medium">{stats.paidOrders}</span> cobros pagados
               </p>
               <p>
-                <span className="font-medium">{stats.totalConversations}</span>{' '}
-                conversaciones del periodo
+                <span className="font-medium">{stats.totalConversations}</span> conversaciones del
+                periodo
               </p>
             </div>
           </div>
@@ -234,10 +223,7 @@ export function ReportsPage() {
           <div className="space-y-2">
             {Object.keys(stats.shipments || {}).length > 0 ? (
               Object.entries(stats.shipments).map(([status, count]) => (
-                <div
-                  key={status}
-                  className="flex items-center justify-between text-sm"
-                >
+                <div key={status} className="flex items-center justify-between text-sm">
                   <span>{SHIPMENT_LABELS[status] || status}</span>
                   <span className="font-medium">{count}</span>
                 </div>

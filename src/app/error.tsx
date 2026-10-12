@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
   error,
@@ -12,7 +12,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[LiveFlow] Error:', error);
+    console.error("[LiveFlow] Error:", error);
   }, [error]);
 
   return (
@@ -25,9 +25,7 @@ export default function GlobalError({
         <p className="max-w-md text-sm text-muted-foreground">
           Ocurrio un error inesperado. Puedes intentar de nuevo o recargar la pagina.
         </p>
-        {error.digest && (
-          <p className="text-xs text-muted-foreground/60">Ref: {error.digest}</p>
-        )}
+        {error.digest && <p className="text-xs text-muted-foreground/60">Ref: {error.digest}</p>}
       </div>
       <Button onClick={reset} variant="outline" size="sm" className="gap-1.5">
         <RefreshCw className="size-3.5" />

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
-import { prisma } from '@/lib/prisma';
-import { resolveOperatorId } from '@/lib/operator';
+import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
+import { prisma } from "@/lib/prisma";
+import { resolveOperatorId } from "@/lib/operator";
 
 async function createMercadoPagoPreference({
   amount,
@@ -16,60 +16,60 @@ async function createMercadoPagoPreference({
 }) {
   const accessToken = process.env.MP_ACCESS_TOKEN;
 
-  if (!accessToken || accessToken.includes('xxx')) {
+  if (!accessToken || accessToken.includes("xxx")) {
     return null;
   }
 
   try {
     const response = await axios.post(
-      'https://api.mercadopago.com/checkout/preferences',
+      "https://api.mercadopago.com/checkout/preferences",
       {
         items: [
           {
             title: concept,
             quantity: 1,
-            currency_id: 'MXN',
+            currency_id: "MXN",
             unit_price: amount,
           },
         ],
         external_reference: paymentOrderId,
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/caja?paid=${paymentOrderId}`,
-          pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/caja?pending=${paymentOrderId}`,
-          failure: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/caja?failure=${paymentOrderId}`,
+          success: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?paid=${paymentOrderId}`,
+          pending: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?pending=${paymentOrderId}`,
+          failure: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?failure=${paymentOrderId}`,
         },
-        auto_return: 'approved',
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/webhooks/mercadopago`,
+        auto_return: "approved",
+        notification_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/webhooks/mercadopago`,
       },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       }
     );
 
     return {
       id: response.data.id as string,
-      url:
-        (response.data.sandbox_init_point as string) ||
-        (response.data.init_point as string),
+      url: (response.data.sandbox_init_point as string) || (response.data.init_point as string),
     };
   } catch (error: any) {
-    console.error('Error creando preferencia de MercadoPago:', error?.response?.data || error);
+    console.error("Error creando preferencia de MercadoPago:", error?.response?.data || error);
     return null;
   }
 }
 
-function normalizeProvider(raw?: string | null): 'TRANSFER' | 'MERCADOPAGO' | 'CASH' | 'STRIPE' | 'PAYPAL' {
-  if (!raw) return 'TRANSFER';
+function normalizeProvider(
+  raw?: string | null
+): "TRANSFER" | "MERCADOPAGO" | "CASH" | "STRIPE" | "PAYPAL" {
+  if (!raw) return "TRANSFER";
   const upper = String(raw).toUpperCase().trim();
-  if (upper === 'TRANSFERENCIA' || upper === 'TRANSFER') return 'TRANSFER';
-  if (upper === 'MERCADOPAGO' || upper === 'MERCADO_PAGO' || upper === 'MP') return 'MERCADOPAGO';
-  if (upper === 'CASH' || upper === 'EFECTIVO') return 'CASH';
-  if (upper === 'STRIPE') return 'STRIPE';
-  if (upper === 'PAYPAL') return 'PAYPAL';
-  return 'TRANSFER';
+  if (upper === "TRANSFERENCIA" || upper === "TRANSFER") return "TRANSFER";
+  if (upper === "MERCADOPAGO" || upper === "MERCADO_PAGO" || upper === "MP") return "MERCADOPAGO";
+  if (upper === "CASH" || upper === "EFECTIVO") return "CASH";
+  if (upper === "STRIPE") return "STRIPE";
+  if (upper === "PAYPAL") return "PAYPAL";
+  return "TRANSFER";
 }
 
 function buildTransferMessage({
@@ -87,18 +87,18 @@ function buildTransferMessage({
   orderId: string;
   config: any;
 }) {
-  const greeting = leadName ? `¡Hola ${leadName}!` : '¡Hola!';
-  const formattedAmount = `$${amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  const greeting = leadName ? `¡Hola ${leadName}!` : "¡Hola!";
+  const formattedAmount = `$${amount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   const refCode = orderId.slice(0, 8).toUpperCase();
 
   const lines = [
     `${greeting} Aquí tienes los datos para realizar tu pago por transferencia:`,
-    '',
+    "",
     `📌 *Concepto / Pedido:* ${concept}`,
     `💰 *Monto a pagar:* ${formattedAmount}`,
     `🔖 *Referencia / Folio:* ${refCode}`,
-    '',
-    '🏦 *DATOS BANCARIOS:*',
+    "",
+    "🏦 *DATOS BANCARIOS:*",
   ];
 
   if (config.bankName) lines.push(`• *Banco:* ${config.bankName}`);
@@ -107,10 +107,12 @@ function buildTransferMessage({
   if (config.bankAccountNumber) lines.push(`• *Número de cuenta:* ${config.bankAccountNumber}`);
   if (config.bankNotes) lines.push(`• *Notas:* ${config.bankNotes}`);
 
-  lines.push('');
-  lines.push('📸 *Por favor envía tu comprobante de pago por este mismo chat para procesar tu pedido.*');
+  lines.push("");
+  lines.push(
+    "📸 *Por favor envía tu comprobante de pago por este mismo chat para procesar tu pedido.*"
+  );
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 export async function POST(req: NextRequest) {
@@ -119,15 +121,12 @@ export async function POST(req: NextRequest) {
     const { conversationId, amount, concept, provider: rawProvider } = body;
 
     if (!conversationId || !amount || !concept) {
-      return NextResponse.json(
-        { error: 'Faltan datos del cobro' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Faltan datos del cobro" }, { status: 400 });
     }
 
     const numericAmount = Number(amount);
     if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-      return NextResponse.json({ error: 'Monto invalido' }, { status: 400 });
+      return NextResponse.json({ error: "Monto invalido" }, { status: 400 });
     }
 
     const conversation = await prisma.conversation.findUnique({
@@ -136,10 +135,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!conversation) {
-      return NextResponse.json(
-        { error: 'Conversacion no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });
     }
 
     const resolvedProvider = normalizeProvider(rawProvider);
@@ -147,8 +143,8 @@ export async function POST(req: NextRequest) {
 
     // Si hay una sesión de Live activa en este momento, vinculamos la orden automáticamente
     const activeLive = await prisma.liveSession.findFirst({
-      where: { status: 'ACTIVE' },
-      orderBy: { startedAt: 'desc' },
+      where: { status: "ACTIVE" },
+      orderBy: { startedAt: "desc" },
     });
 
     // Si es transferencia bancaria, leemos la configuracion del negocio
@@ -163,11 +159,11 @@ export async function POST(req: NextRequest) {
         leadId: conversation.leadId,
         liveSessionId: activeLive?.id || null,
         amount: numericAmount,
-        currency: businessConfig?.currency || 'MXN',
+        currency: businessConfig?.currency || "MXN",
         concept,
         createdById,
         provider: resolvedProvider,
-        status: 'PENDING',
+        status: "PENDING",
         expiresAt,
       },
     });
@@ -176,13 +172,13 @@ export async function POST(req: NextRequest) {
     let transferDetails: any = null;
     let link: { id: string; url: string } | null = null;
 
-    if (resolvedProvider === 'TRANSFER') {
+    if (resolvedProvider === "TRANSFER") {
       const hasBankData = Boolean(
         businessConfig &&
-          (businessConfig.bankName ||
-            businessConfig.bankBeneficiary ||
-            businessConfig.bankClabe ||
-            businessConfig.bankAccountNumber)
+        (businessConfig.bankName ||
+          businessConfig.bankBeneficiary ||
+          businessConfig.bankClabe ||
+          businessConfig.bankAccountNumber)
       );
 
       transferDetails = {
@@ -209,7 +205,7 @@ export async function POST(req: NextRequest) {
       const client = (global as any).whatsappClient;
       if (client && conversation.lead?.phone) {
         try {
-          const jid = `${conversation.lead.phone.replace(/\D/g, '')}@s.whatsapp.net`;
+          const jid = `${conversation.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
           await client.sendMessage(jid, { text: transferMessage });
           whatsappSent = true;
 
@@ -217,8 +213,8 @@ export async function POST(req: NextRequest) {
           const outboundMsg = await prisma.message.create({
             data: {
               conversationId,
-              direction: 'OUTBOUND',
-              type: 'TEXT',
+              direction: "OUTBOUND",
+              type: "TEXT",
               content: transferMessage,
               sentAt: new Date(),
             },
@@ -227,27 +223,29 @@ export async function POST(req: NextRequest) {
           await prisma.conversation.update({
             where: { id: conversationId },
             data: {
-              status: 'AWAITING_PAYMENT',
+              status: "AWAITING_PAYMENT",
               lastMessageAt: outboundMsg.sentAt,
             },
           });
 
           const io = (global as any).io;
           if (io) {
-            io.emit('message:new', outboundMsg);
+            io.emit("message:new", outboundMsg);
           }
         } catch (error) {
-          console.error('Error enviando datos de transferencia por WhatsApp:', error);
+          console.error("Error enviando datos de transferencia por WhatsApp:", error);
         }
       } else {
         // Si no se pudo enviar por WhatsApp directo, actualizamos estado de conversación a AWAITING_PAYMENT
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: { status: 'AWAITING_PAYMENT' },
-        }).catch(() => undefined);
+        await prisma.conversation
+          .update({
+            where: { id: conversationId },
+            data: { status: "AWAITING_PAYMENT" },
+          })
+          .catch(() => undefined);
       }
 
-      const updatedStatus = whatsappSent ? 'SENT' : 'PENDING';
+      const updatedStatus = whatsappSent ? "SENT" : "PENDING";
       const updated = await prisma.paymentOrder.update({
         where: { id: paymentOrder.id },
         data: {
@@ -259,7 +257,7 @@ export async function POST(req: NextRequest) {
 
       const io = (global as any).io;
       if (io) {
-        io.emit('payment:updated', {
+        io.emit("payment:updated", {
           ...updated,
           amount: Number(updated.amount),
         });
@@ -273,7 +271,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (resolvedProvider === 'MERCADOPAGO') {
+    if (resolvedProvider === "MERCADOPAGO") {
       link = await createMercadoPagoPreference({
         amount: numericAmount,
         concept,
@@ -285,16 +283,13 @@ export async function POST(req: NextRequest) {
         const client = (global as any).whatsappClient;
         if (client && conversation.lead?.phone) {
           try {
-            const jid = `${conversation.lead.phone.replace(/\D/g, '')}@s.whatsapp.net`;
-            await client.sendMessage(
-              jid,
-              {
-                text: `¡Hola ${conversation.lead.name || ''}! Tu pedido "${concept}" por $${numericAmount} MXN. Paga aquí: ${link.url}`,
-              }
-            );
+            const jid = `${conversation.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
+            await client.sendMessage(jid, {
+              text: `¡Hola ${conversation.lead.name || ""}! Tu pedido "${concept}" por $${numericAmount} MXN. Paga aquí: ${link.url}`,
+            });
             whatsappSent = true;
           } catch (error) {
-            console.error('Error enviando link por WhatsApp:', error);
+            console.error("Error enviando link por WhatsApp:", error);
           }
         }
 
@@ -303,20 +298,22 @@ export async function POST(req: NextRequest) {
           data: {
             providerLinkId: link.id,
             providerLinkUrl: link.url,
-            status: 'SENT',
+            status: "SENT",
             sentAt: new Date(),
           },
           include: { lead: true },
         });
 
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: { status: 'AWAITING_PAYMENT' },
-        }).catch(() => undefined);
+        await prisma.conversation
+          .update({
+            where: { id: conversationId },
+            data: { status: "AWAITING_PAYMENT" },
+          })
+          .catch(() => undefined);
 
         const io = (global as any).io;
         if (io) {
-          io.emit('payment:updated', {
+          io.emit("payment:updated", {
             ...updated,
             amount: Number(updated.amount),
           });
@@ -338,7 +335,7 @@ export async function POST(req: NextRequest) {
       linkGenerated: Boolean(link?.url),
     });
   } catch (error) {
-    console.error('Error creating payment order:', error);
-    return NextResponse.json({ error: 'Error creating payment order' }, { status: 500 });
+    console.error("Error creating payment order:", error);
+    return NextResponse.json({ error: "Error creating payment order" }, { status: 500 });
   }
 }

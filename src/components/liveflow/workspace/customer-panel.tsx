@@ -1,13 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Loader2, MapPin, PackageCheck, Printer, Save, StickyNote, Truck, UserRound } from 'lucide-react';
-import { toast } from 'sonner';
-import { money } from '@/lib/format';
-import type { Conversation, Product } from '@/lib/liveflow-data';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge, SectionLabel, TierBadge } from '@/components/liveflow/primitives';
+import { useState } from "react";
+import {
+  Loader2,
+  MapPin,
+  PackageCheck,
+  Printer,
+  Save,
+  StickyNote,
+  Truck,
+  UserRound,
+} from "lucide-react";
+import { toast } from "sonner";
+import { money } from "@/lib/format";
+import type { Conversation, Product } from "@/lib/liveflow-data";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge, SectionLabel, TierBadge } from "@/components/liveflow/primitives";
 
 type Note = { id: string; author: string; text: string; time: string };
 
@@ -22,9 +31,14 @@ export function CustomerPanel({
 }) {
   if (!conversation) {
     return (
-      <aside aria-label="Perfil del cliente en espera" className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40 p-4 space-y-4">
+      <aside
+        aria-label="Perfil del cliente en espera"
+        className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40 p-4 space-y-4"
+      >
         <div className="border-b border-border pb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ficha de la Clienta</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Ficha de la Clienta
+          </h3>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
@@ -33,13 +47,16 @@ export function CustomerPanel({
           </div>
           <p className="text-xs font-semibold text-foreground">Sin conversación activa</p>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Selecciona un chat en la bandeja para ver el scoring, compras pasadas o imprimir su etiqueta.
+            Selecciona un chat en la bandeja para ver el scoring, compras pasadas o imprimir su
+            etiqueta.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg border border-border bg-background p-2.5">
-            <span className="text-[10px] text-muted-foreground uppercase font-medium">Total Gastado</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-medium">
+              Total Gastado
+            </span>
             <p className="font-mono text-sm font-bold text-foreground mt-0.5">$0.00</p>
           </div>
           <div className="rounded-lg border border-border bg-background p-2.5">
@@ -52,7 +69,10 @@ export function CustomerPanel({
   }
 
   return (
-    <aside aria-label="Perfil del cliente" className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40">
+    <aside
+      aria-label="Perfil del cliente"
+      className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40"
+    >
       <Tabs defaultValue="ficha" className="min-h-0 flex-1 gap-0">
         <div className="border-b border-border p-3">
           <TabsList className="w-full">
@@ -87,33 +107,50 @@ export function CustomerPanel({
 function Stat({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-md border border-border bg-background p-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={mono ? 'mt-0.5 font-mono text-sm font-bold' : 'mt-0.5 text-sm font-semibold'}>{value}</p>
+      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className={mono ? "mt-0.5 font-mono text-sm font-bold" : "mt-0.5 text-sm font-semibold"}>
+        {value}
+      </p>
     </div>
   );
 }
 
 function ProfileTab({ conversation: c }: { conversation: Conversation }) {
   const [notes, setNotes] = useState<Note[]>(
-    c.tier === 'vip'
+    c.tier === "vip"
       ? [
-          { id: 'n1', author: 'Lucía', text: 'Prefiere envío a oficina L–V. Siempre paga en < 10 min.', time: 'Live #46' },
-          { id: 'n2', author: 'Mariana', text: 'Talla M en vestidos, CH en blusas.', time: 'Live #47' },
+          {
+            id: "n1",
+            author: "Lucía",
+            text: "Prefiere envío a oficina L–V. Siempre paga en < 10 min.",
+            time: "Live #46",
+          },
+          {
+            id: "n2",
+            author: "Mariana",
+            text: "Talla M en vestidos, CH en blusas.",
+            time: "Live #47",
+          },
         ]
       : []
   );
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const avg = c.paidOrders ? c.totalSpent / c.paidOrders : 0;
 
   return (
     <div className="flex flex-col gap-4 p-3">
       <div className="flex items-start gap-3">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold" aria-hidden>
+        <div
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold"
+          aria-hidden
+        >
           {c.name
-            .split(' ')
+            .split(" ")
             .slice(0, 2)
             .map((p) => p[0])
-            .join('')}
+            .join("")}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold tracking-tight">{c.name}</p>
@@ -130,7 +167,7 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
         <Stat label="Total gastado" value={money(c.totalSpent)} />
         <Stat label="Pedidos pagados" value={String(c.paidOrders)} />
         <Stat label="Ticket promedio" value={money(avg)} />
-        <Stat label="Cliente desde" value={c.paidOrders ? 'Mar 2025' : 'Hoy'} mono={false} />
+        <Stat label="Cliente desde" value={c.paidOrders ? "Mar 2025" : "Hoy"} mono={false} />
       </div>
 
       <div>
@@ -138,9 +175,9 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
         {c.paidOrders ? (
           <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-background text-xs">
             {[
-              ['Live #47', 'Blusa lino crema', 330],
-              ['Live #45', 'Bolsa Live (4 prendas)', 1420],
-              ['Live #42', 'Jeans wide leg', 520],
+              ["Live #47", "Blusa lino crema", 330],
+              ["Live #45", "Bolsa Live (4 prendas)", 1420],
+              ["Live #42", "Jeans wide leg", 520],
             ].map(([live, item, amount]) => (
               <li key={live as string} className="flex items-center gap-2 px-2.5 py-2">
                 <span className="font-mono text-[10px] text-muted-foreground">{live}</span>
@@ -175,8 +212,11 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
           onSubmit={(e) => {
             e.preventDefault();
             if (!draft.trim()) return;
-            setNotes((ns) => [...ns, { id: crypto.randomUUID(), author: 'Mariana', text: draft.trim(), time: 'Ahora' }]);
-            setDraft('');
+            setNotes((ns) => [
+              ...ns,
+              { id: crypto.randomUUID(), author: "Mariana", text: draft.trim(), time: "Ahora" },
+            ]);
+            setDraft("");
           }}
           className="flex flex-col gap-1.5"
         >
@@ -191,7 +231,13 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
             placeholder="Solo visible para el equipo…"
             className="resize-none rounded-md border border-input bg-background p-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
           />
-          <Button type="submit" size="sm" variant="outline" className="self-end text-xs" disabled={!draft.trim()}>
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            className="self-end text-xs"
+            disabled={!draft.trim()}
+          >
             Guardar nota
           </Button>
         </form>
@@ -201,25 +247,25 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
 }
 
 const ADDRESS_FIELDS = [
-  { id: 'nombre', label: 'Nombre completo', span: 2 },
-  { id: 'calle', label: 'Calle y número', span: 2 },
-  { id: 'colonia', label: 'Colonia', span: 1 },
-  { id: 'cp', label: 'C.P.', span: 1, mono: true },
-  { id: 'ciudad', label: 'Ciudad', span: 1 },
-  { id: 'estado', label: 'Estado', span: 1 },
-  { id: 'referencias', label: 'Referencias', span: 2 },
+  { id: "nombre", label: "Nombre completo", span: 2 },
+  { id: "calle", label: "Calle y número", span: 2 },
+  { id: "colonia", label: "Colonia", span: 1 },
+  { id: "cp", label: "C.P.", span: 1, mono: true },
+  { id: "ciudad", label: "Ciudad", span: 1 },
+  { id: "estado", label: "Estado", span: 1 },
+  { id: "referencias", label: "Referencias", span: 2 },
 ] as const;
 
 function AddressTab({ conversation: c }: { conversation: Conversation }) {
   const [saving, setSaving] = useState(false);
   const defaults: Record<string, string> = {
     nombre: c.name,
-    calle: 'Av. Álvaro Obregón 182, Int. 4',
-    colonia: 'Roma Norte',
-    cp: '06700',
-    ciudad: 'Cuauhtémoc',
-    estado: 'CDMX',
-    referencias: 'Portón negro, frente a cafetería',
+    calle: "Av. Álvaro Obregón 182, Int. 4",
+    colonia: "Roma Norte",
+    cp: "06700",
+    ciudad: "Cuauhtémoc",
+    estado: "CDMX",
+    referencias: "Portón negro, frente a cafetería",
   };
 
   return (
@@ -230,21 +276,29 @@ function AddressTab({ conversation: c }: { conversation: Conversation }) {
         setSaving(true);
         setTimeout(() => {
           setSaving(false);
-          toast.success('Dirección guardada', { description: `Envío de ${c.name} listo para guía.` });
+          toast.success("Dirección guardada", {
+            description: `Envío de ${c.name} listo para guía.`,
+          });
         }, 700);
       }}
     >
       <div className="grid grid-cols-2 gap-2.5">
         {ADDRESS_FIELDS.map((f) => (
-          <div key={f.id} className={f.span === 2 ? 'col-span-2 flex flex-col gap-1' : 'flex flex-col gap-1'}>
-            <label htmlFor={`addr-${f.id}`} className="text-[11px] font-medium text-muted-foreground">
+          <div
+            key={f.id}
+            className={f.span === 2 ? "col-span-2 flex flex-col gap-1" : "flex flex-col gap-1"}
+          >
+            <label
+              htmlFor={`addr-${f.id}`}
+              className="text-[11px] font-medium text-muted-foreground"
+            >
               {f.label}
             </label>
             <input
               id={`addr-${f.id}`}
               name={f.id}
               defaultValue={defaults[f.id]}
-              className={`h-8 rounded-md border border-input bg-background px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${'mono' in f ? 'font-mono' : ''}`}
+              className={`h-8 rounded-md border border-input bg-background px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${"mono" in f ? "font-mono" : ""}`}
             />
           </div>
         ))}
@@ -252,12 +306,17 @@ function AddressTab({ conversation: c }: { conversation: Conversation }) {
       <div className="flex flex-col gap-1">
         <span className="text-[11px] font-medium text-muted-foreground">Paquetería</span>
         <div className="grid grid-cols-2 gap-2">
-          {['Estafeta', 'DHL Express'].map((carrier, i) => (
+          {["Estafeta", "DHL Express"].map((carrier, i) => (
             <label
               key={carrier}
               className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-2 text-xs has-checked:border-foreground/30 has-checked:ring-1 has-checked:ring-foreground/10"
             >
-              <input type="radio" name="carrier" defaultChecked={i === 0} className="accent-foreground" />
+              <input
+                type="radio"
+                name="carrier"
+                defaultChecked={i === 0}
+                className="accent-foreground"
+              />
               <Truck className="size-3.5 text-muted-foreground" aria-hidden />
               {carrier}
             </label>
@@ -265,30 +324,51 @@ function AddressTab({ conversation: c }: { conversation: Conversation }) {
         </div>
       </div>
       <Button type="submit" disabled={saving} className="mt-1">
-        {saving ? <Loader2 className="animate-spin size-3.5" aria-hidden /> : <Save className="size-3.5" aria-hidden />}
-        {saving ? 'Guardando…' : 'Guardar dirección'}
+        {saving ? (
+          <Loader2 className="animate-spin size-3.5" aria-hidden />
+        ) : (
+          <Save className="size-3.5" aria-hidden />
+        )}
+        {saving ? "Guardando…" : "Guardar dirección"}
       </Button>
     </form>
   );
 }
 
-function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation; bag: Product[]; folio: string }) {
-  const items = bag.length ? bag : [{ sku: 'VST-014', name: 'Vestido satinado esmeralda', size: 'M', price: 450 } as Product];
+function LabelTab({
+  conversation: c,
+  bag,
+  folio,
+}: {
+  conversation: Conversation;
+  bag: Product[];
+  folio: string;
+}) {
+  const items = bag.length
+    ? bag
+    : [{ sku: "VST-014", name: "Vestido satinado esmeralda", size: "M", price: 450 } as Product];
   return (
     <div className="flex flex-col gap-3 p-3">
-      <div className="rounded-lg border-2 border-dashed border-border bg-background p-3" id="shipping-label">
+      <div
+        className="rounded-lg border-2 border-dashed border-border bg-background p-3"
+        id="shipping-label"
+      >
         <div className="flex items-center justify-between border-b border-dashed border-border pb-2">
           <span className="text-xs font-bold tracking-tight">LiveFlow Boutique</span>
           <Badge tone="transit">Estafeta · Día sig.</Badge>
         </div>
         <div className="grid grid-cols-2 gap-3 py-3 text-[11px]">
           <div>
-            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">Remite</p>
+            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+              Remite
+            </p>
             <p className="font-medium">LiveFlow Boutique</p>
             <p className="text-muted-foreground">Guadalajara, JAL</p>
           </div>
           <div>
-            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">Destino</p>
+            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+              Destino
+            </p>
             <p className="font-semibold">{c.name}</p>
             <p className="text-muted-foreground">Roma Norte, CDMX</p>
             <p className="font-mono text-muted-foreground">CP 06700</p>
@@ -306,15 +386,20 @@ function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation;
         </ul>
         <div className="mt-3 flex flex-col items-center gap-1 border-t border-dashed border-border pt-3">
           <div className="flex h-10 w-full items-stretch gap-[2px]" aria-hidden>
-            {folio.split('').flatMap((ch, i) =>
-              [1, 2, 3].map((k) => (
-                <span
-                  key={`${i}-${k}`}
-                  className="bg-foreground"
-                  style={{ flex: ((ch.charCodeAt(0) * k) % 3) + 1, opacity: (ch.charCodeAt(0) + k) % 4 === 0 ? 0 : 1 }}
-                />
-              ))
-            )}
+            {folio
+              .split("")
+              .flatMap((ch, i) =>
+                [1, 2, 3].map((k) => (
+                  <span
+                    key={`${i}-${k}`}
+                    className="bg-foreground"
+                    style={{
+                      flex: ((ch.charCodeAt(0) * k) % 3) + 1,
+                      opacity: (ch.charCodeAt(0) + k) % 4 === 0 ? 0 : 1,
+                    }}
+                  />
+                ))
+              )}
           </div>
           <p className="font-mono text-sm font-bold tracking-[0.2em]">{folio}</p>
         </div>
@@ -322,7 +407,7 @@ function LabelTab({ conversation: c, bag, folio }: { conversation: Conversation;
       <Button
         variant="outline"
         onClick={() => {
-          toast('Enviando a impresora térmica…', { icon: <PackageCheck className="size-4" /> });
+          toast("Enviando a impresora térmica…", { icon: <PackageCheck className="size-4" /> });
           window.print();
         }}
       >

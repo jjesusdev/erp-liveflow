@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { X, ShoppingBag, CreditCard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { TierBadge } from '@/components/liveflow/primitives';
-import type { Conversation } from '@/types';
+import { X, ShoppingBag, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TierBadge } from "@/components/liveflow/primitives";
+import type { Conversation } from "@/types";
 
 interface ChatHeaderProps {
   conversation: Conversation | null;
@@ -25,20 +25,20 @@ export function ChatHeader({
           className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
           aria-hidden
         >
-          {conversation?.lead?.name?.slice(0, 2).toUpperCase() || 'CL'}
+          {conversation?.lead?.name?.slice(0, 2).toUpperCase() || "CL"}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <h2 className="truncate text-xs font-bold text-foreground">
-              {conversation?.lead?.name || conversation?.lead?.phone || 'Clienta'}
+              {conversation?.lead?.name || conversation?.lead?.phone || "Clienta"}
             </h2>
             <TierBadge
               tier={
-                conversation?.lead?.tier === 'VIP'
-                  ? 'vip'
-                  : conversation?.lead?.tier === 'FREQUENT'
-                    ? 'recurrente'
-                    : 'nueva'
+                conversation?.lead?.tier === "VIP"
+                  ? "vip"
+                  : conversation?.lead?.tier === "FREQUENT"
+                    ? "recurrente"
+                    : "nueva"
               }
             />
           </div>

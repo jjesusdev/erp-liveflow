@@ -1,13 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { useSocket } from '@/lib/socket';
-import { Loader2, Power, RefreshCw, Smartphone, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/liveflow/primitives';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { useSocket } from "@/lib/socket";
+import {
+  Loader2,
+  Power,
+  RefreshCw,
+  Smartphone,
+  CheckCircle2,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/liveflow/primitives";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface WhatsAppState {
   connected: boolean;
@@ -43,28 +51,28 @@ export function WhatsAppSection() {
       }));
     };
 
-    socket.on('whatsapp:status', onStatus);
-    socket.on('whatsapp:qr', onQr);
-    socket.emit('whatsapp:status:request');
+    socket.on("whatsapp:status", onStatus);
+    socket.on("whatsapp:qr", onQr);
+    socket.emit("whatsapp:status:request");
 
     return () => {
-      socket.off('whatsapp:status', onStatus);
-      socket.off('whatsapp:qr', onQr);
+      socket.off("whatsapp:status", onStatus);
+      socket.off("whatsapp:qr", onQr);
     };
   }, [socket]);
 
   const connect = () => {
     if (!socket) return;
     setState((prev) => ({ ...prev, connecting: true, qr: null }));
-    socket.emit('whatsapp:connect');
-    toast.info('Solicitando código QR de WhatsApp...');
+    socket.emit("whatsapp:connect");
+    toast.info("Solicitando código QR de WhatsApp...");
   };
 
   const disconnect = () => {
     if (!socket) return;
-    socket.emit('whatsapp:disconnect');
+    socket.emit("whatsapp:disconnect");
     setState({ connected: false, connecting: false, qr: null });
-    toast.success('Sesión de WhatsApp desconectada');
+    toast.success("Sesión de WhatsApp desconectada");
   };
 
   return (
@@ -74,10 +82,10 @@ export function WhatsAppSection() {
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
+              "flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
               state.connected
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
-                : 'border-border bg-muted text-muted-foreground'
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                : "border-border bg-muted text-muted-foreground"
             )}
           >
             <Smartphone className="size-5" />
@@ -99,8 +107,8 @@ export function WhatsAppSection() {
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {state.connected
-                ? 'Los mensajes, cobros de Live y comprobantes se sincronizan en tiempo real.'
-                : 'Escanea el código QR desde la app de WhatsApp para vincular el CRM.'}
+                ? "Los mensajes, cobros de Live y comprobantes se sincronizan en tiempo real."
+                : "Escanea el código QR desde la app de WhatsApp para vincular el CRM."}
             </p>
           </div>
         </div>
@@ -130,7 +138,8 @@ export function WhatsAppSection() {
                 </>
               ) : (
                 <>
-                  <RefreshCw className="size-3.5" /> {state.qr ? 'Regenerar QR' : 'Conectar WhatsApp'}
+                  <RefreshCw className="size-3.5" />{" "}
+                  {state.qr ? "Regenerar QR" : "Conectar WhatsApp"}
                 </>
               )}
             </Button>
@@ -146,7 +155,8 @@ export function WhatsAppSection() {
             <span>Vincular Dispositivo WhatsApp</span>
           </div>
           <p className="text-xs text-muted-foreground max-w-sm">
-            Abre WhatsApp en tu teléfono &gt; <strong>Dispositivos vinculados</strong> &gt; <strong>Vincular un dispositivo</strong>.
+            Abre WhatsApp en tu teléfono &gt; <strong>Dispositivos vinculados</strong> &gt;{" "}
+            <strong>Vincular un dispositivo</strong>.
           </p>
 
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -165,7 +175,8 @@ export function WhatsAppSection() {
           <AlertCircle className="size-5 text-muted-foreground mx-auto" />
           <p className="text-xs font-semibold text-foreground">WhatsApp no está vinculado</p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Haz clic en &quot;Conectar WhatsApp&quot; arriba para generar el código QR y empezar a atender chats del Live.
+            Haz clic en &quot;Conectar WhatsApp&quot; arriba para generar el código QR y empezar a
+            atender chats del Live.
           </p>
         </div>
       )}

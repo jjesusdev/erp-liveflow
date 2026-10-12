@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PaymentModal } from '@/components/payment/PaymentModal';
-import { formatTime } from '@/lib/date-utils';
-import { X } from 'lucide-react';
+import { useState } from "react";
+import { PaymentModal } from "@/components/payment/PaymentModal";
+import { formatTime } from "@/lib/date-utils";
+import { X } from "lucide-react";
 import {
   TextBubble,
   ImageBubble,
   VoiceBubble,
   ReceiptBubble,
-} from '@/components/liveflow/workspace/message-bubbles';
-import { Button } from '@/components/ui/button';
-import { useChatPanel } from '@/hooks/useChatPanel';
-import { ChatHeader } from './ChatHeader';
-import { ChatTabs } from './ChatTabs';
-import { ChatComposer } from './ChatComposer';
-import { PendingPaymentBanner } from './PendingPaymentBanner';
-import { FlashCatalog } from './FlashCatalog';
-import { SnippetsMenu } from './SnippetsMenu';
-import { ProfileTab } from './ProfileTab';
-import { AddressTab } from './AddressTab';
-import { PackingTab } from './PackingTab';
-import type { PaymentOrder, Product } from '@/types';
+} from "@/components/liveflow/workspace/message-bubbles";
+import { Button } from "@/components/ui/button";
+import { useChatPanel } from "@/hooks/useChatPanel";
+import { ChatHeader } from "./ChatHeader";
+import { ChatTabs } from "./ChatTabs";
+import { ChatComposer } from "./ChatComposer";
+import { PendingPaymentBanner } from "./PendingPaymentBanner";
+import { FlashCatalog } from "./FlashCatalog";
+import { SnippetsMenu } from "./SnippetsMenu";
+import { ProfileTab } from "./ProfileTab";
+import { AddressTab } from "./AddressTab";
+import { PackingTab } from "./PackingTab";
+import type { PaymentOrder, Product } from "@/types";
 
 interface ChatPanelProps {
   conversationId: string;
@@ -80,27 +80,27 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       )}
 
       {/* PESTANA 1: CHAT */}
-      {chat.activeTab === 'chat' && (
+      {chat.activeTab === "chat" && (
         <>
           <div ref={chat.feedRef} className="flex-1 space-y-3 overflow-y-auto p-4 scrollbar-thin">
             {chat.messages.map((message) => {
-              const isOutbound = message.direction === 'OUTBOUND';
-              const from = isOutbound ? ('out' as const) : ('in' as const);
+              const isOutbound = message.direction === "OUTBOUND";
+              const from = isOutbound ? ("out" as const) : ("in" as const);
               const time = formatTime(message.sentAt);
 
-              if (message.type === 'IMAGE' && message.mediaUrl) {
+              if (message.type === "IMAGE" && message.mediaUrl) {
                 if (!isOutbound && message.isPossibleReceipt && chat.pendingPayment) {
                   return (
                     <ReceiptBubble
                       key={message.id}
                       message={{
                         id: message.id,
-                        kind: 'receipt',
-                        from: 'in',
+                        kind: "receipt",
+                        from: "in",
                         src: message.mediaUrl,
                         amount: Number(chat.pendingPayment.amount),
                         time,
-                        approved: chat.pendingPayment.status === 'PAID',
+                        approved: chat.pendingPayment.status === "PAID",
                       }}
                       onApprove={() => chat.approvePaymentOrder(chat.pendingPayment!.id)}
                     />
@@ -111,7 +111,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                     key={message.id}
                     message={{
                       id: message.id,
-                      kind: 'image',
+                      kind: "image",
                       from,
                       src: message.mediaUrl,
                       caption: message.content || undefined,
@@ -121,13 +121,13 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                 );
               }
 
-              if (message.type === 'AUDIO' && message.mediaUrl) {
+              if (message.type === "AUDIO" && message.mediaUrl) {
                 return (
                   <VoiceBubble
                     key={message.id}
                     message={{
                       id: message.id,
-                      kind: 'voice',
+                      kind: "voice",
                       from,
                       durationSec: 15,
                       time,
@@ -141,9 +141,9 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                   key={message.id}
                   message={{
                     id: message.id,
-                    kind: 'text',
+                    kind: "text",
                     from,
-                    text: message.content || '',
+                    text: message.content || "",
                     time,
                   }}
                 />
@@ -186,7 +186,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
                   onClick={chat.sendPastedImage}
                   disabled={chat.sending}
                 >
-                  {chat.sending ? 'Enviando...' : 'Enviar Imagen'}
+                  {chat.sending ? "Enviando..." : "Enviar Imagen"}
                 </Button>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       )}
 
       {/* PESTANA 2: FICHA 360 */}
-      {chat.activeTab === 'profile' && (
+      {chat.activeTab === "profile" && (
         <ProfileTab
           conversation={chat.conversation}
           addressForm={chat.addressForm}
@@ -219,7 +219,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       )}
 
       {/* PESTANA 3: DIRECCION */}
-      {chat.activeTab === 'address' && (
+      {chat.activeTab === "address" && (
         <AddressTab
           form={chat.addressForm}
           onChange={chat.setAddressForm}
@@ -229,7 +229,7 @@ export function ChatPanel({ conversationId, onClose }: ChatPanelProps) {
       )}
 
       {/* PESTANA 4: ETIQUETA */}
-      {chat.activeTab === 'packing' && (
+      {chat.activeTab === "packing" && (
         <PackingTab conversation={chat.conversation} addressForm={chat.addressForm} />
       )}
 

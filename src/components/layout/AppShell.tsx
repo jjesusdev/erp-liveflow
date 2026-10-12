@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { NavRail } from '@/components/liveflow/nav-rail';
+import { NavRail } from "@/components/liveflow/nav-rail";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (

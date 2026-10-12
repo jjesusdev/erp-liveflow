@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { Printer } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { Conversation } from '@/types';
-import type { AddressFormData } from '@/hooks/useChatPanel';
+import { Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { Conversation } from "@/types";
+import type { AddressFormData } from "@/hooks/useChatPanel";
 
 interface PackingTabProps {
   conversation: Conversation | null;
@@ -17,12 +17,7 @@ export function PackingTab({ conversation, addressForm }: PackingTabProps) {
         <span className="text-xs font-bold text-muted-foreground uppercase">
           Ficha de Empaque para Paquete
         </span>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => window.print()}
-          className="h-7 text-xs"
-        >
+        <Button variant="default" size="sm" onClick={() => window.print()} className="h-7 text-xs">
           <Printer className="size-3.5" /> Imprimir Etiqueta
         </Button>
       </div>
@@ -42,7 +37,7 @@ export function PackingTab({ conversation, addressForm }: PackingTabProps) {
           </div>
           <div className="text-right text-xs">
             <span className="font-bold border border-zinc-700 bg-zinc-900 px-2 py-0.5 rounded text-emerald-400">
-              {conversation?.paymentOrders?.[0]?.id?.slice(0, 8)?.toUpperCase() || 'REF-LIVE'}
+              {conversation?.paymentOrders?.[0]?.id?.slice(0, 8)?.toUpperCase() || "REF-LIVE"}
             </span>
           </div>
         </div>
@@ -53,10 +48,10 @@ export function PackingTab({ conversation, addressForm }: PackingTabProps) {
             {addressForm.addressStreet} {addressForm.addressNumber}
           </p>
           <p className="text-zinc-300">
-            {addressForm.addressColonia ? `Col. ${addressForm.addressColonia}, ` : ''}
+            {addressForm.addressColonia ? `Col. ${addressForm.addressColonia}, ` : ""}
             {addressForm.addressCity} {addressForm.addressState}
           </p>
-          <p className="font-bold text-zinc-400">CP: {addressForm.addressZipCode || 'N/A'}</p>
+          <p className="font-bold text-zinc-400">CP: {addressForm.addressZipCode || "N/A"}</p>
           {addressForm.addressNotes && (
             <p className="text-[11px] text-zinc-400 italic mt-1 bg-zinc-900 p-1.5 rounded border border-zinc-800">
               Ref: {addressForm.addressNotes}
@@ -67,7 +62,7 @@ export function PackingTab({ conversation, addressForm }: PackingTabProps) {
         <div className="border-t border-zinc-800 pt-2 text-[11px]">
           <p className="font-bold text-zinc-400">Prendas:</p>
           <p className="font-semibold text-emerald-300">
-            {conversation?.paymentOrders?.[0]?.concept || 'Prendas del Live'}
+            {conversation?.paymentOrders?.[0]?.concept || "Prendas del Live"}
           </p>
         </div>
       </div>

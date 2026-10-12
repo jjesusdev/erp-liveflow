@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import type { Shipment } from '@/types';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import type { Shipment } from "@/types";
 
 export function useShipments() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [filter, setFilter] = useState<string>('all');
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<string>("all");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ trackingNumber: '', carrier: '', notes: '' });
+  const [draft, setDraft] = useState({ trackingNumber: "", carrier: "", notes: "" });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkPrintView, setShowBulkPrintView] = useState(false);
 
   const fetchShipments = useCallback(async () => {
     try {
-      const url = filter === 'all' ? '/api/shipments' : `/api/shipments?status=${filter}`;
+      const url = filter === "all" ? "/api/shipments" : `/api/shipments?status=${filter}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error('No se pudieron cargar los envios');
+      if (!res.ok) throw new Error("No se pudieron cargar los envios");
       setShipments(await res.json());
     } catch {
-      toast.error('Error al cargar los envios');
+      toast.error("Error al cargar los envios");
     } finally {
       setLoading(false);
     }
@@ -37,24 +37,26 @@ export function useShipments() {
     setBusyId(id);
     try {
       const res = await fetch(`/api/shipments/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error || 'No se pudo actualizar el envio');
+      if (!res.ok) throw new Error(payload?.error || "No se pudo actualizar el envio");
 
-      if (data.status === 'IN_TRANSIT') {
-        toast.success('Paquete despachado', { description: 'Notificacion enviada a la clienta por WhatsApp.' });
+      if (data.status === "IN_TRANSIT") {
+        toast.success("Paquete despachado", {
+          description: "Notificacion enviada a la clienta por WhatsApp.",
+        });
       } else {
-        toast.success('Estado actualizado');
+        toast.success("Estado actualizado");
       }
 
       setEditingId(null);
       fetchShipments();
     } catch {
-      toast.error('No se pudo actualizar el envio');
+      toast.error("No se pudo actualizar el envio");
     } finally {
       setBusyId(null);
     }
@@ -63,14 +65,16 @@ export function useShipments() {
   const startEdit = (shipment: Shipment) => {
     setEditingId(shipment.id);
     setDraft({
-      trackingNumber: shipment.trackingNumber || '',
-      carrier: shipment.carrier || '',
-      notes: shipment.notes || '',
+      trackingNumber: shipment.trackingNumber || "",
+      carrier: shipment.carrier || "",
+      notes: shipment.notes || "",
     });
   };
 
   const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   const filteredShipments = useMemo(() => {
@@ -98,44 +102,60 @@ export function useShipments() {
 
   const stats = useMemo(() => {
     const total = shipments.length;
-    const pending = shipments.filter((s) => s.status === 'PENDING').length;
-    const inTransit = shipments.filter((s) => s.status === 'IN_TRANSIT').length;
-    const delivered = shipments.filter((s) => s.status === 'DELIVERED').length;
+    const pending = shipments.filter((s) => s.status === "PENDING").length;
+    const inTransit = shipments.filter((s) => s.status === "IN_TRANSIT").length;
+    const delivered = shipments.filter((s) => s.status === "DELIVERED").length;
     return { total, pending, inTransit, delivered };
   }, [shipments]);
 
   const exportManifestCSV = () => {
-    const list = selectedIds.length > 0
-      ? shipments.filter((s) => selectedIds.includes(s.id))
-      : filteredShipments;
+    const list =
+      selectedIds.length > 0
+        ? shipments.filter((s) => selectedIds.includes(s.id))
+        : filteredShipments;
 
     if (list.length === 0) return;
 
-    const headers = ['ID Envio', 'Cliente', 'Telefono', 'Calle', 'Numero', 'Colonia', 'Ciudad', 'CP', 'Paqueteria', 'Guia', 'Notas', 'Estado'];
+    const headers = [
+      "ID Envio",
+      "Cliente",
+      "Telefono",
+      "Calle",
+      "Numero",
+      "Colonia",
+      "Ciudad",
+      "CP",
+      "Paqueteria",
+      "Guia",
+      "Notas",
+      "Estado",
+    ];
     const rows = list.map((s) => [
       s.id.slice(0, 8).toUpperCase(),
-      `"${s.lead?.name || 'Cliente'}"`,
-      `"${s.lead?.phone || ''}"`,
-      `"${s.lead?.addressStreet || ''}"`,
-      `"${s.lead?.addressNumber || ''}"`,
-      `"${s.lead?.addressColonia || ''}"`,
-      `"${s.lead?.addressCity || ''}"`,
-      `"${s.lead?.addressZipCode || ''}"`,
-      `"${s.carrier || ''}"`,
-      `"${s.trackingNumber || ''}"`,
-      `"${s.notes?.replace(/"/g, '""') || ''}"`,
+      `"${s.lead?.name || "Cliente"}"`,
+      `"${s.lead?.phone || ""}"`,
+      `"${s.lead?.addressStreet || ""}"`,
+      `"${s.lead?.addressNumber || ""}"`,
+      `"${s.lead?.addressColonia || ""}"`,
+      `"${s.lead?.addressCity || ""}"`,
+      `"${s.lead?.addressZipCode || ""}"`,
+      `"${s.carrier || ""}"`,
+      `"${s.trackingNumber || ""}"`,
+      `"${s.notes?.replace(/"/g, '""') || ""}"`,
       s.status,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `manifiesto_envios_${new Date().toISOString().slice(0, 10)}.csv`);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `manifiesto_envios_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Manifiesto exportado', { description: `${list.length} paquetes descargados.` });
+    toast.success("Manifiesto exportado", { description: `${list.length} paquetes descargados.` });
   };
 
   const printBulkLabels = () => {

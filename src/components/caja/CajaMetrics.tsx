@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { formatCurrency } from '@/lib/date-utils';
-import { CheckCircle, Building2, Clock, Wallet } from 'lucide-react';
+import { formatCurrency } from "@/lib/date-utils";
+import { CheckCircle, Building2, Clock, Wallet } from "lucide-react";
 
 interface CajaMetricsProps {
   totalPaid: number;
@@ -36,7 +36,9 @@ export function CajaMetrics({
           <span className="text-xs font-medium uppercase tracking-wider">En Transferencias</span>
           <Building2 className="h-4 w-4 text-emerald-600" />
         </div>
-        <p className="mt-2 text-2xl font-black text-foreground">{formatCurrency(totalTransferPaid)}</p>
+        <p className="mt-2 text-2xl font-black text-foreground">
+          {formatCurrency(totalTransferPaid)}
+        </p>
         <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
           Sin comisiones de pasarelas
         </p>
