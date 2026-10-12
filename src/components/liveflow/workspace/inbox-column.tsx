@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Lock, Search, Sparkles, MessageSquareDashed } from "lucide-react";
+import { Lock, Search, MessageSquareDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUSES, type Conversation, type ConversationStatus } from "@/lib/liveflow-data";
 import { Kbd, TierBadge } from "@/components/liveflow/primitives";
@@ -18,12 +18,10 @@ export function InboxColumn({
   conversations,
   selectedId,
   onSelect,
-  onSeedDemo,
 }: {
   conversations: Conversation[];
   selectedId: string;
   onSelect: (id: string) => void;
-  onSeedDemo?: () => void;
 }) {
   const [filter, setFilter] = useState<ConversationStatus | "todos">("todos");
   const [query, setQuery] = useState("");
@@ -130,20 +128,10 @@ export function InboxColumn({
             <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground mb-3">
               <MessageSquareDashed className="size-5" />
             </div>
-            <p className="text-xs font-semibold text-foreground">Esperando clientas</p>
+            <p className="text-xs font-semibold text-foreground">Bandeja vacía</p>
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-              Los mensajes del Live aparecerán aquí automáticamente en tiempo real.
+              Los mensajes de tus clientas aparecerán aquí en tiempo real.
             </p>
-            {onSeedDemo && (
-              <button
-                type="button"
-                onClick={onSeedDemo}
-                className="mt-4 flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent transition-all shadow-xs"
-              >
-                <Sparkles className="size-3.5 text-amber-500" />
-                Cargar 5 chats de prueba
-              </button>
-            )}
           </div>
         )}
 
@@ -201,7 +189,7 @@ function ConversationCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const lockedByOther = c.lockedBy && c.lockedBy !== "Mariana";
+  const lockedByOther = c.lockedBy && c.lockedBy !== "Administrador";
   return (
     <button
       type="button"

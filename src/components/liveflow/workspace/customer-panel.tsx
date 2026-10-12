@@ -118,24 +118,7 @@ function Stat({ label, value, mono = true }: { label: string; value: string; mon
 }
 
 function ProfileTab({ conversation: c }: { conversation: Conversation }) {
-  const [notes, setNotes] = useState<Note[]>(
-    c.tier === "vip"
-      ? [
-          {
-            id: "n1",
-            author: "Lucía",
-            text: "Prefiere envío a oficina L–V. Siempre paga en < 10 min.",
-            time: "Live #46",
-          },
-          {
-            id: "n2",
-            author: "Mariana",
-            text: "Talla M en vestidos, CH en blusas.",
-            time: "Live #47",
-          },
-        ]
-      : []
-  );
+  const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
   const avg = c.paidOrders ? c.totalSpent / c.paidOrders : 0;
 
@@ -214,7 +197,12 @@ function ProfileTab({ conversation: c }: { conversation: Conversation }) {
             if (!draft.trim()) return;
             setNotes((ns) => [
               ...ns,
-              { id: crypto.randomUUID(), author: "Mariana", text: draft.trim(), time: "Ahora" },
+              {
+                id: crypto.randomUUID(),
+                author: "Administrador",
+                text: draft.trim(),
+                time: "Ahora",
+              },
             ]);
             setDraft("");
           }}

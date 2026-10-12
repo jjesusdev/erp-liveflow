@@ -99,7 +99,7 @@ export function Workspace() {
     if (selectedId) {
       fetchMessages(selectedId);
       if (socket) {
-        socket.emit("chat:lock", { conversationId: selectedId, operatorName: "Mariana" });
+        socket.emit("chat:lock", { conversationId: selectedId, operatorName: "Administrador" });
       }
       return () => {
         if (socket && selectedId) {
@@ -340,18 +340,6 @@ export function Workspace() {
     }
   };
 
-  const seedDemo = async () => {
-    try {
-      const res = await fetch("/api/demo/seed", { method: "POST" });
-      if (res.ok) {
-        toast.success("5 chats de prueba cargados");
-        fetchConversations();
-      }
-    } catch {
-      toast.error("Error cargando demo");
-    }
-  };
-
   if (loading && dbConversations.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -370,7 +358,6 @@ export function Workspace() {
               conversations={conversations}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              onSeedDemo={seedDemo}
             />
             <ChatColumn
               conversation={currentConv}
@@ -385,12 +372,7 @@ export function Workspace() {
           </>
         ) : (
           <>
-            <InboxColumn
-              conversations={[]}
-              selectedId=""
-              onSelect={setSelectedId}
-              onSeedDemo={seedDemo}
-            />
+            <InboxColumn conversations={[]} selectedId="" onSelect={setSelectedId} />
             <ChatColumn
               conversation={null}
               messages={[]}
@@ -400,7 +382,7 @@ export function Workspace() {
               onSend={send}
               onAddProduct={addProduct}
             />
-            <CustomerPanel conversation={null} bag={[]} folio="LF-DEMO8941" />
+            <CustomerPanel conversation={null} bag={[]} folio="LF—" />
           </>
         )}
       </div>
