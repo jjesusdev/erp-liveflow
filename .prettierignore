@@ -1,0 +1,5 @@
+node_modules
+.next
+diseno-live-flow-crm
+package-lock.json
+*.log

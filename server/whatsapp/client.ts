@@ -70,6 +70,7 @@ export async function connectWhatsApp(io: Server) {
   broadcast();
 
   try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- Baileys API, no React hook
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     const sock = makeWASocket({
       auth: state,
