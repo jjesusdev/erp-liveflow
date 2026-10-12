@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Lock, Search, MessageSquareDashed } from "lucide-react";
+import { Lock, Search, MessageSquareDashed, Sparkles, Trash2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { STATUSES, type Conversation, type ConversationStatus } from "@/lib/liveflow-data";
 import { Kbd, TierBadge } from "@/components/liveflow/primitives";
@@ -18,13 +19,59 @@ export function InboxColumn({
   conversations,
   selectedId,
   onSelect,
+  onDemoLoaded,
 }: {
   conversations: Conversation[];
   selectedId: string;
   onSelect: (id: string) => void;
+  onDemoLoaded?: () => void;
 }) {
   const [filter, setFilter] = useState<ConversationStatus | "todos">("todos");
   const [query, setQuery] = useState("");
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  const [cleaningDemo, setCleaningDemo] = useState(false);
+
+  const isDemoMode = useMemo(() => {
+    return conversations.some((c) => c.phone?.startsWith("+5698") && c.phone?.length === 11);
+  }, [conversations]);
+
+  const loadDemo = async () => {
+    setLoadingDemo(true);
+    try {
+      const res = await fetch("/api/demo/load", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Datos demo cargados", {
+          description: `${data.summary?.conversations || 8} conversaciones, ${data.summary?.products || 15} productos, ${data.summary?.paymentOrders || 6} órdenes`,
+        });
+        onDemoLoaded?.();
+      } else {
+        toast.error(data.error || "Error cargando datos demo");
+      }
+    } catch {
+      toast.error("Error de conexión al cargar demo");
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
+
+  const cleanDemo = async () => {
+    setCleaningDemo(true);
+    try {
+      const res = await fetch("/api/demo/clean", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Datos demo eliminados");
+        onDemoLoaded?.();
+      } else {
+        toast.error(data.error || "Error limpiando datos demo");
+      }
+    } catch {
+      toast.error("Error de conexión al limpiar demo");
+    } finally {
+      setCleaningDemo(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,6 +96,24 @@ export function InboxColumn({
       aria-label="Bandeja de conversaciones"
       className="flex min-h-0 w-[280px] shrink-0 flex-col border-r border-border bg-card/40"
     >
+      {isDemoMode && (
+        <div className="flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5">
+          <AlertTriangle className="size-3 text-amber-500 shrink-0" />
+          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex-1">
+            Modo Demo
+          </span>
+          <button
+            type="button"
+            onClick={cleanDemo}
+            disabled={cleaningDemo}
+            className="flex items-center gap-1 rounded-md border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50 dark:text-amber-400"
+          >
+            <Trash2 className="size-2.5" />
+            {cleaningDemo ? "Limpiando..." : "Limpiar"}
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2 border-b border-border p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-tight">Bandeja</h2>
@@ -132,6 +197,15 @@ export function InboxColumn({
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               Los mensajes de tus clientas aparecerán aquí en tiempo real.
             </p>
+            <button
+              type="button"
+              onClick={loadDemo}
+              disabled={loadingDemo}
+              className="mt-4 flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent transition-all shadow-xs disabled:opacity-50"
+            >
+              <Sparkles className="size-3.5 text-amber-500" />
+              {loadingDemo ? "Cargando..." : "Vista Demo"}
+            </button>
           </div>
         )}
 

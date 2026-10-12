@@ -15,13 +15,13 @@ import type { BusinessConfig } from "@/types";
 
 const DEFAULT_CONFIG: BusinessConfig = {
   id: "default",
-  businessName: "LiveFlow Boutique",
-  currency: "MXN",
-  timezone: "America/Mexico_City",
-  bankName: "BBVA",
-  bankBeneficiary: "LiveFlow Boutique S.A.",
+  businessName: "Mi Boutique LiveFlow",
+  currency: "CLP",
+  timezone: "America/Santiago",
+  bankName: "Banco de Chile",
+  bankBeneficiary: "Mi Boutique SpA",
   bankAccountNumber: "",
-  bankClabe: "012 180 0152 3344 9910",
+  bankClabe: "",
   bankNotes:
     "Por favor envia captura clara del comprobante de transferencia para confirmar tu pedido.",
   soundAlertsEnabled: false,

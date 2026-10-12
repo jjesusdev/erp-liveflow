@@ -2,24 +2,24 @@ import { describe, it, expect } from "vitest";
 import { formatCurrency, formatDate, formatTime, timeAgo } from "@/lib/date-utils";
 
 describe("formatCurrency", () => {
-  it("formats MXN currency with 2 decimals", () => {
-    const result = formatCurrency(1500);
-    expect(result).toContain("1,500.00");
+  it("formats CLP (default) without decimals", () => {
+    const result = formatCurrency(45990);
+    expect(result).toContain("45.990");
     expect(result).toContain("$");
   });
 
   it("formats zero", () => {
     const result = formatCurrency(0);
-    expect(result).toContain("0.00");
+    expect(result).toContain("0");
   });
 
   it("formats negative amounts", () => {
-    const result = formatCurrency(-250.5);
-    expect(result).toContain("250.50");
+    const result = formatCurrency(-250);
+    expect(result).toContain("250");
     expect(result).toContain("-");
   });
 
-  it("formats with custom currency", () => {
+  it("formats USD with 2 decimals", () => {
     const result = formatCurrency(100, "USD");
     expect(result).toContain("100.00");
   });

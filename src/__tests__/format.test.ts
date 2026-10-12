@@ -1,19 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { money, clock, makeReference } from "@/lib/format";
+import { money, clock, makeReference, setCurrency } from "@/lib/format";
 
 describe("money", () => {
-  it("formats a number with MXN style", () => {
-    const result = money(1500);
-    expect(result).toContain("1,500.00");
+  it("formats CLP (default) without decimals", () => {
+    setCurrency("CLP");
+    const result = money(45990);
+    expect(result).toContain("45.990");
     expect(result).toContain("$");
   });
 
-  it("formats zero", () => {
-    expect(money(0)).toContain("0.00");
+  it("formats USD with 2 decimals", () => {
+    const result = money(1500.5, "USD");
+    expect(result).toContain("1,500.50");
+    expect(result).toContain("US$");
   });
 
-  it("formats decimals", () => {
-    expect(money(99.5)).toContain("99.50");
+  it("formats EUR with 2 decimals", () => {
+    const result = money(99.5, "EUR");
+    expect(result).toContain("99,50");
+    expect(result).toContain("€");
+  });
+
+  it("formats zero", () => {
+    setCurrency("CLP");
+    expect(money(0)).toContain("0");
   });
 });
 

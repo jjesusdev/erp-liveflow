@@ -1,7 +1,35 @@
-const mxn = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const SUPPORTED_CURRENCIES = {
+  CLP: { locale: "es-CL", symbol: "$", decimals: 0 },
+  USD: { locale: "en-US", symbol: "US$", decimals: 2 },
+  EUR: { locale: "de-DE", symbol: "€", decimals: 2 },
+  ARS: { locale: "es-AR", symbol: "$", decimals: 2 },
+  MXN: { locale: "es-MX", symbol: "$", decimals: 2 },
+} as const;
 
-export function money(amount: number) {
-  return `$${mxn.format(amount)}`;
+export type CurrencyCode = keyof typeof SUPPORTED_CURRENCIES;
+
+export const DEFAULT_CURRENCY: CurrencyCode = "CLP";
+
+let currentCurrency: CurrencyCode = DEFAULT_CURRENCY;
+
+export function setCurrency(code: string) {
+  if (code in SUPPORTED_CURRENCIES) {
+    currentCurrency = code as CurrencyCode;
+  }
+}
+
+export function getCurrency(): CurrencyCode {
+  return currentCurrency;
+}
+
+export function money(amount: number, currency?: CurrencyCode): string {
+  const code = currency || currentCurrency;
+  const cfg = SUPPORTED_CURRENCIES[code] || SUPPORTED_CURRENCIES.CLP;
+  const formatted = new Intl.NumberFormat(cfg.locale, {
+    minimumFractionDigits: cfg.decimals,
+    maximumFractionDigits: cfg.decimals,
+  }).format(amount);
+  return `${cfg.symbol}${formatted}`;
 }
 
 export function clock(totalSec: number) {

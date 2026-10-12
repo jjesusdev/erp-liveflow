@@ -19,13 +19,13 @@ export function BankSection({ config, onChange }: BankSectionProps) {
   });
 
   const previewTransferMessage = `✨ *Datos para tu Pago / Transferencia* ✨
-📦 *Pedido:* Vestido Satinado Esmeralda (T. M)
-💵 *Monto:* $450.00 MXN
+📦 *Pedido:* Vestido Esmeralda (T. M)
+💵 *Monto:* $45.990 CLP
 🔖 *Referencia / Concepto:* EXP-8941
 
-🏦 *Banco:* ${config.bankName || "BBVA"}
-👤 *Titular:* ${config.bankBeneficiary || "LiveFlow Boutique"}
-${config.bankClabe ? `🔢 *CLABE:* ${config.bankClabe}` : ""}
+🏦 *Banco:* ${config.bankName || "Banco de Chile"}
+👤 *Titular:* ${config.bankBeneficiary || "Mi Boutique"}
+${config.bankClabe ? `🔢 *RUT:* ${config.bankClabe}` : ""}
 ${config.bankAccountNumber ? `💳 *Cuenta:* ${config.bankAccountNumber}` : ""}
 ${config.bankNotes ? `📝 *Nota:* ${config.bankNotes}` : ""}
 
@@ -115,9 +115,11 @@ ${config.bankNotes ? `📝 *Nota:* ${config.bankNotes}` : ""}
                 Moneda
               </label>
               <select id="cfg-currency" className={`${inputClass} px-2.5`} {...field("currency")}>
+                <option value="CLP">CLP - Peso Chileno</option>
+                <option value="USD">USD - Dolar Americano</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="ARS">ARS - Peso Argentino</option>
                 <option value="MXN">MXN - Peso Mexicano</option>
-                <option value="USD">USD - Dolar</option>
-                <option value="COP">COP - Peso Colombiano</option>
               </select>
             </div>
 

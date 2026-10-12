@@ -358,6 +358,7 @@ export function Workspace() {
               conversations={conversations}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onDemoLoaded={fetchConversations}
             />
             <ChatColumn
               conversation={currentConv}
@@ -372,7 +373,12 @@ export function Workspace() {
           </>
         ) : (
           <>
-            <InboxColumn conversations={[]} selectedId="" onSelect={setSelectedId} />
+            <InboxColumn
+              conversations={[]}
+              selectedId=""
+              onSelect={setSelectedId}
+              onDemoLoaded={fetchConversations}
+            />
             <ChatColumn
               conversation={null}
               messages={[]}
