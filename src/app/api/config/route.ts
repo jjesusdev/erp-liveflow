@@ -1,43 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { apiHandler } from '@/lib/api-handler';
+import { businessConfigSchema, type BusinessConfigInput } from '@/lib/schemas';
 
 export async function GET() {
-  try {
-    const config = await prisma.businessConfig.findFirst();
+  const config = await prisma.businessConfig.findFirst();
 
-    if (!config) {
-      return NextResponse.json({
-        businessName: 'Mi Negocio',
-        currency: 'MXN',
-        timezone: 'America/Mexico_City',
-        bankName: null,
-        bankBeneficiary: null,
-        bankAccountNumber: null,
-        bankClabe: null,
-        bankNotes: null,
-        soundAlertsEnabled: false,
-        autoReplyEnabled: true,
-        autoReplyDelayMs: 1000,
-        welcomeMessage: '¡Hola! Bienvenido. Envíanos captura de lo que te gusta.',
-        awayMessage: null,
-        queueMessage: null,
-      });
-    }
-
-    return NextResponse.json(config);
-  } catch (error) {
-    console.error('Error fetching config:', error);
-    return NextResponse.json({ error: 'Error fetching config' }, { status: 500 });
+  if (!config) {
+    return NextResponse.json({
+      businessName: 'Mi Negocio',
+      currency: 'MXN',
+      timezone: 'America/Mexico_City',
+      bankName: null,
+      bankBeneficiary: null,
+      bankAccountNumber: null,
+      bankClabe: null,
+      bankNotes: null,
+      soundAlertsEnabled: false,
+      autoReplyEnabled: true,
+      autoReplyDelayMs: 1000,
+      welcomeMessage: '¡Hola! Bienvenido. Envíanos captura de lo que te gusta.',
+      awayMessage: null,
+      queueMessage: null,
+    });
   }
+
+  return NextResponse.json(config);
 }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json();
+/** Converts nullable string fields to Prisma-compatible update format. */
+function toPrismaUpdate(body: BusinessConfigInput) {
+  const update: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (value === null) {
+      update[key] = { set: null };
+    } else if (value !== undefined) {
+      update[key] = value;
+    }
+  }
+  return update;
+}
 
+export const PUT = apiHandler<BusinessConfigInput>({
+  body: businessConfigSchema,
+  handler: async (_req, body) => {
     const config = await prisma.businessConfig.upsert({
       where: { id: 'default' },
-      update: body,
+      update: toPrismaUpdate(body),
       create: {
         id: 'default',
         businessName: body.businessName || 'Mi Negocio',
@@ -52,14 +61,11 @@ export async function PUT(req: NextRequest) {
         autoReplyEnabled: body.autoReplyEnabled ?? true,
         autoReplyDelayMs: body.autoReplyDelayMs ?? 1000,
         welcomeMessage: body.welcomeMessage || '¡Hola! Bienvenido.',
-        awayMessage: body.awayMessage,
-        queueMessage: body.queueMessage,
+        awayMessage: body.awayMessage ?? null,
+        queueMessage: body.queueMessage ?? null,
       },
     });
 
     return NextResponse.json(config);
-  } catch (error) {
-    console.error('Error updating config:', error);
-    return NextResponse.json({ error: 'Error updating config' }, { status: 500 });
-  }
-}
+  },
+});
