@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { shipmentUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, SHIPMENT_STATUSES } from "@/lib/enums";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PATCH = apiHandler({
+  body: shipmentUpdateSchema,
+  handler: async (_req, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.shipment.findUnique({
       where: { id },
@@ -17,7 +19,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const data: any = {};
     let isStatusTransitionToInTransit = false;
-    let isStatusTransitionToDelivered = false;
 
     if (body.status !== undefined) {
       const status = parseEnum(SHIPMENT_STATUSES, body.status);
@@ -32,7 +33,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       if (status === "DELIVERED") {
         data.deliveredAt = new Date();
-        if (existing.status !== "DELIVERED") isStatusTransitionToDelivered = true;
       }
     }
 
@@ -120,15 +120,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     return NextResponse.json(shipment);
-  } catch (error) {
-    console.error("Error updating shipment:", error);
-    return NextResponse.json({ error: "Error updating shipment" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const DELETE = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.shipment.findUnique({ where: { id } });
     if (!existing) {
@@ -138,8 +135,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.shipment.delete({ where: { id } });
 
     return NextResponse.json({ deleted: true });
-  } catch (error) {
-    console.error("Error deleting shipment:", error);
-    return NextResponse.json({ error: "Error deleting shipment" }, { status: 500 });
-  }
-}
+  },
+});

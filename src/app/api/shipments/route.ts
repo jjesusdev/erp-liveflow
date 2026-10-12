@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { shipmentCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get("status");
     const carrier = searchParams.get("carrier");
@@ -32,20 +34,13 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(shipments);
-  } catch (error) {
-    console.error("Error fetching shipments:", error);
-    return NextResponse.json({ error: "Error fetching shipments" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: shipmentCreateSchema,
+  handler: async (_req, body) => {
     const { paymentOrderId, trackingNumber, carrier, notes } = body;
-
-    if (!paymentOrderId) {
-      return NextResponse.json({ error: "paymentOrderId es obligatorio" }, { status: 400 });
-    }
 
     const paymentOrder = await prisma.paymentOrder.findUnique({
       where: { id: paymentOrderId },
@@ -82,8 +77,5 @@ export async function POST(req: NextRequest) {
     // (manejado en PATCH), no al crear el envio pendiente.
 
     return NextResponse.json(shipment);
-  } catch (error) {
-    console.error("Error creating shipment:", error);
-    return NextResponse.json({ error: "Error creating shipment" }, { status: 500 });
-  }
-}
+  },
+});

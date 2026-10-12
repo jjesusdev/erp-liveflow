@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { productCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req: NextRequest) => {
     const searchParams = req.nextUrl.searchParams;
     const available = searchParams.get("available");
     const category = searchParams.get("category");
@@ -30,31 +32,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       products.map((product) => ({ ...product, price: Number(product.price) }))
     );
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json({ error: "Error fetching products" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: productCreateSchema,
+  handler: async (req: NextRequest, body) => {
     const { name, description, price, currency, imageUrl, category, isAvailable } = body;
-
-    if (!name || price === undefined || price === null || price === "") {
-      return NextResponse.json({ error: "Nombre y precio son obligatorios" }, { status: 400 });
-    }
-
-    const numericPrice = Number(price);
-    if (Number.isNaN(numericPrice) || numericPrice < 0) {
-      return NextResponse.json({ error: "Precio invalido" }, { status: 400 });
-    }
 
     const product = await prisma.product.create({
       data: {
         name,
         description: description || null,
-        price: numericPrice,
+        price,
         currency: currency || "MXN",
         imageUrl: imageUrl || null,
         category: category || null,
@@ -63,8 +53,5 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ...product, price: Number(product.price) });
-  } catch (error) {
-    console.error("Error creating product:", error);
-    return NextResponse.json({ error: "Error creating product" }, { status: 500 });
-  }
-}
+  },
+});

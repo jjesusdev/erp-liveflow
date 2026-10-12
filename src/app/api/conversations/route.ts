@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const searchParams = req.nextUrl.searchParams;
     const rawStatus = searchParams.get("status");
     const status = parseEnum(CONVERSATION_STATUSES, rawStatus);
@@ -75,8 +76,5 @@ export async function GET(req: NextRequest) {
         };
       })
     );
-  } catch (error) {
-    console.error("Error fetching conversations:", error);
-    return NextResponse.json({ error: "Error fetching conversations" }, { status: 500 });
-  }
-}
+  },
+});

@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { conversationUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const GET = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
 
     const conversation = await prisma.conversation.findUnique({
       where: { id },
@@ -25,16 +27,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json(conversation);
-  } catch (error) {
-    console.error("Error fetching conversation:", error);
-    return NextResponse.json({ error: "Error fetching conversation" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PATCH = apiHandler({
+  body: conversationUpdateSchema,
+  handler: async (_req, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.conversation.findUnique({
       where: { id },
@@ -86,8 +85,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     return NextResponse.json(conversation);
-  } catch (error) {
-    console.error("Error updating conversation:", error);
-    return NextResponse.json({ error: "Error updating conversation" }, { status: 500 });
-  }
-}
+  },
+});

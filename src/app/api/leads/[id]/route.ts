@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { leadUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
 function normalizePhone(raw: string) {
@@ -8,9 +10,9 @@ function normalizePhone(raw: string) {
   return (plus ? "+" : "") + digits;
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const GET = apiHandler({
+  handler: async (req: NextRequest, _body, context) => {
+    const { id } = await context.params;
 
     const lead = await prisma.lead.findUnique({
       where: { id },
@@ -32,22 +34,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         amount: Number(order.amount),
       })),
     });
-  } catch (error) {
-    console.error("Error fetching lead:", error);
-    return NextResponse.json({ error: "Error fetching lead" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const PUT = apiHandler({
+  body: leadUpdateSchema,
+  handler: async (req: NextRequest, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.lead.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
     }
 
-    const body = await req.json();
     const data: Record<string, unknown> = {};
 
     if (body.phone !== undefined) {
@@ -89,18 +88,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const lead = await prisma.lead.update({ where: { id }, data });
     return NextResponse.json(lead);
-  } catch (error: any) {
-    if (error?.code === "P2002") {
-      return NextResponse.json({ error: "Ya existe un cliente con ese telefono" }, { status: 409 });
-    }
-    console.error("Error updating lead:", error);
-    return NextResponse.json({ error: "Error updating lead" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const DELETE = apiHandler({
+  handler: async (req: NextRequest, _body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.lead.findUnique({
       where: { id },
@@ -133,8 +126,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.lead.delete({ where: { id } });
 
     return NextResponse.json({ deleted: true });
-  } catch (error) {
-    console.error("Error deleting lead:", error);
-    return NextResponse.json({ error: "Error deleting lead" }, { status: 500 });
-  }
-}
+  },
+});

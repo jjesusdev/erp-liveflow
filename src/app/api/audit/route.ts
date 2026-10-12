@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const searchParams = req.nextUrl.searchParams;
     const date = searchParams.get("date"); // YYYY-MM-DD
     const limit = parseInt(searchParams.get("limit") || "100", 10);
@@ -28,8 +29,5 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(logs);
-  } catch (error) {
-    console.error("Error fetching activity logs:", error);
-    return NextResponse.json({ error: "Error fetching logs" }, { status: 500 });
-  }
-}
+  },
+});

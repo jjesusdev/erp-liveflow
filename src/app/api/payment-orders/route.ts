@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import axios from "axios";
+import { apiHandler } from "@/lib/api-handler";
+import { paymentOrderCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { resolveOperatorId } from "@/lib/operator";
 
@@ -115,19 +117,11 @@ function buildTransferMessage({
   return lines.join("\n");
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { conversationId, amount, concept, provider: rawProvider } = body;
-
-    if (!conversationId || !amount || !concept) {
-      return NextResponse.json({ error: "Faltan datos del cobro" }, { status: 400 });
-    }
-
-    const numericAmount = Number(amount);
-    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-      return NextResponse.json({ error: "Monto invalido" }, { status: 400 });
-    }
+export const POST = apiHandler({
+  body: paymentOrderCreateSchema,
+  handler: async (_req, body) => {
+    const { conversationId, concept, provider: rawProvider } = body;
+    const numericAmount = body.amount;
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -334,8 +328,5 @@ export async function POST(req: NextRequest) {
       whatsappSent: false,
       linkGenerated: Boolean(link?.url),
     });
-  } catch (error) {
-    console.error("Error creating payment order:", error);
-    return NextResponse.json({ error: "Error creating payment order" }, { status: 500 });
-  }
-}
+  },
+});

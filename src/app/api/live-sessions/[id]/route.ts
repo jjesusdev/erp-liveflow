@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { liveSessionUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PATCH = apiHandler({
+  body: liveSessionUpdateSchema,
+  handler: async (req: NextRequest, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.liveSession.findUnique({ where: { id } });
     if (!existing) {
@@ -30,8 +32,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     io?.emit("live:session:updated", session);
 
     return NextResponse.json(session);
-  } catch (error) {
-    console.error("Error updating live session:", error);
-    return NextResponse.json({ error: "Error updating live session" }, { status: 500 });
-  }
-}
+  },
+});

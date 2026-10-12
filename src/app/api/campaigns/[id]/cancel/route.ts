@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { cancelCampaign } from "@/lib/campaignSender";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const POST = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
     const result = await cancelCampaign(id);
 
     if (!result.ok) {
@@ -11,8 +12,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     return NextResponse.json({ cancelled: true });
-  } catch (error) {
-    console.error("Error cancelling campaign:", error);
-    return NextResponse.json({ error: "Error cancelling campaign" }, { status: 500 });
-  }
-}
+  },
+});

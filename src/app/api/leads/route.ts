@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { leadCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
 function normalizePhone(raw: string) {
@@ -9,8 +11,8 @@ function normalizePhone(raw: string) {
   return (plus ? "+" : "") + digits;
 }
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req: NextRequest) => {
     const searchParams = req.nextUrl.searchParams;
     const search = searchParams.get("search");
     const phone = searchParams.get("phone");
@@ -76,15 +78,12 @@ export async function GET(req: NextRequest) {
         };
       })
     );
-  } catch (error) {
-    console.error("Error fetching leads:", error);
-    return NextResponse.json({ error: "Error fetching leads" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: leadCreateSchema,
+  handler: async (req: NextRequest, body) => {
     const phone = normalizePhone(String(body.phone || ""));
 
     if (!phone || phone.replace(/\D/g, "").length < 8) {
@@ -106,11 +105,5 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(lead, { status: 201 });
-  } catch (error: any) {
-    if (error?.code === "P2002") {
-      return NextResponse.json({ error: "Ya existe un cliente con ese telefono" }, { status: 409 });
-    }
-    console.error("Error creating lead:", error);
-    return NextResponse.json({ error: "Error creating lead" }, { status: 500 });
-  }
-}
+  },
+});

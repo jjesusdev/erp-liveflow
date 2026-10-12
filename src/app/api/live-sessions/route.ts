@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { liveSessionCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req: NextRequest) => {
     const searchParams = req.nextUrl.searchParams;
     const activeOnly = searchParams.get("active") === "true";
 
@@ -32,20 +34,13 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(formatted);
-  } catch (error) {
-    console.error("Error fetching live sessions:", error);
-    return NextResponse.json({ error: "Error fetching live sessions" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: liveSessionCreateSchema,
+  handler: async (req: NextRequest, body) => {
     const { title, platform = "TIKTOK", notes } = body;
-
-    if (!title) {
-      return NextResponse.json({ error: "El título del Live es obligatorio" }, { status: 400 });
-    }
 
     // Si había otra sesión activa, la cerramos automáticamente
     await prisma.liveSession.updateMany({
@@ -67,8 +62,5 @@ export async function POST(req: NextRequest) {
     io?.emit("live:session:started", session);
 
     return NextResponse.json(session, { status: 201 });
-  } catch (error) {
-    console.error("Error creating live session:", error);
-    return NextResponse.json({ error: "Error creating live session" }, { status: 500 });
-  }
-}
+  },
+});

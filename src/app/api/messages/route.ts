@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { messageCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const conversationId = req.nextUrl.searchParams.get("conversationId");
     if (!conversationId) {
       return NextResponse.json({ error: "conversationId required" }, { status: 400 });
@@ -36,16 +38,14 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json(enriched);
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return NextResponse.json({ error: "Error fetching messages" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { conversationId, content, mediaUrl, mediaType = "image/jpeg", type = "TEXT" } = body;
+export const POST = apiHandler({
+  body: messageCreateSchema,
+  handler: async (_req, body) => {
+    const { conversationId, content, mediaUrl, type = "TEXT" } = body;
+    const mediaType = body.mediaType !== undefined ? body.mediaType : "image/jpeg";
 
     if (!conversationId || (!content?.trim() && !mediaUrl)) {
       return NextResponse.json({ error: "Faltan datos del mensaje" }, { status: 400 });
@@ -121,8 +121,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ...message, delivered });
-  } catch (error) {
-    console.error("Error creating message:", error);
-    return NextResponse.json({ error: "Error creating message" }, { status: 500 });
-  }
-}
+  },
+});

@@ -1,14 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/audit";
+import { sweepRecoverySchema } from "@/lib/schemas";
 
 /**
  * Realiza un barrido masivo de recordatorios a clientas con apartados
  * pendientes o expirados para recuperar ventas post-Live.
  */
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: sweepRecoverySchema,
+  handler: async (_req, body) => {
     const { discountPercent = 0, customMessage } = body;
 
     const pendingOrders = await prisma.paymentOrder.findMany({
@@ -80,11 +82,5 @@ export async function POST(req: NextRequest) {
       recoveredCount: sentCount,
       totalPending: pendingOrders.length,
     });
-  } catch (error) {
-    console.error("Error running recovery sweep:", error);
-    return NextResponse.json(
-      { error: "Error ejecutando barrido de recuperación" },
-      { status: 500 }
-    );
-  }
-}
+  },
+});

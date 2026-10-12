@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const searchParams = req.nextUrl.searchParams;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -112,8 +113,5 @@ export async function GET(req: NextRequest) {
         amount: Number(o.amount),
       })),
     });
-  } catch (error) {
-    console.error("Error fetching reports:", error);
-    return NextResponse.json({ error: "Error fetching reports" }, { status: 500 });
-  }
-}
+  },
+});

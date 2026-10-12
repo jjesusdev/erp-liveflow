@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { paymentOrderUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { resolveOperatorId } from "@/lib/operator";
 import { parseEnum, PAYMENT_STATUSES } from "@/lib/enums";
 import { logActivity } from "@/lib/audit";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PATCH = apiHandler({
+  body: paymentOrderUpdateSchema,
+  handler: async (_req, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.paymentOrder.findUnique({
       where: { id },
@@ -18,7 +19,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const data: any = {};
-    let isStatusPaidTransition = false;
 
     if (body.status !== undefined) {
       const status = parseEnum(PAYMENT_STATUSES, body.status);
@@ -28,21 +28,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data.status = status;
       if (status === "PAID") {
         data.paidAt = new Date();
-        if (existing.status !== "PAID") {
-          isStatusPaidTransition = true;
-        }
       } else {
         data.paidAt = existing.paidAt;
       }
     }
 
     if (body.concept !== undefined) data.concept = body.concept;
-    if (body.amount !== undefined && body.amount !== null && body.amount !== "") {
-      const numeric = Number(body.amount);
-      if (Number.isNaN(numeric) || numeric < 0) {
-        return NextResponse.json({ error: "Monto invalido" }, { status: 400 });
-      }
-      data.amount = numeric;
+    if (body.amount !== undefined) {
+      data.amount = body.amount;
     }
 
     // Ejecutar mutaciones críticas en una transacción atómica
@@ -169,8 +162,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       amount: Number(paymentOrder.amount),
       shipment: createdShipment,
     });
-  } catch (error) {
-    console.error("Error updating payment order:", error);
-    return NextResponse.json({ error: "Error updating payment order" }, { status: 500 });
-  }
-}
+  },
+});

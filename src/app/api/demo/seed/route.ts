@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/audit";
 
-export async function POST(req: NextRequest) {
-  try {
+export const POST = apiHandler({
+  handler: async () => {
     const HOUR = 60 * 60 * 1000;
     const now = Date.now();
 
@@ -161,8 +162,5 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, seededCount: demoLeads.length });
-  } catch (error) {
-    console.error("Error seeding demo chats:", error);
-    return NextResponse.json({ error: "Error cargando datos demo" }, { status: 500 });
-  }
-}
+  },
+});

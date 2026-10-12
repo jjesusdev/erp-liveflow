@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { apiHandler } from "@/lib/api-handler";
+import { campaignCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { resolveOperatorId } from "@/lib/operator";
 import { parseEnum, CAMPAIGN_STATUSES } from "@/lib/enums";
 import { sendCampaign } from "@/lib/campaignSender";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const rawStatus = req.nextUrl.searchParams.get("status");
     const status = parseEnum(CAMPAIGN_STATUSES, rawStatus);
 
@@ -28,27 +30,17 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(campaigns);
-  } catch (error) {
-    console.error("Error fetching campaigns:", error);
-    return NextResponse.json({ error: "Error fetching campaigns" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: campaignCreateSchema,
+  handler: async (_req, body) => {
     const { name, message, scheduledAt, sendNow } = body;
-
-    if (!name || !message) {
-      return NextResponse.json({ error: "Nombre y mensaje son obligatorios" }, { status: 400 });
-    }
 
     const createdById = await resolveOperatorId(body.operatorId);
 
     const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
-    if (scheduledDate && Number.isNaN(scheduledDate.getTime())) {
-      return NextResponse.json({ error: "Fecha de programacion invalida" }, { status: 400 });
-    }
     if (scheduledDate && scheduledDate <= new Date()) {
       return NextResponse.json(
         { error: "La fecha de programacion debe ser futura" },
@@ -85,8 +77,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(campaign);
-  } catch (error) {
-    console.error("Error creating campaign:", error);
-    return NextResponse.json({ error: "Error creating campaign" }, { status: 500 });
-  }
-}
+  },
+});

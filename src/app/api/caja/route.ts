@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, PAYMENT_STATUSES, PAYMENT_PROVIDERS } from "@/lib/enums";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req) => {
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get("status");
     const provider = searchParams.get("provider");
@@ -59,8 +60,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       paymentOrders.map((order) => ({ ...order, amount: Number(order.amount) }))
     );
-  } catch (error) {
-    console.error("Error fetching payment orders in caja:", error);
-    return NextResponse.json({ error: "Error fetching payment orders" }, { status: 500 });
-  }
-}
+  },
+});

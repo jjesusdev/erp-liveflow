@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { campaignUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const GET = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
 
     const campaign = await prisma.campaign.findUnique({
       where: { id },
@@ -20,16 +22,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json(campaign);
-  } catch (error) {
-    console.error("Error fetching campaign:", error);
-    return NextResponse.json({ error: "Error fetching campaign" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PUT = apiHandler({
+  body: campaignUpdateSchema,
+  handler: async (_req, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.campaign.findUnique({ where: { id } });
     if (!existing) {
@@ -46,15 +45,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const campaign = await prisma.campaign.update({ where: { id }, data });
 
     return NextResponse.json(campaign);
-  } catch (error) {
-    console.error("Error updating campaign:", error);
-    return NextResponse.json({ error: "Error updating campaign" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const DELETE = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.campaign.findUnique({ where: { id } });
     if (!existing) {
@@ -65,8 +61,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.campaign.delete({ where: { id } });
 
     return NextResponse.json({ deleted: true });
-  } catch (error) {
-    console.error("Error deleting campaign:", error);
-    return NextResponse.json({ error: "Error deleting campaign" }, { status: 500 });
-  }
-}
+  },
+});

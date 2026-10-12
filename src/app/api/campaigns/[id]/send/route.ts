@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { sendCampaign } from "@/lib/campaignSender";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const POST = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
     const result = await sendCampaign(id);
 
     if (!result.started) {
@@ -11,8 +12,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     return NextResponse.json({ started: true });
-  } catch (error) {
-    console.error("Error sending campaign:", error);
-    return NextResponse.json({ error: "Error sending campaign" }, { status: 500 });
-  }
-}
+  },
+});

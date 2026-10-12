@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/audit";
+import { maintenanceSchema } from "@/lib/schemas";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: maintenanceSchema,
+  handler: async (_req, body) => {
     const { action } = body;
 
     if (action === "PURGE_OLD_LOGS") {
@@ -40,8 +42,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: "Acción de mantenimiento no reconocida" }, { status: 400 });
-  } catch (error) {
-    console.error("Error executing maintenance:", error);
-    return NextResponse.json({ error: "Error ejecutando mantenimiento" }, { status: 500 });
-  }
-}
+  },
+});

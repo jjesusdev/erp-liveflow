@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { templateCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = apiHandler({
+  handler: async (req: NextRequest) => {
     const templates = await prisma.messageTemplate.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -58,23 +60,13 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(templates);
-  } catch (error) {
-    console.error("Error fetching templates:", error);
-    return NextResponse.json({ error: "Error fetching templates" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+export const POST = apiHandler({
+  body: templateCreateSchema,
+  handler: async (req: NextRequest, body) => {
     const { name, content, category = "GENERAL", shortcut, variables = [] } = body;
-
-    if (!name || !content) {
-      return NextResponse.json(
-        { error: "El nombre y el contenido son obligatorios" },
-        { status: 400 }
-      );
-    }
 
     const template = await prisma.messageTemplate.create({
       data: {
@@ -88,8 +80,5 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(template);
-  } catch (error) {
-    console.error("Error creating template:", error);
-    return NextResponse.json({ error: "Error creating template" }, { status: 500 });
-  }
-}
+  },
+});

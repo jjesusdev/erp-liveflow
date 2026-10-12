@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
+import { productUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const GET = apiHandler({
+  handler: async (req: NextRequest, _body, context) => {
+    const { id } = await context.params;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -14,16 +16,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json({ ...product, price: Number(product.price) });
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return NextResponse.json({ error: "Error fetching product" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
+export const PUT = apiHandler({
+  body: productUpdateSchema,
+  handler: async (req: NextRequest, body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
@@ -39,14 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.currency !== undefined) data.currency = body.currency;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     if (body.isAvailable !== undefined) data.isAvailable = Boolean(body.isAvailable);
-
-    if (body.price !== undefined && body.price !== null && body.price !== "") {
-      const numericPrice = Number(body.price);
-      if (Number.isNaN(numericPrice) || numericPrice < 0) {
-        return NextResponse.json({ error: "Precio invalido" }, { status: 400 });
-      }
-      data.price = numericPrice;
-    }
+    if (body.price !== undefined) data.price = body.price;
 
     const product = await prisma.product.update({
       where: { id },
@@ -54,15 +46,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json({ ...product, price: Number(product.price) });
-  } catch (error) {
-    console.error("Error updating product:", error);
-    return NextResponse.json({ error: "Error updating product" }, { status: 500 });
-  }
-}
+  },
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const DELETE = apiHandler({
+  handler: async (req: NextRequest, _body, context) => {
+    const { id } = await context.params;
 
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
@@ -72,8 +61,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.product.delete({ where: { id } });
 
     return NextResponse.json({ deleted: true });
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    return NextResponse.json({ error: "Error deleting product" }, { status: 500 });
-  }
-}
+  },
+});

@@ -386,20 +386,18 @@ function LabelTab({
         </ul>
         <div className="mt-3 flex flex-col items-center gap-1 border-t border-dashed border-border pt-3">
           <div className="flex h-10 w-full items-stretch gap-[2px]" aria-hidden>
-            {folio
-              .split("")
-              .flatMap((ch, i) =>
-                [1, 2, 3].map((k) => (
-                  <span
-                    key={`${i}-${k}`}
-                    className="bg-foreground"
-                    style={{
-                      flex: ((ch.charCodeAt(0) * k) % 3) + 1,
-                      opacity: (ch.charCodeAt(0) + k) % 4 === 0 ? 0 : 1,
-                    }}
-                  />
-                ))
-              )}
+            {folio.split("").flatMap((ch, i) =>
+              [1, 2, 3].map((k) => (
+                <span
+                  key={`${i}-${k}`}
+                  className="bg-foreground"
+                  style={{
+                    flex: ((ch.charCodeAt(0) * k) % 3) + 1,
+                    opacity: (ch.charCodeAt(0) + k) % 4 === 0 ? 0 : 1,
+                  }}
+                />
+              ))
+            )}
           </div>
           <p className="font-mono text-sm font-bold tracking-[0.2em]">{folio}</p>
         </div>

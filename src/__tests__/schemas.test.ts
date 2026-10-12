@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   businessConfigSchema,
   leadCreateSchema,
-  productSchema,
+  productCreateSchema as productSchema,
   shipmentCreateSchema,
   campaignCreateSchema,
 } from "@/lib/schemas";
@@ -45,8 +45,12 @@ describe("leadCreateSchema", () => {
     );
   });
 
-  it("rejects missing name", () => {
-    expect(leadCreateSchema.safeParse({ phone: "+521234567890" }).success).toBe(false);
+  it("accepts lead with only phone (name is optional)", () => {
+    expect(leadCreateSchema.safeParse({ phone: "+521234567890" }).success).toBe(true);
+  });
+
+  it("rejects missing phone", () => {
+    expect(leadCreateSchema.safeParse({ name: "Maria" }).success).toBe(false);
   });
 
   it("rejects short phone", () => {
@@ -76,28 +80,19 @@ describe("productSchema", () => {
 describe("shipmentCreateSchema", () => {
   it("accepts valid shipment", () => {
     const result = shipmentCreateSchema.safeParse({
-      orderIds: ["ord_1", "ord_2"],
+      paymentOrderId: "ord_1",
       carrier: "FedEx",
-      dispatchType: "CARRIER",
+      trackingNumber: "TRACK123",
     });
     expect(result.success).toBe(true);
   });
 
-  it("rejects empty orderIds", () => {
-    expect(
-      shipmentCreateSchema.safeParse({ orderIds: [], carrier: "X", dispatchType: "CARRIER" })
-        .success
-    ).toBe(false);
+  it("rejects missing paymentOrderId", () => {
+    expect(shipmentCreateSchema.safeParse({ carrier: "FedEx" }).success).toBe(false);
   });
 
-  it("rejects invalid dispatchType", () => {
-    expect(
-      shipmentCreateSchema.safeParse({
-        orderIds: ["a"],
-        carrier: "X",
-        dispatchType: "INVALID",
-      }).success
-    ).toBe(false);
+  it("accepts shipment with only paymentOrderId", () => {
+    expect(shipmentCreateSchema.safeParse({ paymentOrderId: "ord_1" }).success).toBe(true);
   });
 });
 
@@ -106,25 +101,24 @@ describe("campaignCreateSchema", () => {
     const result = campaignCreateSchema.safeParse({
       name: "Promo Verano",
       message: "Hola! Tienes un 20% de descuento",
-      leadIds: ["lead_1"],
     });
     expect(result.success).toBe(true);
   });
 
   it("rejects empty message", () => {
-    expect(campaignCreateSchema.safeParse({ name: "X", message: "", leadIds: ["a"] }).success).toBe(
-      false
-    );
+    expect(campaignCreateSchema.safeParse({ name: "X", message: "" }).success).toBe(false);
   });
 
-  it("rejects delayMs too low", () => {
-    expect(
-      campaignCreateSchema.safeParse({
-        name: "X",
-        message: "Hello",
-        leadIds: ["a"],
-        delayMs: 100,
-      }).success
-    ).toBe(false);
+  it("rejects missing name", () => {
+    expect(campaignCreateSchema.safeParse({ message: "Hello" }).success).toBe(false);
+  });
+
+  it("accepts campaign with sendNow", () => {
+    const result = campaignCreateSchema.safeParse({
+      name: "Flash Sale",
+      message: " hurry!",
+      sendNow: true,
+    });
+    expect(result.success).toBe(true);
   });
 });
