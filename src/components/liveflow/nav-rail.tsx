@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useSyncExternalStore, useEffect, useState } from 'react';
-import { LayoutGrid, MonitorPlay, Moon, Receipt, Sun, Zap, Package, Truck, Users, Settings } from 'lucide-react';
+import { LayoutGrid, MonitorPlay, Moon, Receipt, Sun, Zap, Package, Truck, Users, Settings, Wifi, WifiOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
@@ -76,6 +76,19 @@ export function NavRail() {
         );
       })}
       <div className="mt-auto flex flex-col items-center gap-2">
+        <div
+          className={cn(
+            'flex size-8 items-center justify-center rounded-full transition-colors',
+            socket
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-amber-500/20 text-amber-400'
+          )}
+          title={socket ? 'Servidor conectado' : 'Reconectando al servidor...'}
+          role="status"
+          aria-live="polite"
+        >
+          {socket ? <Wifi className="size-3.5" aria-hidden /> : <WifiOff className="size-3.5" aria-hidden />}
+        </div>
         <button
           type="button"
           onClick={() => setTheme(isDark ? 'light' : 'dark')}
