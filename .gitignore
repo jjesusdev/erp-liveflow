@@ -8,3 +8,6 @@ backups
 *.log
 .DS_Store
 tsconfig.tsbuildinfo
+diseno-live-flow-crm/
+dev.log
+server.log
