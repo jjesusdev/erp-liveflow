@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useSocket } from '@/lib/socket';
 import { Loader2, Power, RefreshCw, Smartphone, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge, LiveDot } from '@/components/liveflow/primitives';
+import { Badge } from '@/components/liveflow/primitives';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
