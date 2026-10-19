@@ -109,12 +109,6 @@ erp-liveflow/
 
 ---
 
-## Documentacion en Obsidian
-
-Toda la arquitectura, decisiones de diseno y modelo de datos estan sincronizados en la boveda de Obsidian:
-
-- Ruta: `C:\Users\Admin\Documents\ObsidianVault`
-- Enlace maestro: `LiveFlow CRM.md`
 
 ---
 
