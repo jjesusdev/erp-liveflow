@@ -3,6 +3,32 @@ import { apiHandler } from "@/lib/api-handler";
 import { shipmentUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, SHIPMENT_STATUSES } from "@/lib/enums";
+import type { ShipmentStatus as PrismaShipmentStatus, ConversationStatus } from "@prisma/client";
+
+const TRANSIT_STATUSES: string[] = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
+const SHIPPED_CONV_STATUSES = ["PAID", "ATTENTION", "AWAITING_PAYMENT"] as ConversationStatus[];
+
+export const GET = apiHandler({
+  handler: async (_req, _body, context) => {
+    const { id } = await context.params;
+
+    const shipment = await prisma.shipment.findUnique({
+      where: { id },
+      include: {
+        lead: true,
+        paymentOrder: { include: { conversation: { select: { id: true } } } },
+        carrierRef: true,
+        events: { orderBy: { occurredAt: "desc" } },
+      },
+    });
+
+    if (!shipment) {
+      return NextResponse.json({ error: "Envio no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json(shipment);
+  },
+});
 
 export const PATCH = apiHandler({
   body: shipmentUpdateSchema,
@@ -17,8 +43,9 @@ export const PATCH = apiHandler({
       return NextResponse.json({ error: "Envio no encontrado" }, { status: 404 });
     }
 
-    const data: any = {};
+    const data: Record<string, unknown> = {};
     let isStatusTransitionToInTransit = false;
+    let newStatus: PrismaShipmentStatus | undefined;
 
     if (body.status !== undefined) {
       const status = parseEnum(SHIPMENT_STATUSES, body.status);
@@ -26,13 +53,21 @@ export const PATCH = apiHandler({
         return NextResponse.json({ error: "Estado invalido" }, { status: 400 });
       }
       data.status = status;
+      newStatus = status;
 
-      if (status === "IN_TRANSIT") {
+      if (TRANSIT_STATUSES.includes(status)) {
         if (!existing.shippedAt) data.shippedAt = new Date();
-        if (existing.status !== "IN_TRANSIT") isStatusTransitionToInTransit = true;
+        const wasBeforeTransit =
+          !TRANSIT_STATUSES.includes(existing.status) && existing.status !== "DELIVERED";
+        if (wasBeforeTransit && status === "IN_TRANSIT") {
+          isStatusTransitionToInTransit = true;
+        }
       }
       if (status === "DELIVERED") {
         data.deliveredAt = new Date();
+      }
+      if (status === "FAILED" || status === "RETURNED") {
+        data.attempts = (existing.attempts ?? 0) + 1;
       }
     }
 
@@ -45,6 +80,39 @@ export const PATCH = apiHandler({
     if (body.notes !== undefined) {
       data.notes = body.notes || null;
     }
+    if (body.mode !== undefined) {
+      data.mode = body.mode || null;
+    }
+    if (body.carrierId !== undefined) {
+      data.carrierId = body.carrierId || null;
+    }
+    if (body.service !== undefined) {
+      data.service = body.service || null;
+    }
+    if (body.weightGrams !== undefined) {
+      data.weightGrams = body.weightGrams ?? null;
+    }
+    if (body.costClp !== undefined) {
+      data.costClp = body.costClp ?? null;
+    }
+    if (body.labelUrl !== undefined) {
+      data.labelUrl = body.labelUrl || null;
+    }
+    if (body.trackingUrl !== undefined) {
+      data.trackingUrl = body.trackingUrl || null;
+    }
+    if (body.providerRef !== undefined) {
+      data.providerRef = body.providerRef || null;
+    }
+    if (body.driverId !== undefined) {
+      data.driverId = body.driverId || null;
+    }
+    if (body.deliveredTo !== undefined) {
+      data.deliveredTo = body.deliveredTo || null;
+    }
+    if (body.proofPhotoUrl !== undefined) {
+      data.proofPhotoUrl = body.proofPhotoUrl || null;
+    }
 
     const shipment = await prisma.shipment.update({
       where: { id },
@@ -55,12 +123,23 @@ export const PATCH = apiHandler({
       },
     });
 
-    // Actualiza la conversación a SHIPPED si pasa a IN_TRANSIT o DELIVERED
-    if (body.status === "IN_TRANSIT" || body.status === "DELIVERED") {
+    if (newStatus && newStatus !== existing.status) {
+      await prisma.shipmentEvent.create({
+        data: {
+          shipmentId: id,
+          status: newStatus,
+          source: "MANUAL",
+          note: body.eventNote || `Estado cambiado a ${newStatus}`,
+        },
+      });
+    }
+
+    // Actualiza la conversación a SHIPPED cuando el paquete sale en camino
+    if (newStatus && (TRANSIT_STATUSES.includes(newStatus) || newStatus === "DELIVERED")) {
       await prisma.conversation.updateMany({
         where: {
           paymentOrders: { some: { shipment: { id } } },
-          status: { in: ["PAID", "ATTENTION", "AWAITING_PAYMENT"] },
+          status: { in: SHIPPED_CONV_STATUSES },
         },
         data: { status: "SHIPPED" },
       });
@@ -132,6 +211,7 @@ export const DELETE = apiHandler({
       return NextResponse.json({ error: "Envio no encontrado" }, { status: 404 });
     }
 
+    await prisma.shipmentEvent.deleteMany({ where: { shipmentId: id } });
     await prisma.shipment.delete({ where: { id } });
 
     return NextResponse.json({ deleted: true });

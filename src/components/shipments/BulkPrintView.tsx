@@ -11,9 +11,9 @@ interface BulkPrintViewProps {
 
 export function BulkPrintView({ shipments, selectedIds, onClose }: BulkPrintViewProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-white text-black p-8 overflow-y-auto">
-      <div className="no-print flex justify-between items-center mb-6 border-b pb-4">
-        <h2 className="font-bold text-lg">Impresion Masiva ({selectedIds.length} Etiquetas)</h2>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-8 text-black">
+      <div className="no-print mb-6 flex items-center justify-between border-b pb-4">
+        <h2 className="text-lg font-bold">Impresion Masiva ({selectedIds.length} Etiquetas)</h2>
         <Button variant="default" size="sm" onClick={onClose}>
           Cerrar Vista de Impresion
         </Button>
@@ -25,11 +25,11 @@ export function BulkPrintView({ shipments, selectedIds, onClose }: BulkPrintView
           .map((s) => (
             <div
               key={s.id}
-              className="rounded-xl border-2 border-dashed border-black p-4 space-y-2.5 break-inside-avoid"
+              className="space-y-2.5 break-inside-avoid rounded-xl border-2 border-dashed border-black p-4"
             >
-              <div className="flex justify-between items-start border-b border-black pb-1.5">
+              <div className="flex items-start justify-between border-b border-black pb-1.5">
                 <div>
-                  <h3 className="font-black text-xs uppercase">LIVEFLOW BOUTIQUE</h3>
+                  <h3 className="text-xs font-black uppercase">LIVEFLOW BOUTIQUE</h3>
                   <p className="text-[11px]">
                     Destino: <strong>{s.lead?.name || s.lead?.phone}</strong>
                   </p>
@@ -37,35 +37,39 @@ export function BulkPrintView({ shipments, selectedIds, onClose }: BulkPrintView
                     Tel: <strong>{s.lead?.phone}</strong>
                   </p>
                 </div>
-                <span className="text-xs font-bold border border-black px-1.5 py-0.5 rounded">
+                <span className="rounded border border-black px-1.5 py-0.5 text-xs font-bold">
                   {s.paymentOrder?.id?.slice(0, 8)?.toUpperCase() || "REF-LIVE"}
                 </span>
               </div>
 
-              <div className="text-xs space-y-0.5">
+              <div className="space-y-0.5 text-xs">
                 <p className="font-bold">
                   {s.lead?.addressStreet} {s.lead?.addressNumber}
                 </p>
                 <p>
-                  {s.lead?.addressColonia ? `Col. ${s.lead.addressColonia}, ` : ""}
+                  {s.lead?.addressColonia ? `Comuna ${s.lead.addressColonia}, ` : ""}
                   {s.lead?.addressCity} {s.lead?.addressState}
                 </p>
                 <p className="font-bold">CP: {s.lead?.addressZipCode || "N/A"}</p>
                 {s.lead?.addressNotes && (
-                  <p className="italic text-[10px] bg-gray-100 p-1 rounded mt-1">
+                  <p className="mt-1 rounded bg-gray-100 p-1 text-[10px] italic">
                     Ref: {s.lead.addressNotes}
                   </p>
                 )}
               </div>
 
-              <div className="border-t border-black pt-1.5 text-[11px] flex justify-between">
+              <div className="flex justify-between border-t border-black pt-1.5 text-[11px]">
                 <span>
                   Prendas: <strong>{s.paymentOrder?.concept}</strong>
                 </span>
                 <span>
-                  Metodo: <strong>{s.carrier || "Estafeta"}</strong>
+                  Metodo: <strong>{s.carrier || s.carrierRef?.name || "Retiro en tienda"}</strong>
                 </span>
               </div>
+
+              {s.trackingNumber && (
+                <p className="text-[10px] tracking-widest">GUÍA: {s.trackingNumber}</p>
+              )}
             </div>
           ))}
       </div>

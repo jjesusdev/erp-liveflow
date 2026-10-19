@@ -256,32 +256,119 @@ model Product {
   @@index([category])
 }
 
+enum CarrierMode {
+  COURIER
+  EXTERNAL_OWN_FLEET
+  STORE_PICKUP
+}
+
+enum CarrierApiProvider {
+  MANUAL
+  CHILEXPRESS
+  BLUE
+  SHIPIT
+  ENVIAME
+  STARKEN
+  CORREOS
+  SIMPLIROUTE
+  BEETRACK
+}
+
+enum ShipmentMode {
+  COURIER
+  OWN_FLEET
+  PICKUP
+}
+
+enum EventSource {
+  MANUAL
+  API
+  WEBHOOK
+}
+
+model Carrier {
+  id         String            @id @default(uuid())
+  orgId      String?
+  code       String
+  name       String
+  mode       CarrierMode
+  apiProvider CarrierApiProvider @default(MANUAL)
+  active     Boolean           @default(true)
+  config     Json?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  shipments  Shipment[]
+
+  @@unique([orgId, code])
+  @@index([active])
+  @@index([mode])
+}
+
 model Shipment {
-  id               String    @id @default(uuid())
-  paymentOrderId   String    @unique
-  paymentOrder     PaymentOrder @relation(fields: [paymentOrderId], references: [id])
-  leadId           String
-  lead             Lead      @relation(fields: [leadId], references: [id])
-  trackingNumber   String?
-  carrier          String?
-  status           ShipmentStatus @default(PENDING)
-  shippedAt        DateTime?
-  deliveredAt      DateTime?
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id             String         @id @default(uuid())
+  paymentOrderId String         @unique
+  paymentOrder   PaymentOrder   @relation(fields: [paymentOrderId], references: [id])
+  leadId         String
+  lead           Lead           @relation(fields: [leadId], references: [id])
+  trackingNumber String?
+  carrier        String?
+  mode           ShipmentMode?
+  carrierId      String?
+  carrierRef     Carrier?       @relation(fields: [carrierId], references: [id])
+  service        String?
+  weightGrams    Int?
+  dimensions     Json?
+  costClp        Int?
+  labelUrl       String?
+  trackingUrl    String?
+  providerRef    String?
+  recipient      Json?
+  address        Json?
+  driverId       String?
+  attempts       Int            @default(0)
+  deliveredTo    String?
+  proofPhotoUrl  String?
+  status         ShipmentStatus @default(PENDING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  events         ShipmentEvent[]
 
   @@index([status])
   @@index([leadId])
   @@index([paymentOrderId])
+  @@index([mode])
+  @@index([carrierId])
+}
+
+model ShipmentEvent {
+  id         String         @id @default(uuid())
+  shipmentId String
+  shipment   Shipment       @relation(fields: [shipmentId], references: [id])
+  status     ShipmentStatus
+  occurredAt DateTime       @default(now())
+  source     EventSource    @default(MANUAL)
+  note       String?
+  payload    Json?
+
+  @@index([shipmentId])
+  @@index([occurredAt])
 }
 
 enum ShipmentStatus {
   PENDING
+  READY
+  LABEL_PRINTED
+  PICKED_UP
   IN_TRANSIT
+  OUT_FOR_DELIVERY
   DELIVERED
+  FAILED
   RETURNED
   LOST
+  CANCELLED
 }
 
 model Campaign {

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
+import { conversationCreateSchema } from "@/lib/schemas";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
+
+const OPEN_STATUSES: Prisma.ConversationWhereInput["status"] = {
+  in: ["NEW", "ATTENTION", "AWAITING_PAYMENT", "PAID", "SHIPPED"],
+};
 
 export const GET = apiHandler({
   handler: async (req) => {
@@ -14,13 +19,7 @@ export const GET = apiHandler({
       return NextResponse.json({ error: "Estado de conversacion invalido" }, { status: 400 });
     }
 
-    const where: Prisma.ConversationWhereInput = status
-      ? { status }
-      : {
-          status: {
-            in: ["NEW", "ATTENTION", "AWAITING_PAYMENT", "PAID", "SHIPPED"],
-          },
-        };
+    const where: Prisma.ConversationWhereInput = status ? { status } : { status: OPEN_STATUSES };
 
     const conversations = await prisma.conversation.findMany({
       where,
@@ -76,5 +75,31 @@ export const GET = apiHandler({
         };
       })
     );
+  },
+});
+
+export const POST = apiHandler({
+  body: conversationCreateSchema,
+  handler: async (_req, body) => {
+    const lead = await prisma.lead.findUnique({ where: { id: body.leadId } });
+
+    if (!lead) {
+      return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+    }
+
+    const existing = await prisma.conversation.findFirst({
+      where: { leadId: body.leadId, status: OPEN_STATUSES },
+      orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    });
+
+    if (existing) {
+      return NextResponse.json(existing);
+    }
+
+    const conversation = await prisma.conversation.create({
+      data: { leadId: body.leadId, status: "NEW" },
+    });
+
+    return NextResponse.json(conversation, { status: 201 });
   },
 });

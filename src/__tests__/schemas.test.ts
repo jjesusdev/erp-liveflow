@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   businessConfigSchema,
   leadCreateSchema,
+  conversationCreateSchema,
   productCreateSchema as productSchema,
   shipmentCreateSchema,
   campaignCreateSchema,
@@ -55,6 +56,27 @@ describe("leadCreateSchema", () => {
 
   it("rejects short phone", () => {
     expect(leadCreateSchema.safeParse({ name: "Maria", phone: "123" }).success).toBe(false);
+  });
+
+  it("accepts optional delivery address and notes", () => {
+    const result = leadCreateSchema.safeParse({
+      phone: "+521234567890",
+      name: "Maria",
+      addressCity: "Santiago",
+      addressZipCode: "8320000",
+      internalNotes: "Prefiere entrega por la tarde",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("conversationCreateSchema", () => {
+  it("accepts a leadId", () => {
+    expect(conversationCreateSchema.safeParse({ leadId: "lead_1" }).success).toBe(true);
+  });
+
+  it("rejects empty leadId", () => {
+    expect(conversationCreateSchema.safeParse({ leadId: "" }).success).toBe(false);
   });
 });
 

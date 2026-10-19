@@ -27,27 +27,39 @@ app.prepare().then(() => {
 
   registerSocketHandlers(io);
 
+  const disableWhatsapp = process.env.DISABLE_WHATSAPP === 'true';
+  const disableWorkers = process.env.DISABLE_WORKERS === 'true';
+
   httpServer.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
 
     // Scheduler de campanas programadas: revisa cada minuto.
-    const campaignTimer = setInterval(() => {
-      processScheduledCampaigns().catch((error) => {
-        console.error('[campaigns] error en el scheduler:', error);
-      });
-    }, 60_000);
-    campaignTimer.unref?.();
+    if (!disableWorkers) {
+      const campaignTimer = setInterval(() => {
+        processScheduledCampaigns().catch((error) => {
+          console.error('[campaigns] error en el scheduler:', error);
+        });
+      }, 60_000);
+      campaignTimer.unref?.();
 
-    // Worker de expiracion automatica de apartados de Live y liberacion de stock
-    const expirationTimer = setInterval(() => {
-      processExpiredPaymentOrders().catch((error) => {
-        console.error('[expiration-worker] error en el timer:', error);
-      });
-    }, 45_000);
-    expirationTimer.unref?.();
+      // Worker de expiracion automatica de apartados de Live y liberacion de stock
+      const expirationTimer = setInterval(() => {
+        processExpiredPaymentOrders().catch((error) => {
+          console.error('[expiration-worker] error en el timer:', error);
+        });
+      }, 45_000);
+      expirationTimer.unref?.();
+    } else {
+      console.log('[workers] deshabilitados (DISABLE_WORKERS=true)');
+    }
 
     // Conexion automatica de WhatsApp al arrancar. Si hay session guardada en
     // auth_info reconecta solo; si no, emite QR a la UI para escanear.
+    if (disableWhatsapp) {
+      console.log('[whatsapp] deshabilitado (DISABLE_WHATSAPP=true)');
+      return;
+    }
+
     connectWhatsApp(io)
       .then((status) => {
         console.log(

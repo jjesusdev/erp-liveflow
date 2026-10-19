@@ -27,8 +27,31 @@ export const GET = apiHandler({
       return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
     }
 
+    const paidOrders = lead.paymentOrders.filter((order) => order.status === "PAID");
+    const totalPaidCount = paidOrders.length;
+    const totalSpent = paidOrders.reduce((sum, order) => sum + Number(order.amount), 0);
+
+    let tier: "VIP" | "FREQUENT" | "NEW" | "GHOST" = "NEW";
+    if (totalPaidCount >= 3 || totalSpent >= 2000) {
+      tier = "VIP";
+    } else if (totalPaidCount >= 1) {
+      tier = "FREQUENT";
+    } else if (lead.paymentOrders.some((o) => o.status === "EXPIRED" || o.status === "CANCELLED")) {
+      tier = "GHOST";
+    }
+
+    const lastPaidAt = paidOrders.reduce<Date | null>((latest, order) => {
+      const ts = order.paidAt || order.createdAt;
+      if (!latest || ts > latest) return ts;
+      return latest;
+    }, null);
+
     return NextResponse.json({
       ...lead,
+      tier,
+      totalPaidCount,
+      totalSpent,
+      lastPaidAt,
       paymentOrders: lead.paymentOrders.map((order) => ({
         ...order,
         amount: Number(order.amount),

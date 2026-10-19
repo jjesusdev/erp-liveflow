@@ -13,6 +13,7 @@ export interface Lead {
   addressNotes?: string | null;
   firstContactAt: string;
   lastInteractionAt?: string | null;
+  lastPaidAt?: string | null;
   metadata?: any;
   tier?: "VIP" | "FREQUENT" | "NEW" | "GHOST";
   totalPaidCount?: number;
@@ -127,7 +128,69 @@ export interface Operator {
   avatarUrl?: string | null;
 }
 
-export type ShipmentStatus = "PENDING" | "IN_TRANSIT" | "DELIVERED" | "RETURNED" | "LOST";
+export type ShipmentStatus =
+  | "PENDING"
+  | "READY"
+  | "LABEL_PRINTED"
+  | "PICKED_UP"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "FAILED"
+  | "RETURNED"
+  | "LOST"
+  | "CANCELLED";
+
+export type ShipmentMode = "COURIER" | "OWN_FLEET" | "PICKUP";
+export type CarrierMode = "COURIER" | "EXTERNAL_OWN_FLEET" | "STORE_PICKUP";
+export type CarrierApiProvider =
+  | "MANUAL"
+  | "CHILEXPRESS"
+  | "BLUE"
+  | "SHIPIT"
+  | "ENVIAME"
+  | "STARKEN"
+  | "CORREOS"
+  | "SIMPLIROUTE"
+  | "BEETRACK";
+export type ShipmentEventSource = "MANUAL" | "API" | "WEBHOOK";
+
+export interface Carrier {
+  id: string;
+  orgId?: string | null;
+  code: string;
+  name: string;
+  mode: CarrierMode;
+  apiProvider: CarrierApiProvider;
+  active: boolean;
+  config?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ShipmentEvent {
+  id: string;
+  shipmentId: string;
+  status: ShipmentStatus;
+  occurredAt: string;
+  source: ShipmentEventSource;
+  note?: string | null;
+  payload?: unknown;
+}
+
+export interface ShipmentRecipient {
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
+export interface ShipmentAddress {
+  street?: string | null;
+  number?: string | null;
+  commune?: string | null;
+  region?: string | null;
+  zip?: string | null;
+}
 
 export interface Shipment {
   id: string;
@@ -137,10 +200,27 @@ export interface Shipment {
   lead?: Lead | null;
   trackingNumber?: string | null;
   carrier?: string | null;
+  mode?: ShipmentMode | null;
+  carrierId?: string | null;
+  carrierRef?: Carrier | null;
+  service?: string | null;
+  weightGrams?: number | null;
+  dimensions?: unknown;
+  costClp?: number | null;
+  labelUrl?: string | null;
+  trackingUrl?: string | null;
+  providerRef?: string | null;
+  recipient?: ShipmentRecipient | null;
+  address?: ShipmentAddress | null;
+  driverId?: string | null;
+  attempts?: number;
+  deliveredTo?: string | null;
+  proofPhotoUrl?: string | null;
   status: ShipmentStatus;
   shippedAt?: string | null;
   deliveredAt?: string | null;
   notes?: string | null;
+  events?: ShipmentEvent[];
   createdAt: string;
   updatedAt: string;
 }

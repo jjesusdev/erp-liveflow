@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useSocket } from "@/lib/socket";
 import { makeReference, money } from "@/lib/format";
@@ -43,6 +43,16 @@ export function Workspace() {
   const [activeSession, setActiveSession] = useState<LiveSession | null>(null);
   const [loading, setLoading] = useState(true);
   const socket = useSocket();
+  const deepLinkRef = useRef<{ conversation: string | null; lead: string | null } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const conversation = params.get("conversation");
+    const lead = params.get("lead");
+    if (conversation || lead) {
+      deepLinkRef.current = { conversation, lead };
+    }
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -50,7 +60,19 @@ export function Workspace() {
       if (res.ok) {
         const data: DBConversation[] = await res.json();
         setDbConversations(data);
-        if (data.length > 0 && !selectedId) {
+
+        const deepLink = deepLinkRef.current;
+        const target = deepLink
+          ? data.find((c) => deepLink.conversation && c.id === deepLink.conversation) ||
+            data.find((c) => deepLink.lead && c.leadId === deepLink.lead) ||
+            null
+          : null;
+
+        if (target) {
+          setSelectedId(target.id);
+          deepLinkRef.current = null;
+          window.history.replaceState({}, "", window.location.pathname);
+        } else if (data.length > 0 && !selectedId) {
           setSelectedId(data[0].id);
         }
       }

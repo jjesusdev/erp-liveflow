@@ -1,143 +1,104 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CheckSquare, Square, Search, Pencil, Send, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  Check,
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  MessageCircle,
+  Search,
+  Send,
+  Square,
+  Truck,
+} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/liveflow/primitives";
-import type { Shipment, ShipmentStatus } from "@/types";
+import type { Shipment } from "@/types";
+import { PAGE_SIZE_OPTIONS } from "@/hooks/useShipments";
+import {
+  Avatar,
+  SHIPMENT_LABEL,
+  SHIPMENT_TONE,
+  leadTier,
+  waLink,
+} from "@/components/leads/leads-ui";
+import { folioOf } from "./shipments-ui";
 
-const FILTERS = [
-  { id: "all", label: "Todos" },
-  { id: "PENDING", label: "Pendientes" },
-  { id: "IN_TRANSIT", label: "En camino" },
-  { id: "DELIVERED", label: "Entregados" },
-] as const;
+const TO_DISPATCH = ["PENDING", "READY", "LABEL_PRINTED"];
+const IN_TRANSIT = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
 
-const CARRIER_PRESETS = [
-  "Envio Local / Moto",
-  "Estafeta",
-  "DHL Express",
-  "FedEx",
-  "99Minutos",
-  "Uber Flash / Didi",
-  "Entrega Personal",
-  "Recoge en tienda",
-];
-
-const STATUS_TONE: Record<ShipmentStatus, "pending" | "transit" | "success" | "live" | "neutral"> =
-  {
-    PENDING: "pending",
-    IN_TRANSIT: "transit",
-    DELIVERED: "success",
-    RETURNED: "pending",
-    LOST: "live",
-  };
-
-const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  PENDING: "Pendiente",
-  IN_TRANSIT: "En camino",
-  DELIVERED: "Entregado",
-  RETURNED: "Devuelto",
-  LOST: "Perdido",
-};
+function pageWindow(current: number, totalPages: number): (number | "gap")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const out: (number | "gap")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(totalPages - 1, current + 1);
+  if (start > 2) out.push("gap");
+  for (let i = start; i <= end; i++) out.push(i);
+  if (end < totalPages - 1) out.push("gap");
+  out.push(totalPages);
+  return out;
+}
 
 interface ShipmentTableProps {
   shipments: Shipment[];
-  filteredShipments: Shipment[];
+  selectedId: string | null;
   loading: boolean;
-  filter: string;
-  query: string;
   busyId: string | null;
-  editingId: string | null;
-  draft: { trackingNumber: string; carrier: string; notes: string };
   selectedIds: string[];
-  onFilterChange: (f: string) => void;
-  onQueryChange: (q: string) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  onSelect: (id: string) => void;
+  onPage: (page: number) => void;
+  onPageSize: (size: number) => void;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
-  onStartEdit: (s: Shipment) => void;
   onUpdate: (id: string, data: Record<string, unknown>) => void;
-  onDraftChange: (d: { trackingNumber: string; carrier: string; notes: string }) => void;
-  onCancelEdit: () => void;
 }
 
 export function ShipmentTable({
-  filteredShipments,
+  shipments,
+  selectedId,
   loading,
-  filter,
-  query,
   busyId,
-  editingId,
-  draft,
   selectedIds,
-  onFilterChange,
-  onQueryChange,
+  page,
+  pageSize,
+  total,
+  onSelect,
+  onPage,
+  onPageSize,
   onToggleSelect,
   onToggleSelectAll,
-  onStartEdit,
   onUpdate,
-  onDraftChange,
-  onCancelEdit,
 }: ShipmentTableProps) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const window = pageWindow(page, totalPages);
+  const allSelected = shipments.length > 0 && selectedIds.length === shipments.length;
+
   return (
-    <section
-      aria-label="Movimientos de Envios"
-      className="overflow-hidden rounded-lg border border-border bg-card shadow-xs"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
-        <div
-          role="tablist"
-          aria-label="Filtrar por estado"
-          className="flex gap-1 rounded-md bg-muted p-0.5"
-        >
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              role="tab"
-              type="button"
-              aria-selected={filter === f.id}
-              onClick={() => onFilterChange(f.id)}
-              className={cn(
-                "h-6 rounded px-2.5 text-xs font-medium transition-colors",
-                filter === f.id
-                  ? "bg-background text-foreground shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <label className="relative">
-          <span className="sr-only">Buscar por cliente o destino</span>
-          <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <input
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Cliente, ciudad o guia..."
-            className="h-7 w-60 rounded-md border border-input bg-background pr-2 pl-8 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
-          />
-        </label>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-            <tr>
-              <th scope="col" className="w-8 px-3 py-2.5">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto scrollbar-thin">
+        <table className="w-full min-w-[860px] border-collapse text-left text-[13px]">
+          <thead className="sticky top-0 z-10 border-b border-border bg-card text-[11px] uppercase tracking-wider">
+            <tr className="text-muted-foreground">
+              <th scope="col" className="w-9 px-3 py-2.5">
                 <button
                   type="button"
                   onClick={onToggleSelectAll}
-                  className="flex size-4 items-center justify-center"
+                  aria-label="Seleccionar todo"
+                  className="flex items-center justify-center text-muted-foreground transition hover:text-foreground"
                 >
-                  {selectedIds.length > 0 && selectedIds.length === filteredShipments.length ? (
-                    <CheckSquare className="size-4 text-primary" />
+                  {allSelected ? (
+                    <CheckSquare className="size-4 text-success" aria-hidden />
                   ) : (
-                    <Square className="size-4 text-muted-foreground/60" />
+                    <Square className="size-4" aria-hidden />
                   )}
                 </button>
               </th>
@@ -148,175 +109,302 @@ export function ShipmentTable({
                 Destinatario
               </th>
               <th scope="col" className="px-3 py-2.5 font-medium">
-                Direccion
+                Destino
               </th>
               <th scope="col" className="px-3 py-2.5 font-medium">
-                Prendas
+                Transporte
               </th>
               <th scope="col" className="px-3 py-2.5 font-medium">
-                Metodo
+                Guia
               </th>
               <th scope="col" className="px-3 py-2.5 font-medium">
                 Estado
               </th>
-              <th scope="col" className="px-3 py-2.5 text-right font-medium">
-                Accion
-              </th>
+              <th scope="col" className="w-24 px-3 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredShipments.map((shipment) => {
-              const isEditing = editingId === shipment.id;
-              const isSelected = selectedIds.includes(shipment.id);
-
-              return (
-                <tr
-                  key={shipment.id}
-                  className={cn("transition-colors hover:bg-muted/30", isSelected && "bg-muted/50")}
-                >
-                  <td className="px-3 py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => onToggleSelect(shipment.id)}
-                      className="flex size-4 items-center justify-center"
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="size-4 text-primary" />
-                      ) : (
-                        <Square className="size-4 text-muted-foreground/60" />
-                      )}
-                    </button>
+            {loading &&
+              Array.from({ length: Math.min(pageSize, 10) }).map((_, i) => (
+                <tr key={`sk-${i}`}>
+                  <td className="px-3 py-3">
+                    <Skeleton className="size-4" />
                   </td>
-
-                  <td className="px-3 py-2.5 font-semibold text-foreground">
-                    {shipment.paymentOrder?.id
-                      ? `LF-${shipment.paymentOrder.id.slice(0, 8).toUpperCase()}`
-                      : "LF-ENV"}
+                  <td className="px-3 py-3">
+                    <Skeleton className="h-3 w-16" />
                   </td>
-
-                  <td className="px-3 py-2.5">
-                    <p className="font-semibold text-foreground">
-                      {shipment.lead?.name || "Clienta"}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{shipment.lead?.phone}</p>
-                  </td>
-
-                  <td className="px-3 py-2.5 text-[11px] text-muted-foreground max-w-56 truncate">
-                    {shipment.lead?.addressStreet
-                      ? `${shipment.lead.addressStreet} ${shipment.lead.addressNumber || ""}, ${shipment.lead.addressCity || ""}`
-                      : "Sin capturar"}
-                  </td>
-
-                  <td className="px-3 py-2.5 text-foreground max-w-48 truncate">
-                    {shipment.paymentOrder?.concept || "Prendas Live"}
-                  </td>
-
-                  <td className="px-3 py-2.5 text-muted-foreground">
-                    {isEditing ? (
-                      <input
-                        list={`carrier-opts-${shipment.id}`}
-                        value={draft.carrier}
-                        onChange={(e) => onDraftChange({ ...draft, carrier: e.target.value })}
-                        placeholder="Metodo..."
-                        className="h-6 w-32 rounded border border-input bg-background px-1.5 text-xs"
-                      />
-                    ) : (
-                      <span>{shipment.carrier || "Estafeta"}</span>
-                    )}
-                    <datalist id={`carrier-opts-${shipment.id}`}>
-                      {CARRIER_PRESETS.map((p) => (
-                        <option key={p} value={p} />
-                      ))}
-                    </datalist>
-                  </td>
-
-                  <td className="px-3 py-2.5">
-                    <Badge tone={STATUS_TONE[shipment.status]}>
-                      {STATUS_LABEL[shipment.status] || shipment.status}
-                    </Badge>
-                  </td>
-
-                  <td className="px-3 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {isEditing ? (
-                        <>
-                          <Button
-                            size="xs"
-                            variant="default"
-                            disabled={busyId === shipment.id}
-                            onClick={() => onUpdate(shipment.id, draft)}
-                            className="h-6 px-2 text-[11px]"
-                          >
-                            Guardar
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            onClick={onCancelEdit}
-                            className="h-6 px-2 text-[11px]"
-                          >
-                            Cancelar
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onStartEdit(shipment)}
-                            className="size-6 text-muted-foreground hover:text-foreground"
-                          >
-                            <Pencil className="size-3" />
-                          </Button>
-
-                          {shipment.status === "PENDING" && (
-                            <Button
-                              size="xs"
-                              variant="default"
-                              disabled={busyId === shipment.id}
-                              onClick={() => onUpdate(shipment.id, { status: "IN_TRANSIT" })}
-                              className="h-6 px-2 text-[11px] gap-1 font-semibold"
-                            >
-                              <Send className="size-2.5" /> Despachar
-                            </Button>
-                          )}
-
-                          {shipment.status === "IN_TRANSIT" && (
-                            <Button
-                              size="xs"
-                              variant="success"
-                              disabled={busyId === shipment.id}
-                              onClick={() => onUpdate(shipment.id, { status: "DELIVERED" })}
-                              className="h-6 px-2 text-[11px] gap-1 font-semibold"
-                            >
-                              <Check className="size-2.5" /> Entregado
-                            </Button>
-                          )}
-                        </>
-                      )}
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <Skeleton className="size-8 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3 w-28" />
+                        <Skeleton className="h-2.5 w-20" />
+                      </div>
                     </div>
                   </td>
+                  <td className="px-3 py-3">
+                    <Skeleton className="h-3 w-20" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <Skeleton className="h-3 w-20" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <Skeleton className="h-3 w-16" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <Skeleton className="h-5 w-20 rounded-[5px]" />
+                  </td>
+                  <td className="px-3 py-3" />
                 </tr>
-              );
-            })}
+              ))}
 
-            {!loading && filteredShipments.length === 0 && (
+            {!loading &&
+              shipments.map((shipment) => {
+                const isSelected = selectedId === shipment.id;
+                const isChecked = selectedIds.includes(shipment.id);
+                const status = shipment.status;
+                const canDispatch = TO_DISPATCH.includes(status);
+                const canDeliver = IN_TRANSIT.includes(status);
+                const phone = shipment.lead?.phone || shipment.recipient?.phone || "";
+                const tier = shipment.lead ? leadTier(shipment.lead) : undefined;
+
+                return (
+                  <tr
+                    key={shipment.id}
+                    onClick={() => onSelect(shipment.id)}
+                    className={cn(
+                      "group/row cursor-pointer border-l-2 transition-colors",
+                      isSelected
+                        ? "border-l-transit bg-muted/50"
+                        : "border-l-transparent hover:bg-muted/30"
+                    )}
+                  >
+                    <td className="px-3 py-2.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelect(shipment.id);
+                        }}
+                        aria-label="Seleccionar envio"
+                        className="flex items-center justify-center text-muted-foreground transition hover:text-foreground"
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="size-4 text-success" aria-hidden />
+                        ) : (
+                          <Square className="size-4" aria-hidden />
+                        )}
+                      </button>
+                    </td>
+
+                    <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">
+                      {folioOf(shipment)}
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          name={shipment.lead?.name || shipment.recipient?.name}
+                          tier={tier}
+                          size="sm"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-foreground">
+                            {shipment.lead?.name || shipment.recipient?.name || "Clienta"}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {phone || "Sin telefono"}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-2.5 text-muted-foreground">
+                      {shipment.lead?.addressCity || shipment.lead?.addressColonia ? (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="size-3 text-muted-foreground/70" aria-hidden />
+                          {shipment.lead?.addressColonia || shipment.lead?.addressCity}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-2.5 text-muted-foreground">
+                      {shipment.carrier || shipment.carrierRef?.name ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Truck className="size-3 text-muted-foreground/70" aria-hidden />
+                          {shipment.carrier || shipment.carrierRef?.name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">Sin definir</span>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">
+                      {shipment.trackingNumber || (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <Badge tone={SHIPMENT_TONE[status]}>{SHIPMENT_LABEL[status] || status}</Badge>
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        {phone && (
+                          <a
+                            href={waLink(phone)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`Escribir por WhatsApp a ${shipment.lead?.name || phone}`}
+                            aria-label={`Abrir WhatsApp de ${shipment.lead?.name || phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-success/10 hover:text-success focus-visible:opacity-100 group-hover/row:opacity-100"
+                          >
+                            <MessageCircle className="size-4" aria-hidden />
+                          </a>
+                        )}
+                        {canDispatch && (
+                          <button
+                            type="button"
+                            title="Despachar paquete"
+                            aria-label="Despachar paquete"
+                            disabled={busyId === shipment.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdate(shipment.id, { status: "IN_TRANSIT" });
+                            }}
+                            className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-transit/10 hover:text-transit focus-visible:opacity-100 group-hover/row:opacity-100 disabled:opacity-40"
+                          >
+                            <Send className="size-4" aria-hidden />
+                          </button>
+                        )}
+                        {canDeliver && (
+                          <button
+                            type="button"
+                            title="Marcar como entregado"
+                            aria-label="Marcar como entregado"
+                            disabled={busyId === shipment.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdate(shipment.id, { status: "DELIVERED" });
+                            }}
+                            className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-success/10 hover:text-success focus-visible:opacity-100 group-hover/row:opacity-100 disabled:opacity-40"
+                          >
+                            <Check className="size-4" aria-hidden />
+                          </button>
+                        )}
+                        <ChevronRight
+                          className={cn(
+                            "size-4 transition-opacity",
+                            isSelected ? "text-foreground opacity-100" : "opacity-25"
+                          )}
+                          aria-hidden
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+            {!loading && shipments.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-xs text-muted-foreground">
-                  No hay envios en este filtro.
+                <td colSpan={8} className="p-12">
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="flex size-11 items-center justify-center rounded-full bg-muted">
+                      <Search className="size-5 text-muted-foreground" aria-hidden />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      No hay envios en este filtro.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Ajusta la busqueda o cambia el estado seleccionado.
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}
           </tbody>
-          <tfoot className="border-t border-border bg-muted/40">
-            <tr>
-              <td colSpan={8} className="px-3 py-2.5 text-xs text-muted-foreground">
-                {filteredShipments.length} paquetes mostrados
-              </td>
-            </tr>
-          </tfoot>
         </table>
       </div>
-    </section>
+
+      {total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-2.5">
+          <p className="text-[11px] text-muted-foreground">
+            Mostrando{" "}
+            <span className="font-medium tabular-nums text-foreground">
+              {from.toLocaleString("es-CL")}–{to.toLocaleString("es-CL")}
+            </span>{" "}
+            de{" "}
+            <span className="font-medium tabular-nums text-foreground">
+              {total.toLocaleString("es-CL")}
+            </span>{" "}
+            envios
+          </p>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1" role="navigation" aria-label="Paginacion">
+              <button
+                type="button"
+                onClick={() => onPage(page - 1)}
+                disabled={page <= 1}
+                aria-label="Pagina anterior"
+                className="flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              >
+                <ChevronLeft className="size-3.5" aria-hidden />
+              </button>
+              {window.map((item, i) =>
+                item === "gap" ? (
+                  <span key={`gap-${i}`} className="px-1 text-[11px] text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => onPage(item)}
+                    aria-current={item === page ? "page" : undefined}
+                    className={cn(
+                      "h-7 min-w-7 rounded-md px-2 text-[11px] font-medium tabular-nums transition",
+                      item === page
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+              <button
+                type="button"
+                onClick={() => onPage(page + 1)}
+                disabled={page >= totalPages}
+                aria-label="Pagina siguiente"
+                className="flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              >
+                <ChevronRight className="size-3.5" aria-hidden />
+              </button>
+            </div>
+
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="sr-only">Envios por pagina</span>
+              <select
+                value={pageSize}
+                onChange={(e) => onPageSize(Number(e.target.value))}
+                className="h-7 rounded-md border border-input bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size} / pág.
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
