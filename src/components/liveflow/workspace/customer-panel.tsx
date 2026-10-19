@@ -5,6 +5,7 @@ import {
   Loader2,
   MapPin,
   PackageCheck,
+  PanelRightClose,
   Printer,
   Save,
   StickyNote,
@@ -24,21 +25,34 @@ export function CustomerPanel({
   conversation,
   bag,
   folio,
+  onClose,
 }: {
   conversation?: Conversation | null;
   bag: Product[];
   folio: string;
+  onClose?: () => void;
 }) {
   if (!conversation) {
     return (
       <aside
         aria-label="Perfil del cliente en espera"
-        className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40 p-4 space-y-4"
+        className="flex min-h-0 w-full flex-col border-l border-border bg-card p-4 space-y-4"
       >
-        <div className="border-b border-border pb-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Ficha de la Clienta
           </h3>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar ficha"
+              title="Cerrar ficha"
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <PanelRightClose className="size-4" aria-hidden />
+            </button>
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 text-center space-y-2">
@@ -71,11 +85,11 @@ export function CustomerPanel({
   return (
     <aside
       aria-label="Perfil del cliente"
-      className="flex min-h-0 w-[320px] shrink-0 flex-col border-l border-border bg-card/40"
+      className="flex min-h-0 w-full flex-col border-l border-border bg-card"
     >
       <Tabs defaultValue="ficha" className="min-h-0 flex-1 gap-0">
-        <div className="border-b border-border p-3">
-          <TabsList className="w-full">
+        <div className="flex items-center gap-2 border-b border-border p-3">
+          <TabsList className="min-w-0 flex-1">
             <TabsTrigger value="ficha" className="text-xs">
               <UserRound aria-hidden />
               Ficha 360
@@ -89,6 +103,17 @@ export function CustomerPanel({
               Etiqueta
             </TabsTrigger>
           </TabsList>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar ficha"
+              title="Cerrar ficha"
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <PanelRightClose className="size-4" aria-hidden />
+            </button>
+          )}
         </div>
         <TabsContent value="ficha" className="min-h-0 overflow-y-auto scrollbar-thin">
           <ProfileTab key={conversation.id} conversation={conversation} />

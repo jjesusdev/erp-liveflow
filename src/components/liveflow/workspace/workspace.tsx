@@ -6,7 +6,6 @@ import { useSocket } from "@/lib/socket";
 import { makeReference, money } from "@/lib/format";
 import { InboxColumn } from "./inbox-column";
 import { ChatColumn } from "./chat-column";
-import { CustomerPanel } from "./customer-panel";
 import { ChargeModal } from "./charge-modal";
 import { LiveStatusBar } from "./live-status-bar";
 import type {
@@ -302,6 +301,15 @@ export function Workspace() {
     toast.success(`${p.name} agregado`, { description: "Prenda sumada a la Bolsa Live" });
   };
 
+  const removeProduct = (p: UIProduct) => {
+    setBags((b) => {
+      const current = b[selectedId] ?? [];
+      const idx = current.findIndex((item) => item.sku === p.sku && item.size === p.size);
+      if (idx === -1) return b;
+      return { ...b, [selectedId]: current.filter((_, i) => i !== idx) };
+    });
+  };
+
   const send = async (text: string, image?: string) => {
     if (!selectedId) return;
     try {
@@ -386,12 +394,14 @@ export function Workspace() {
               conversation={currentConv}
               messages={messages}
               deadline={currentConv.apartado ? Date.now() + 25 * 60 * 1000 : null}
+              bag={bag}
+              folio={`LF-${reference}`}
               onApprove={approve}
               onOpenCharge={() => setChargeOpen(true)}
               onSend={send}
               onAddProduct={addProduct}
+              onRemoveProduct={removeProduct}
             />
-            <CustomerPanel conversation={currentConv} bag={bag} folio={`LF-${reference}`} />
           </>
         ) : (
           <>
@@ -405,12 +415,14 @@ export function Workspace() {
               conversation={null}
               messages={[]}
               deadline={null}
+              bag={[]}
+              folio="LF—"
               onApprove={() => {}}
               onOpenCharge={() => {}}
               onSend={send}
               onAddProduct={addProduct}
+              onRemoveProduct={removeProduct}
             />
-            <CustomerPanel conversation={null} bag={[]} folio="LF—" />
           </>
         )}
       </div>

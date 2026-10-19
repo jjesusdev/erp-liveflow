@@ -1,54 +1,51 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import {
-  Check,
-  ChevronDown,
-  Clock,
-  ImagePlus,
-  Lock,
-  Phone,
-  Plus,
-  SendHorizontal,
-  Shirt,
-  Wallet,
-  X,
-  Radio,
-  Zap,
-  Sparkles,
-} from "lucide-react";
+import { Check, ChevronDown, Clock, SendHorizontal, Shirt, Wallet, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clock, money } from "@/lib/format";
-import {
-  CATALOG,
-  SHORTCUTS,
-  type Conversation,
-  type Message,
-  type Product,
-} from "@/lib/liveflow-data";
+import { SHORTCUTS, type Conversation, type Message, type Product } from "@/lib/liveflow-data";
 import { Button } from "@/components/ui/button";
 import { Kbd, TierBadge } from "@/components/liveflow/primitives";
 import { ImageBubble, ReceiptBubble, TextBubble, VoiceBubble } from "./message-bubbles";
+import { ProductDrawer } from "./product-drawer";
+import { CustomerPanel } from "./customer-panel";
 
 export function ChatColumn({
   conversation,
   messages,
   deadline,
+  bag,
+  folio,
   onApprove,
   onOpenCharge,
   onSend,
   onAddProduct,
+  onRemoveProduct,
 }: {
   conversation?: Conversation | null;
   messages: Message[];
   deadline: number | null;
+  bag: Product[];
+  folio: string;
   onApprove: () => void;
   onOpenCharge: () => void;
   onSend: (text: string, image?: string) => void;
   onAddProduct: (p: Product) => void;
+  onRemoveProduct: (p: Product) => void;
 }) {
   const feedRef = useRef<HTMLDivElement>(null);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profileOpen]);
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
@@ -112,12 +109,22 @@ export function ChatColumn({
   return (
     <section
       aria-label={`Chat con ${conversation.name}`}
-      className="flex min-w-0 flex-1 flex-col bg-background"
+      className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background"
     >
       <ChatHeader
         conversation={conversation}
+        bag={bag}
+        catalogOpen={catalogOpen}
+        profileOpen={profileOpen}
+        onToggleCatalog={() => {
+          setProfileOpen(false);
+          setCatalogOpen((o) => !o);
+        }}
+        onToggleProfile={() => {
+          setCatalogOpen(false);
+          setProfileOpen((o) => !o);
+        }}
         onOpenCharge={onOpenCharge}
-        onAddProduct={onAddProduct}
       />
       {deadline && conversation.apartado && (
         <ApartadoBanner
@@ -146,20 +153,61 @@ export function ChatColumn({
         </div>
       </div>
       <Composer onSend={onSend} />
+
+      <div
+        onClick={() => setProfileOpen(false)}
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 bottom-0 top-14 z-30 bg-foreground/20 transition-opacity duration-200",
+          profileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      />
+      <div
+        id="customer-panel"
+        aria-hidden={!profileOpen}
+        inert={!profileOpen}
+        className={cn(
+          "absolute bottom-0 right-0 top-14 z-40 flex w-[320px] shadow-2xl transition-transform duration-200 ease-out",
+          profileOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+        )}
+      >
+        <CustomerPanel
+          conversation={conversation}
+          bag={bag}
+          folio={folio}
+          onClose={() => setProfileOpen(false)}
+        />
+      </div>
+
+      <ProductDrawer
+        open={catalogOpen}
+        onClose={() => setCatalogOpen(false)}
+        bag={bag}
+        onAdd={onAddProduct}
+        onRemove={onRemoveProduct}
+        onOpenCharge={onOpenCharge}
+      />
     </section>
   );
 }
 
 function ChatHeader({
   conversation: c,
+  bag,
+  catalogOpen,
+  profileOpen,
+  onToggleCatalog,
+  onToggleProfile,
   onOpenCharge,
-  onAddProduct,
 }: {
   conversation: Conversation;
+  bag: Product[];
+  catalogOpen: boolean;
+  profileOpen: boolean;
+  onToggleCatalog: () => void;
+  onToggleProfile: () => void;
   onOpenCharge: () => void;
-  onAddProduct: (p: Product) => void;
 }) {
-  const [catalogOpen, setCatalogOpen] = useState(false);
   const initials = c.name
     .split(" ")
     .slice(0, 2)
@@ -168,76 +216,76 @@ function ChatHeader({
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
-      <div
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
-        aria-hidden
+      <button
+        type="button"
+        onClick={onToggleProfile}
+        aria-expanded={profileOpen}
+        aria-controls="customer-panel"
+        title="Ver ficha de la clienta"
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors active:scale-[0.98]",
+          profileOpen ? "bg-muted" : "hover:bg-muted/60"
+        )}
       >
-        {initials}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h2 className="truncate text-sm font-semibold tracking-tight">{c.name}</h2>
-          <TierBadge tier={c.tier} />
+        <div
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
+          aria-hidden
+        >
+          {initials}
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="font-mono">{c.phone}</span>
-          <span>·</span>
-          <span className="flex items-center gap-1 text-emerald-500 font-medium">
-            <span className="size-1.5 rounded-full bg-emerald-500" />
-            En línea WhatsApp
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-sm font-semibold tracking-tight">{c.name}</h2>
+            <TierBadge tier={c.tier} />
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="font-mono">{c.phone}</span>
+            <span>·</span>
+            <span className="flex items-center gap-1 text-emerald-500 font-medium">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              En línea WhatsApp
+            </span>
+          </div>
         </div>
-      </div>
+        <ChevronDown
+          className={cn(
+            "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+            profileOpen && "rotate-180"
+          )}
+          aria-hidden
+        />
+      </button>
 
-      <div className="relative flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setCatalogOpen((o) => !o)}
+          onClick={onToggleCatalog}
           aria-expanded={catalogOpen}
-          className="flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium hover:bg-muted active:scale-[0.98]"
+          aria-controls="product-drawer"
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium active:scale-[0.98] transition-colors",
+            catalogOpen
+              ? "border-foreground bg-foreground text-background"
+              : "border-border bg-background hover:bg-muted"
+          )}
         >
           <Shirt className="size-3.5" aria-hidden />
           <span>Prendas</span>
+          {bag.length > 0 && (
+            <span
+              className={cn(
+                "flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold",
+                catalogOpen ? "bg-background/20 text-background" : "bg-foreground text-background"
+              )}
+            >
+              {bag.length}
+            </span>
+          )}
           <ChevronDown
             className={cn("size-3 transition-transform", catalogOpen && "rotate-180")}
             aria-hidden
           />
         </button>
-
-        {catalogOpen && (
-          <div
-            role="menu"
-            className="absolute top-full right-0 z-30 mt-1.5 w-80 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
-          >
-            <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Prendas activas en vivo
-            </p>
-            <div className="flex flex-col gap-1">
-              {CATALOG.map((p) => (
-                <button
-                  key={p.sku}
-                  type="button"
-                  onClick={() => {
-                    onAddProduct(p);
-                    setCatalogOpen(false);
-                  }}
-                  className="flex items-center gap-2.5 rounded-lg p-2 text-left text-xs transition-colors hover:bg-accent"
-                >
-                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                    <Image src={p.img} alt={p.name} fill sizes="40px" className="object-cover" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{p.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Talla {p.size} · {p.stock} disponibles
-                    </p>
-                  </div>
-                  <span className="font-mono font-bold text-foreground">{money(p.price)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <Button variant="success" size="sm" onClick={onOpenCharge}>
           <Wallet aria-hidden />
