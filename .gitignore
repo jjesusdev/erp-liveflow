@@ -11,3 +11,9 @@ tsconfig.tsbuildinfo
 diseno-live-flow-crm/
 dev.log
 server.log
+
+# Obsidian: estado de UI por máquina (no versionar)
+obsidian-vault/.obsidian/workspace.json
+obsidian-vault/.obsidian/workspace-mobile.json
+obsidian-vault/.obsidian/cache
+obsidian-vault/.obsidian/plugins/*/data.json

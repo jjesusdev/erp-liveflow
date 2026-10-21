@@ -4,5 +4,8 @@
   "newFileFolderPath": "06 - Investigación",
   "attachmentFolderPath": "99 - Assets",
   "useMarkdownLinks": true,
-  "showUnsupportedFiles": true
+  "showUnsupportedFiles": true,
+  "promptDelete": false,
+  "showFrontmatter": false,
+  "spellcheck": true
 }
