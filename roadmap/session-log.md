@@ -85,3 +85,4 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 
 - Comando correcto de Orca en Linux: `orca-ide` (nunca `orca`, que es el lector de pantalla GNOME).
 - `npx skills` es el package manager de skills; globales en `~/.agents/skills/`, proyecto en `.agents/skills/` (OpenCode también lee `.opencode/skills/`).
+- **Deduplicación**: se detectó una copia vieja en `~/proyectos/erp-liveflow` (WSL, en `cae4bb8`, sin `.opencode/`, sin `node_modules`). Se verificó que no tenía commits únicos ni procesos usándola y se eliminó. **Fuente única: `/mnt/c/Users/User/Documents/erp-liveflow`** (= `C:\Users\User\Documents\erp-liveflow`), accesible para OpenCode/Orca, Obsidian (Windows) y el navegador.
