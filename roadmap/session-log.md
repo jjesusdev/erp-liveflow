@@ -108,14 +108,18 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - `git rm -r obsidian-vault` en el repo de código.
 - Referencias actualizadas: `.gitignore`, `AGENTS.md` (estructura + tabla del cerebro), skills `erp-obsidian-notes`, `erp-feature-dev`, `erp-agents-md-revise`, `Home.md` del vault.
 - Pendientes de Sesión 3 marcados: plugins instalados, vault abierto.
+- **Entorno puesto a andar en ext4**: `.env` creado (`.env.example` alineado con `docker-compose.yml`: antes apuntaba a otra BD), Docker Desktop levantado, `docker compose up -d postgres` OK, `prisma db push` + `db:seed` OK, `npm run dev:fast` responde **HTTP 200** en `:3001`.
 
 ### Pendiente
 
 - [ ] El usuario abre el vault en Obsidian: **Open folder as vault** → `C:\Users\User\Documents\erp-vault`.
 - [ ] `git remote add` en el vault si se quiere backup en GitHub.
 - [ ] Eliminar la copia de C: (`C:\Users\User\Documents\erp-liveflow`) una vez confirmado el flujo en ext4 (decisión pendiente del usuario).
+- [ ] WhatsApp real: `auth_info` no existe → escanear QR al correr sin `dev:fast`.
+- [ ] `MP_ACCESS_TOKEN` real en `.env` cuando se prueben cobros.
 
 ### Notas
 
 - Fuente única del código: `~/proyectos/erp-liveflow` (ext4). La copia de C: es solo respaldo temporal.
 - El vault NO se versiona con el código; su historial vive en su propio repo.
+- **Docker desde WSL**: la distro Ubuntu no tiene integración con Docker Desktop; se usa el binario `docker.exe` (Windows) desde WSL, o se habilita _WSL Integration_ en Docker Desktop. Postgres queda en el puerto 5432 y es alcanzable desde WSL.
