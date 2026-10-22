@@ -9,15 +9,15 @@ Actualiza el **cerebro** del proyecto para que la próxima sesión arranque con 
 
 ## Archivos del cerebro
 
-| Archivo                  | Cuándo actualizar                                                       |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `roadmap/session-log.md` | **Siempre**: agregar entrada con contexto, decisiones, hecho, pendiente |
-| `AGENTS.md`              | Si cambiaron reglas, estructura o punteros                              |
-| `docs/*.md`              | Si cambió arquitectura, dominio, convenciones o herramientas            |
-| `product/modules.md`     | Si cambió el estado de un módulo                                        |
-| `product/backlog.md`     | Si se agregaron/resolvieron pendientes                                  |
-| `roadmap/roadmap.md`     | Si avanzó una fase                                                      |
-| `obsidian-vault/`        | Conocimiento extendido (notas, ADRs)                                    |
+| Archivo                     | Cuándo actualizar                                                           |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `roadmap/session-log.md`    | **Siempre**: agregar entrada con contexto, decisiones, hecho, pendiente     |
+| `AGENTS.md`                 | Si cambiaron reglas, estructura o punteros                                  |
+| `docs/*.md`                 | Si cambió arquitectura, dominio, convenciones o herramientas                |
+| `product/modules.md`        | Si cambió el estado de un módulo                                            |
+| `product/backlog.md`        | Si se agregaron/resolvieron pendientes                                      |
+| `roadmap/roadmap.md`        | Si avanzó una fase                                                          |
+| Vault de Obsidian (externo) | Conocimiento extendido (notas, ADRs) en `C:\Users\User\Documents\erp-vault` |
 
 ## Entrada de session-log
 

@@ -5,7 +5,13 @@ description: Escribir y mantener notas en el vault de Obsidian de ERP LiveFlow. 
 
 # ERP Obsidian Notes
 
-Cómo escribir notas en el vault de Obsidian del proyecto (`obsidian-vault/`).
+Cómo escribir notas en el vault de Obsidian de ERP LiveFlow (repo propio en `C:\Users\User\Documents\erp-vault`).
+
+## Ubicación
+
+- El vault vive en `C:\Users\User\Documents\erp-vault` (repo git propio, separado del código).
+- Desde WSL: `/mnt/c/Users/User/Documents/erp-vault`.
+- Se abre desde Windows en Obsidian: **Open folder as vault** → `C:\Users\User\Documents\erp-vault`.
 
 ## Convenciones del vault
 
@@ -35,6 +41,6 @@ Cómo escribir notas en el vault de Obsidian del proyecto (`obsidian-vault/`).
 
 ## Notas
 
-- El vault se abre desde Windows en `C:\Users\User\Documents\erp-liveflow\obsidian-vault`.
+- El vault vive fuera del repo de código, en `C:\Users\User\Documents\erp-vault` (accesible desde WSL en `/mnt/c/Users/User/Documents/erp-vault`).
 - El registro de sesiones "vivo" es `roadmap/session-log.md`; las notas del vault son la capa extendida.
 - Plugins necesarios: **Dataview**, **Templater**, **Obsidian Git**.

@@ -78,8 +78,8 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 ### Pendiente
 
 - [ ] Reiniciar OpenCode para aplicar `opencode-mem` (plugins se cargan al inicio).
-- [ ] Instalar plugins de Obsidian desde la app de Windows: **Dataview**, **Templater**, **Obsidian Git**.
-- [ ] Abrir el vault desde Windows en `C:\Users\User\Documents\erp-liveflow\obsidian-vault`.
+- [x] Instalar plugins de Obsidian desde la app de Windows: **Dataview**, **Templater**, **Obsidian Git** → instalados 2026-10-21
+- [x] Abrir el vault desde Windows → resuelto 2026-10-22 (vault extraído a `C:\Users\User\Documents\erp-vault`)
 
 ### Notas
 
@@ -87,3 +87,35 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - `npx skills` es el package manager de skills; globales en `~/.agents/skills/`, proyecto en `.agents/skills/` (OpenCode también lee `.opencode/skills/`).
 - **Deduplicación**: se detectó una copia vieja en `~/proyectos/erp-liveflow` (WSL, en `cae4bb8`, sin `.opencode/`, sin `node_modules`). Se verificó que no tenía commits únicos ni procesos usándola y se eliminó. **Fuente única: `/mnt/c/Users/User/Documents/erp-liveflow`** (= `C:\Users\User\Documents\erp-liveflow`), accesible para OpenCode/Orca, Obsidian (Windows) y el navegador.
 - **Mudanza a ext4**: el tooling en `/mnt/c` era 5-21× más lento (medido). Se clonó el repo a `~/proyectos/erp-liveflow` (ext4 nativo de WSL), se corrió `npm install` y se registró en Orca (`repo b1f976a6-...`). `typecheck` OK. **Pendiente**: crear `.env` desde `.env.example` y re-escanear el QR de WhatsApp. La copia de C: queda como respaldo hasta confirmar el cambio.
+
+---
+
+## 2026-10-22 — Sesión 4: El vault sale del repo (Opción A)
+
+### Contexto
+
+- Tras mudar el repo a ext4, el vault de Obsidian quedó dentro del repo → Obsidian (Windows) tendría que abrirlo por `\\wsl.localhost\...` (lento, tratado como red). El usuario preguntó si no conviene dejar Ubuntu y usar Windows para todo (solo Docker); tras revisar hechos, decidió **mantener OpenCode en WSL y solo separar el vault**.
+
+### Decisiones
+
+- **Vault como repo propio**: `obsidian-vault/` se extrajo del repo de código y vive ahora en `C:\Users\User\Documents\erp-vault` con `git init` propio (Obsidian Git trabaja ahí). Plugins (Dataview, Templater, Obsidian Git) incluidos en el repo del vault.
+- **Por qué nativo**: Obsidian es app de Windows; el vault es una capa de conocimiento, no código. Con vault nativo desaparece el conflicto WSL↔Windows para Obsidian, y el código sigue rápido en ext4.
+- **Evaluated y descartado (por ahora)**: migrar todo a Windows nativo — requiere instalar Node/git/OpenCode en Windows y migrar config/skills/memoria; se retoma solo si vuelve el lag o molesta el split.
+
+### Hecho
+
+- Copia verificada 36/36 archivos; `git init` + commit inicial del vault (`main`).
+- `git rm -r obsidian-vault` en el repo de código.
+- Referencias actualizadas: `.gitignore`, `AGENTS.md` (estructura + tabla del cerebro), skills `erp-obsidian-notes`, `erp-feature-dev`, `erp-agents-md-revise`, `Home.md` del vault.
+- Pendientes de Sesión 3 marcados: plugins instalados, vault abierto.
+
+### Pendiente
+
+- [ ] El usuario abre el vault en Obsidian: **Open folder as vault** → `C:\Users\User\Documents\erp-vault`.
+- [ ] `git remote add` en el vault si se quiere backup en GitHub.
+- [ ] Eliminar la copia de C: (`C:\Users\User\Documents\erp-liveflow`) una vez confirmado el flujo en ext4 (decisión pendiente del usuario).
+
+### Notas
+
+- Fuente única del código: `~/proyectos/erp-liveflow` (ext4). La copia de C: es solo respaldo temporal.
+- El vault NO se versiona con el código; su historial vive en su propio repo.

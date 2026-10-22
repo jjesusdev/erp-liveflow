@@ -54,7 +54,7 @@ Si el cambio es grande, correr `npm run build`. No afirmar que algo funciona sin
 ## 7. Review y documentación
 
 - `code-review` para cambios grandes; `requesting-code-review` antes de cerrar.
-- Documentar en `docs/`, `product/`, el vault (`obsidian-vault/`) y cerrar con `roadmap/session-log.md`.
+- Documentar en `docs/`, `product/`, el vault de Obsidian (`C:\Users\User\Documents\erp-vault`) y cerrar con `roadmap/session-log.md`.
 - Commit en español con prefijo semántico.
 
 ## 8. Reglas duras

@@ -27,7 +27,6 @@ erp-liveflow/
 │   ├── hooks/             ← useLeads, useShipments, useCaja, useChatPanel
 │   ├── lib/               ← api-handler, schemas, prisma, socket, format, audit
 │   └── types/             ← tipos compartidos
-├── obsidian-vault/        ← conocimiento en Obsidian (se abre desde Windows)
 └── .opencode/skills/      ← skills propias del proyecto
 ```
 
@@ -65,33 +64,33 @@ Antes de dar algo por terminado: `npm run typecheck && npm run lint && npm run t
 
 ## Flujo de trabajo (qué skill usar)
 
-| Necesidad | Skill |
-|---|---|
-| Entender/diseñar una feature antes de codear | `brainstorming` → `writing-plans` |
-| Implementar una feature con spec | `implement-spec` o `test-driven-development` |
-| Diseñar UI | `frontend-design` + `web-design-guidelines` |
-| Refactor de arquitectura | `improve-codebase-architecture` + `vercel-composition-patterns` |
-| Rendimiento React/Next.js | `vercel-react-best-practices` |
-| Review de cambios | `code-review` (grandes) / `requesting-code-review` |
-| Debuggear | `systematic-debugging` → `diagnosing-bugs` |
-| BD / Prisma | `supabase-postgres-best-practices` + `prisma-client-api` |
-| Actualizar el cerebro | `erp-agents-md-revise` (ver `.opencode/skills/`) |
-| Explorar el código | `erp-code-explorer` (ver `.opencode/skills/`) |
-| Coordinar subagentes | `orchestration` / `orca-cli` |
+| Necesidad                                    | Skill                                                           |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| Entender/diseñar una feature antes de codear | `brainstorming` → `writing-plans`                               |
+| Implementar una feature con spec             | `implement-spec` o `test-driven-development`                    |
+| Diseñar UI                                   | `frontend-design` + `web-design-guidelines`                     |
+| Refactor de arquitectura                     | `improve-codebase-architecture` + `vercel-composition-patterns` |
+| Rendimiento React/Next.js                    | `vercel-react-best-practices`                                   |
+| Review de cambios                            | `code-review` (grandes) / `requesting-code-review`              |
+| Debuggear                                    | `systematic-debugging` → `diagnosing-bugs`                      |
+| BD / Prisma                                  | `supabase-postgres-best-practices` + `prisma-client-api`        |
+| Actualizar el cerebro                        | `erp-agents-md-revise` (ver `.opencode/skills/`)                |
+| Explorar el código                           | `erp-code-explorer` (ver `.opencode/skills/`)                   |
+| Coordinar subagentes                         | `orchestration` / `orca-cli`                                    |
 
 ## Cerebro (archivos de contexto)
 
-| Archivo | Qué contiene | Cuándo leerlo |
-|---|---|---|
-| `roadmap/session-log.md` | Registro de sesiones y decisiones | **Siempre al inicio**; escribir al final |
-| `docs/architecture.md` | Arquitectura del sistema, capas, tiempo real, WhatsApp, pagos | Al tocar backend/server |
-| `docs/domain-model.md` | Entidades, relaciones y enums de Prisma | Al tocar `prisma/schema.prisma` |
-| `docs/conventions.md` | Convenciones de código y API | Al escribir código nuevo |
-| `docs/herramientas.md` | Herramientas y repos externos recomendados | Al evaluar nuevas herramientas |
-| `product/vision.md` | Visión y alcance | Al priorizar |
-| `product/modules.md` | Módulos y estado | Al planear features |
-| `product/backlog.md` | Pendientes priorizados | Al elegir qué hacer |
-| `obsidian-vault/` | Conocimiento extendido (se abre desde Windows) | Consulta puntual |
+| Archivo                     | Qué contiene                                                                     | Cuándo leerlo                            |
+| --------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| `roadmap/session-log.md`    | Registro de sesiones y decisiones                                                | **Siempre al inicio**; escribir al final |
+| `docs/architecture.md`      | Arquitectura del sistema, capas, tiempo real, WhatsApp, pagos                    | Al tocar backend/server                  |
+| `docs/domain-model.md`      | Entidades, relaciones y enums de Prisma                                          | Al tocar `prisma/schema.prisma`          |
+| `docs/conventions.md`       | Convenciones de código y API                                                     | Al escribir código nuevo                 |
+| `docs/herramientas.md`      | Herramientas y repos externos recomendados                                       | Al evaluar nuevas herramientas           |
+| `product/vision.md`         | Visión y alcance                                                                 | Al priorizar                             |
+| `product/modules.md`        | Módulos y estado                                                                 | Al planear features                      |
+| `product/backlog.md`        | Pendientes priorizados                                                           | Al elegir qué hacer                      |
+| Vault de Obsidian (externo) | Conocimiento extendido, en `C:\Users\User\Documents\erp-vault` (repo git propio) | Consulta puntual                         |
 
 ## Convenciones rápidas
 
