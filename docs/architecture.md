@@ -89,9 +89,33 @@ export const POST = (req: NextRequest) =>
 
 ## 7. Base de datos
 
-- PostgreSQL + Prisma ORM. Migraciones con `npx prisma db push` (sin migraciones SQL versionadas todavía).
+- PostgreSQL + Prisma ORM. Migraciones SQL versionadas (v2.0+).
 - Esquema en `prisma/schema.prisma` (ver `docs/domain-model.md`).
 - Regla: cambios no destructivos (columnas nuevas nullable, enums solo agregan valores).
+- Flujo de trabajo: crear migraciones en `prisma/migrations/<timestamp>_<nombre>/` y aplicar con `prisma migrate deploy` en producción y `prisma migrate dev` en desarrollo.
+
+### Migraciones versionadas
+
+Las migraciones se guardan en `prisma/migrations/` como carpetas con:
+
+- `migration.sql` - SQL statements a ejecutar
+- `migration.json` - metadata de Prisma
+
+### Agregar valores a enums (non-breaking)
+
+Nunca remover valores de enum existentes. Solo agregar nuevos valores:
+
+```sql
+ALTER TYPE "ShipmentStatus" ADD VALUE 'NUEVO_VALOR';
+```
+
+Ejemplo: `prisma/migrations/20240102000002_add_cancelled_shipment_status/migration.sql`
+
+### Aplicar en diferentes entornos
+
+- **Desarrollo**: `npx prisma migrate dev --name <nombre>` → crea y aplica migration
+- **Producción**: `npx prisma migrate deploy` → aplica migrations pendientes
+- **Ver estado**: `npx prisma migrate status` → muestra migrations aplicadas/pending
 
 ## 8. Frontend
 
