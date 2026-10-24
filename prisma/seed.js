@@ -1,41 +1,55 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
+
+// Generar hash scrypt para el password del operator (mismo algoritmo que auth.ts)
+const crypto = require("crypto");
+
+const SALT_BYTES = 16;
+const KEY_BYTES = 32;
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(SALT_BYTES);
+  const derivedKey = crypto.scryptSync(password, salt, KEY_BYTES);
+  const combined = Buffer.concat([salt, derivedKey]);
+  return combined.toString("base64");
+}
+
+const ADMIN_PASSWORD_HASH = hashPassword("admin123");
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 async function main() {
-  console.log('Sembrando datos de ejemplo...');
+  console.log("Sembrando datos de ejemplo...");
 
   const operator = await prisma.operator.upsert({
-    where: { email: 'admin@erp.local' },
+    where: { email: "admin@erp.local" },
     update: {},
     create: {
-      name: 'Administrador',
-      email: 'admin@erp.local',
-      role: 'ADMIN',
+      name: "Administrador",
+      email: "admin@erp.local",
+      role: "ADMIN",
       isOnline: true,
+      passwordHash: ADMIN_PASSWORD_HASH,
     },
   });
 
   await prisma.businessConfig.upsert({
-    where: { id: 'default' },
+    where: { id: "default" },
     update: {},
     create: {
-      id: 'default',
-      businessName: 'Live Shop MX',
-      currency: 'MXN',
-      timezone: 'America/Mexico_City',
-      businessHoursStart: '09:00',
-      businessHoursEnd: '22:00',
+      id: "default",
+      businessName: "Live Shop MX",
+      currency: "MXN",
+      timezone: "America/Mexico_City",
+      businessHoursStart: "09:00",
+      businessHoursEnd: "22:00",
       autoReplyEnabled: true,
       autoReplyDelayMs: 1200,
-      welcomeMessage:
-        'Hola! Gracias por escribirnos. En un momento te ayudamos con tu pedido.',
-      awayMessage:
-        'Ahora mismo estamos fuera de horario, te contestamos temprano.',
-      queueMessage: 'Estamos Saturados, tu mensaje fue recibido.',
+      welcomeMessage: "Hola! Gracias por escribirnos. En un momento te ayudamos con tu pedido.",
+      awayMessage: "Ahora mismo estamos fuera de horario, te contestamos temprano.",
+      queueMessage: "Estamos Saturados, tu mensaje fue recibido.",
     },
   });
 
@@ -44,117 +58,111 @@ async function main() {
     await prisma.product.createMany({
       data: [
         {
-          name: 'Playera Oversize Negra',
-          description: 'Algodon premium, talla M',
+          name: "Playera Oversize Negra",
+          description: "Algodon premium, talla M",
           price: 299,
-          currency: 'MXN',
-          category: 'Live',
-          imageUrl: 'https://placehold.co/400x400/png?text=Playera',
+          currency: "MXN",
+          category: "Live",
+          imageUrl: "https://placehold.co/400x400/png?text=Playera",
         },
         {
-          name: 'Gorra Oversize Beige',
-          description: 'Unitario, borde curvo',
+          name: "Gorra Oversize Beige",
+          description: "Unitario, borde curvo",
           price: 259,
-          currency: 'MXN',
-          category: 'Live',
-          imageUrl: 'https://placehold.co/400x400/png?text=Gorra',
+          currency: "MXN",
+          category: "Live",
+          imageUrl: "https://placehold.co/400x400/png?text=Gorra",
         },
         {
-          name: 'Set de Calcetas Antideslizantes',
-          description: 'Paquete de 3 pares',
+          name: "Set de Calcetas Antideslizantes",
+          description: "Paquete de 3 pares",
           price: 199,
-          currency: 'MXN',
-          category: 'Accesorios',
+          currency: "MXN",
+          category: "Accesorios",
         },
         {
-          name: 'Mochila Urbana Compacta',
-          description: 'Color azul marino',
+          name: "Mochila Urbana Compacta",
+          description: "Color azul marino",
           price: 549,
-          currency: 'MXN',
-          category: 'Accesorios',
+          currency: "MXN",
+          category: "Accesorios",
           isAvailable: false,
         },
       ],
     });
-    console.log('  Productos creados');
+    console.log("  Productos creados");
   }
 
   const now = Date.now();
 
   const seeds = [
     {
-      phone: '5215551230011',
-      name: 'Ana Ramirez',
-      source: 'TikTok Live',
+      phone: "5215551230011",
+      name: "Ana Ramirez",
+      source: "TikTok Live",
       lastInteractionAt: new Date(now - 0.5 * HOUR),
-      status: 'NEW',
-      texts: ['Hola, vi la playera negra en el live, sigue disponible?'],
+      status: "NEW",
+      texts: ["Hola, vi la playera negra en el live, sigue disponible?"],
     },
     {
-      phone: '5215551230022',
-      name: 'Carlos Mendoza',
-      source: 'TikTok Live',
+      phone: "5215551230022",
+      name: "Carlos Mendoza",
+      source: "TikTok Live",
       lastInteractionAt: new Date(now - 3 * HOUR),
-      status: 'ATTENTION',
-      texts: [
-        'Hola',
-        'Quiero dos gorras, cuanto me sale el envio?',
-        'Aceptan tarjeta?',
-      ],
+      status: "ATTENTION",
+      texts: ["Hola", "Quiero dos gorras, cuanto me sale el envio?", "Aceptan tarjeta?"],
     },
     {
-      phone: '5215551230033',
-      name: 'Lucia Herrera',
-      source: 'TikTok Ads',
+      phone: "5215551230033",
+      name: "Lucia Herrera",
+      source: "TikTok Ads",
       lastInteractionAt: new Date(now - 26 * HOUR),
-      status: 'AWAITING_PAYMENT',
-      texts: ['Buenas, me interesa el set de calcetas, como lo pago?'],
+      status: "AWAITING_PAYMENT",
+      texts: ["Buenas, me interesa el set de calcetas, como lo pago?"],
       payment: {
         amount: 199,
-        concept: 'Set de calcetas antideslizantes',
-        status: 'SENT',
+        concept: "Set de calcetas antideslizantes",
+        status: "SENT",
       },
     },
     {
-      phone: '5215551230044',
-      name: 'Miguel Torres',
-      source: 'TikTok Live',
+      phone: "5215551230044",
+      name: "Miguel Torres",
+      source: "TikTok Live",
       lastInteractionAt: new Date(now - 2 * DAY),
-      status: 'PAID',
-      texts: ['Perfecto, ya hice el pago'],
+      status: "PAID",
+      texts: ["Perfecto, ya hice el pago"],
       payment: {
         amount: 299,
-        concept: 'Playera oversize negra talla M',
-        status: 'PAID',
-        provider: 'MERCADOPAGO',
-        providerLinkUrl:
-          'https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=demo',
+        concept: "Playera oversize negra talla M",
+        status: "PAID",
+        provider: "MERCADOPAGO",
+        providerLinkUrl: "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=demo",
       },
       shipment: {
-        trackingNumber: 'MLM123456789MX',
-        carrier: 'Mercado Envios',
-        status: 'IN_TRANSIT',
+        trackingNumber: "MLM123456789MX",
+        carrier: "Mercado Envios",
+        status: "IN_TRANSIT",
       },
     },
     {
-      phone: '5215551230055',
-      name: 'Sofia Navarro',
-      source: 'TikTok Live',
+      phone: "5215551230055",
+      name: "Sofia Navarro",
+      source: "TikTok Live",
       lastInteractionAt: new Date(now - 5 * DAY),
-      status: 'SHIPPED',
-      texts: ['Gracias por el envio!'],
+      status: "SHIPPED",
+      texts: ["Gracias por el envio!"],
       payment: {
         amount: 549,
-        concept: 'Mochila urbana compacta',
-        status: 'PAID',
-        provider: 'MERCADOPAGO',
-        providerLinkUrl:
-          'https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=demo2',
+        concept: "Mochila urbana compacta",
+        status: "PAID",
+        provider: "MERCADOPAGO",
+        providerLinkUrl: "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=demo2",
       },
       shipment: {
-        trackingNumber: 'MLM987654321MX',
-        carrier: 'DHL',
-        status: 'DELIVERED',
+        trackingNumber: "MLM987654321MX",
+        carrier: "DHL",
+        status: "DELIVERED",
       },
     },
   ];
@@ -190,8 +198,8 @@ async function main() {
         firstResponseAt: seed.lastInteractionAt,
         messages: {
           create: seed.texts.map((content, i) => ({
-            direction: i === 0 ? 'INBOUND' : 'OUTBOUND',
-            type: 'TEXT',
+            direction: i === 0 ? "INBOUND" : "OUTBOUND",
+            type: "TEXT",
             content,
             fromPhone: i === 0 ? seed.phone : null,
             sentAt: new Date(base - (seed.texts.length - i) * 60000),
@@ -207,14 +215,14 @@ async function main() {
           conversationId: conversation.id,
           leadId: lead.id,
           amount: p.amount,
-          currency: 'MXN',
+          currency: "MXN",
           concept: p.concept,
           status: p.status,
-          provider: p.provider || 'MERCADOPAGO',
+          provider: p.provider || "MERCADOPAGO",
           providerLinkUrl: p.providerLinkUrl || null,
           createdById: operator.id,
-          sentAt: p.status !== 'PENDING' ? seed.lastInteractionAt : null,
-          paidAt: p.status === 'PAID' ? seed.lastInteractionAt : null,
+          sentAt: p.status !== "PENDING" ? seed.lastInteractionAt : null,
+          paidAt: p.status === "PAID" ? seed.lastInteractionAt : null,
         },
       });
     }
@@ -222,7 +230,7 @@ async function main() {
     if (seed.shipment) {
       const order = await prisma.paymentOrder.findFirst({
         where: { leadId: lead.id },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
 
       if (order) {
@@ -234,25 +242,24 @@ async function main() {
             trackingNumber: s.trackingNumber,
             carrier: s.carrier,
             status: s.status,
-            shippedAt: s.status === 'PENDING' ? null : seed.lastInteractionAt,
-            deliveredAt:
-              s.status === 'DELIVERED' ? seed.lastInteractionAt : null,
+            shippedAt: s.status === "PENDING" ? null : seed.lastInteractionAt,
+            deliveredAt: s.status === "DELIVERED" ? seed.lastInteractionAt : null,
           },
         });
       }
     }
   }
 
-  console.log('  Leads y conversaciones creados');
+  console.log("  Leads y conversaciones creados");
 
   const campaignCount = await prisma.campaign.count();
   if (campaignCount === 0) {
     await prisma.campaign.create({
       data: {
-        name: 'Promo del fin de semana',
+        name: "Promo del fin de semana",
         message:
-          'Hola! Este fin de semana tenemos 15% de descuento en todo el catalogo. Tu enlace de pago sigue vigente.',
-        status: 'SENT',
+          "Hola! Este fin de semana tenemos 15% de descuento en todo el catalogo. Tu enlace de pago sigue vigente.",
+        status: "SENT",
         createdById: operator.id,
         sentAt: new Date(now - 2 * DAY),
         totalLeads: seeds.length,
@@ -261,13 +268,13 @@ async function main() {
         recipients: {
           create: seeds.map((s) => ({
             lead: { connect: { phone: s.phone } },
-            status: 'SENT',
+            status: "SENT",
             sentAt: new Date(now - 2 * DAY),
           })),
         },
       },
     });
-    console.log('  Campana creada');
+    console.log("  Campana creada");
   }
 
   const totals = {
@@ -280,12 +287,12 @@ async function main() {
     campaigns: await prisma.campaign.count(),
   };
 
-  console.log('Seed completado:', totals);
+  console.log("Seed completado:", totals);
 }
 
 main()
   .catch((error) => {
-    console.error('Error en seed:', error);
+    console.error("Error en seed:", error);
     process.exit(1);
   })
   .finally(async () => {

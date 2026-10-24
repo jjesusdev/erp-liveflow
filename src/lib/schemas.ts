@@ -112,6 +112,10 @@ export const shipmentCreateSchema = z.object({
   trackingNumber: z.string().max(100).nullable().optional(),
   carrier: z.string().max(100).nullable().optional(),
   notes: z.string().max(1000).nullable().optional(),
+  carrierId: z.string().max(50).nullable().optional(),
+  mode: z.enum(["COURIER", "OWN_FLEET", "PICKUP"]).nullable().optional(),
+  service: z.string().max(120).nullable().optional(),
+  weightGrams: z.number().int().min(0).max(200000).nullable().optional(),
 });
 
 export const shipmentUpdateSchema = z.object({

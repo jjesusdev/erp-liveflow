@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { shipmentCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getCarrierProvider, type CreateShipmentContext } from "@/lib/carriers";
+import type { ShipmentMode } from "@prisma/client";
 
 const PAGE_SIZES = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 25;
@@ -159,19 +161,95 @@ export const GET = apiHandler({
   },
 });
 
+/**
+ * Construye el contexto para crear un envío en el carrier provider
+ */
+async function buildCreateShipmentContext(
+  shipmentId: string,
+  paymentOrder: {
+    id: string;
+    leadId: string;
+    concept: string;
+    amount: number;
+    currency: string;
+  },
+  lead: {
+    id: string;
+    name: string | null;
+    phone: string;
+    addressStreet: string | null;
+    addressNumber: string | null;
+    addressColonia: string | null;
+    addressCity: string | null;
+    addressState: string | null;
+    addressZipCode: string | null;
+    addressNotes: string | null;
+  },
+  body: {
+    trackingNumber?: string | null;
+    carrier?: string | null;
+    carrierId?: string | null;
+    mode?: ShipmentMode | null;
+    service?: string | null;
+    weightGrams?: number | null;
+    notes?: string | null;
+  },
+  carrierConfig: Record<string, unknown> = {}
+): Promise<CreateShipmentContext> {
+  return {
+    shipmentId,
+    trackingNumber: body.trackingNumber ?? undefined,
+    carrierName: body.carrier ?? undefined,
+    recipient: {
+      name: lead.name ?? "Sin nombre",
+      phone: lead.phone,
+      email: undefined,
+    },
+    address: {
+      street: lead.addressStreet ?? "",
+      number: lead.addressNumber ?? "",
+      colonia: lead.addressColonia ?? undefined,
+      city: lead.addressCity ?? "",
+      state: lead.addressState ?? "",
+      zipCode: lead.addressZipCode ?? "",
+      notes: lead.addressNotes ?? undefined,
+    },
+    dimensions: undefined,
+    weightGrams: body.weightGrams ?? undefined,
+    carrierConfig,
+    mode: body.mode ?? "COURIER",
+  };
+}
+
 export const POST = apiHandler({
   body: shipmentCreateSchema,
   handler: async (_req, body) => {
-    const { paymentOrderId, trackingNumber, carrier, notes } = body;
+    const {
+      paymentOrderId,
+      trackingNumber,
+      carrier,
+      notes,
+      carrierId,
+      mode,
+      service,
+      weightGrams,
+    } = body;
 
+    // Obtener paymentOrder con lead
     const paymentOrder = await prisma.paymentOrder.findUnique({
       where: { id: paymentOrderId },
+      include: { lead: true },
     });
 
     if (!paymentOrder) {
       return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
     }
 
+    if (!paymentOrder.lead) {
+      return NextResponse.json({ error: "Cliente no encontrado en el cobro" }, { status: 404 });
+    }
+
+    // Verificar si ya existe envío para este cobro
     const existing = await prisma.shipment.findUnique({
       where: { paymentOrderId },
     });
@@ -183,27 +261,124 @@ export const POST = apiHandler({
       );
     }
 
+    // Obtener carrier si se proporcionó carrierId
+    let carrierRef = null;
+    let carrierConfig: Record<string, unknown> = {};
+
+    if (carrierId) {
+      carrierRef = await prisma.carrier.findUnique({
+        where: { id: carrierId },
+      });
+
+      if (!carrierRef) {
+        return NextResponse.json({ error: "Carrier no encontrado" }, { status: 404 });
+      }
+
+      if (!carrierRef.active) {
+        return NextResponse.json({ error: "Carrier inactivo" }, { status: 400 });
+      }
+
+      carrierConfig = (carrierRef.config as Record<string, unknown>) ?? {};
+    }
+
+    // Crear el shipment inicial en PENDING
     const shipment = await prisma.shipment.create({
       data: {
         paymentOrderId,
         leadId: paymentOrder.leadId,
         trackingNumber: trackingNumber || null,
-        carrier: carrier || null,
+        carrier: carrier || carrierRef?.name || null,
+        mode: mode ?? null,
+        carrierId: carrierId ?? null,
+        service: service || null,
+        weightGrams: weightGrams ?? null,
         notes: notes || null,
         status: "PENDING",
       },
-      include: { lead: true, paymentOrder: true },
+      include: { lead: true, paymentOrder: true, carrierRef: true },
     });
 
+    // Si hay carrier con provider, intentar crear en el proveedor
+    let providerResult = null;
+    if (carrierRef?.apiProvider) {
+      const provider = getCarrierProvider(carrierRef.apiProvider);
+
+      if (provider) {
+        try {
+          const ctx = await buildCreateShipmentContext(
+            shipment.id,
+            {
+              id: paymentOrder.id,
+              leadId: paymentOrder.leadId,
+              concept: paymentOrder.concept,
+              amount: Number(paymentOrder.amount),
+              currency: paymentOrder.currency,
+            },
+            {
+              id: paymentOrder.lead.id,
+              name: paymentOrder.lead.name,
+              phone: paymentOrder.lead.phone,
+              addressStreet: paymentOrder.lead.addressStreet,
+              addressNumber: paymentOrder.lead.addressNumber,
+              addressColonia: paymentOrder.lead.addressColonia,
+              addressCity: paymentOrder.lead.addressCity,
+              addressState: paymentOrder.lead.addressState,
+              addressZipCode: paymentOrder.lead.addressZipCode,
+              addressNotes: paymentOrder.lead.addressNotes,
+            },
+            {
+              trackingNumber,
+              carrier: carrierRef.name,
+              carrierId,
+              mode: mode ?? "COURIER",
+              service,
+              weightGrams,
+              notes,
+            },
+            carrierConfig
+          );
+
+          providerResult = await provider.createShipment(ctx);
+
+          // Actualizar shipment con datos del provider
+          await prisma.shipment.update({
+            where: { id: shipment.id },
+            data: {
+              trackingNumber: providerResult.trackingNumber,
+              carrier: carrierRef.name,
+              providerRef: providerResult.providerRef,
+              labelUrl: providerResult.labelUrl ?? null,
+              trackingUrl: providerResult.trackingUrl ?? null,
+              service: providerResult.service ?? null,
+              costClp: providerResult.costClp ?? null,
+            },
+          });
+        } catch (providerError) {
+          console.error(
+            `[Carrier ${carrierRef.apiProvider}] Error creating shipment:`,
+            providerError
+          );
+          // No fallar la creación, solo loguear - el usuario puede reintentar
+        }
+      }
+    }
+
+    // Crear evento inicial
     await prisma.shipmentEvent.create({
       data: {
         shipmentId: shipment.id,
         status: "PENDING",
         source: "MANUAL",
-        note: "Envio creado",
+        note: carrierRef ? `Envio creado via ${carrierRef.name}` : "Envio creado",
       },
     });
 
-    return NextResponse.json(shipment);
+    // Retornar shipment actualizado
+    const updatedShipment = await prisma.shipment.findUnique({
+      where: { id: shipment.id },
+      include: { lead: true, paymentOrder: true, carrierRef: true },
+    });
+
+    return NextResponse.json(updatedShipment);
   },
 });

@@ -123,3 +123,29 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - Fuente única del código: `~/proyectos/erp-liveflow` (ext4). La copia de C: es solo respaldo temporal.
 - El vault NO se versiona con el código; su historial vive en su propio repo.
 - **Docker desde WSL**: la distro Ubuntu no tiene integración con Docker Desktop; se usa el binario `docker.exe` (Windows) desde WSL, o se habilita _WSL Integration_ en Docker Desktop. Postgres queda en el puerto 5432 y es alcanzable desde WSL.
+sed: no input files
+## 2026-10-23 -- Sesión X: Implementación autenticación operadores
+
+### Contexto
+- Se implementó autenticación de operadores con login POST /api/auth/login
+- Hash scrypt con crypto native Node 22
+- Resolución de operatorId verificando password contra passwordHash
+- Worktree aislado en branch jjesusdev/auth-operadores para trabajo paralelo en carriers
+
+### Hecho
+- ✅ typecheck: 0 errors
+- ✅ lint: 0 errors
+- ✅ test: 63 passed
+- ✅ auth endpoint POST /api/auth/login implementado y verificado
+- ✅ Worktree aislado permite trabajo paralelo en carriers
+
+### Pendiente
+- [ ] Revisar compatibilidad de implementación auth entre ramas
+- [ ] Actualizar seed.js con password hasheado cuando BD esté disponible
+- [ ] Agregar tests unitarios específicos auth.ts
+
+### Notas
+- Auth ya está implementado en master con hashPassword/comparePassword usando scrypt
+- La rama jjesusdev/auth-operadores tiene implementación alternativa con formato salt:hex
+- No fue necesario mergear por conflictos de implementación; master ya tiene auth funcional
+- Para continuar: verificar compatibilidad si se requieren cambios en auth flow
