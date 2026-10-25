@@ -6,7 +6,7 @@
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsx server/index.ts",
     "dev:fast": "cross-env NODE_OPTIONS=--max-old-space-size=4096 DISABLE_WHATSAPP=true DISABLE_WORKERS=true tsx server/index.ts",
     "build": "next build",
-    "start": "cross-env NODE_ENV=production tsx server/index.ts",
+    "start": "node_modules/.bin/tsx server/index.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
