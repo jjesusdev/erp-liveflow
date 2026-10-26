@@ -164,8 +164,13 @@ sed: no input files
 - ✅ Job `diagramas` en CI: falla si el SVG commiteado no coincide con el `.d2`
 - ✅ Regla en `AGENTS.md`: diagramas a mano, nunca generados por IA
 - ✅ typecheck 0 errores; lint 0 errores (119 warnings preexistentes)
+- ✅ Commits `f07ed11` + `7cc8e43` pusheados a `master`; CI run 40384858446 en verde (`ci` y `diagramas`)
 
 ### Pendiente
-- [ ] Commitear los cambios (`docs: diagramas como código con D2 y Mermaid`)
-- [ ] Evaluar un segundo D2 para el flujo operativo del live (clienta → cobro → envío)
-- [ ] Verificar render de Mermaid en GitHub tras el push
+- [ ] Verificar visualmente el render de Mermaid en GitHub (`docs/architecture.md`, `docs/domain-model.md`)
+- [ ] Evaluar un segundo D2 para el flujo operativo del live (clienta → cobro → envío), si el usuario lo pide
+
+### Notas
+- `d2` no está en `package.json` (es binario, no dependencia npm): en otra máquina hay que instalarlo con el comando de `docs/diagramas/README.md`.
+- El instalador oficial de d2 falla en WSL sin `make`; el binario queda en `~/.local/lib/d2/d2-*/bin/d2` y se enlaza a `~/.local/bin/d2`.
+- Primer intento de CI falló en `f07ed11`: el job `diagramas` quedó dentro del job `ci` y se llevó el step `Build` sin `npm ci`. Corregido en `7cc8e43`.
