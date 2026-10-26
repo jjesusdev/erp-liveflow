@@ -59,6 +59,13 @@ jobs:
         env:
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
 
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NODE_ENV: "production"
+
   diagramas:
     runs-on: ubuntu-latest
     steps:
@@ -74,10 +81,3 @@ jobs:
 
       - name: Verificar que los SVG estén al día
         run: git diff --exit-code -- docs/diagramas
-
-      - name: Build
-        run: npm run build
-        env:
-          DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NODE_ENV: "production"
