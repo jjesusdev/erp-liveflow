@@ -1,0 +1,124 @@
+# Arquitectura — ERP LiveFlow
+# Fuente de verdad del diagrama. Editar este archivo (no el SVG).
+# Render: npm run diagramas
+
+direction: right
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 40
+  }
+}
+
+title: |md
+  # ERP LiveFlow — arquitectura
+  **Monolito modular**: un solo proceso Node con Next.js, Socket.io, Baileys y workers en proceso.
+| {
+  near: top-center
+  style.font-size: 22
+}
+
+operadora: Operadora {
+  shape: person
+  style.stroke: "#10b981"
+  style.stroke-width: 2
+}
+
+clienta: Clienta {
+  shape: person
+  style.stroke: "#a1a1aa"
+}
+
+navegador: Navegador {
+  label: "Navegador\nReact 19 + Tailwind"
+  style.stroke: "#a1a1aa"
+}
+
+whatsapp: WhatsApp {
+  shape: cloud
+  style.fill: "#f0fdf4"
+  style.stroke: "#10b981"
+}
+
+servidor: "Custom server :3001" {
+  style.stroke: "#10b981"
+  style.stroke-width: 2
+  style.fill: "#fafafa"
+
+  next: "Next.js 15\nApp Router + RSC"
+  socket: "Socket.io\n/api/socketio"
+  api: "API Routes\napiHandler + Zod"
+  baileys: "Baileys\nserver/whatsapp"
+  workers: "Workers en proceso\ncampañas 60 s · expiración 45 s"
+}
+
+datos: "Datos" {
+  style.fill: "#fafafa"
+  style.stroke: "#d4d4d8"
+  style.stroke-dash: 3
+
+  prisma: Prisma Client {
+    style.stroke: "#a1a1aa"
+  }
+
+  db: PostgreSQL {
+    shape: cylinder
+    style.stroke: "#3b82f6"
+  }
+}
+
+externos: "Servicios externos" {
+  style.fill: "#fafafa"
+  style.stroke: "#d4d4d8"
+  style.stroke-dash: 3
+
+  mp: MercadoPago {
+    style.stroke: "#3b82f6"
+  }
+  cloudinary: Cloudinary {
+    style.stroke: "#a1a1aa"
+  }
+}
+
+# --- Usuarios y entradas ---
+operadora -> navegador: "opera el CRM" {
+  style.stroke: "#10b981"
+}
+clienta -> whatsapp: "escribe" {
+  style.stroke: "#a1a1aa"
+}
+whatsapp -> servidor.baileys: "WhatsApp Web (WS)" {
+  style.stroke: "#10b981"
+  style.stroke-width: 2
+}
+navegador -> servidor.next: "HTTP / RSC" {
+  style.stroke: "#a1a1aa"
+}
+navegador <-> servidor.socket: "WebSocket" {
+  style.stroke: "#10b981"
+  style.stroke-dash: 4
+}
+
+# --- Persistencia ---
+servidor.baileys -> datos.prisma: "persiste" {
+  style.stroke: "#a1a1aa"
+}
+servidor.api -> datos.prisma: "" {
+  style.stroke: "#a1a1aa"
+}
+servidor.workers -> datos.prisma: "" {
+  style.stroke: "#a1a1aa"
+}
+datos.prisma -> datos.db: "SQL" {
+  style.stroke: "#3b82f6"
+}
+
+# --- Salidas ---
+servidor.api <-> externos.mp: "link de pago ⇄ webhook" {
+  style.stroke: "#3b82f6"
+}
+servidor.api -> externos.cloudinary: "media" {
+  style.stroke: "#a1a1aa"
+}

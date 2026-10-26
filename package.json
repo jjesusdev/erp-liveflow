@@ -11,6 +11,8 @@
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
+    "diagramas": "bash scripts/diagramas.sh",
+    "diagramas:watch": "bash scripts/diagramas.sh --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",

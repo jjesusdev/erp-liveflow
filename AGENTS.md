@@ -47,6 +47,7 @@ npm run test
 npm run db:push
 npm run db:seed
 npm run db:studio
+npm run diagramas     # regenera docs/diagramas/*.svg desde los .d2
 ```
 
 Antes de dar algo por terminado: `npm run typecheck && npm run lint && npm run test`. En cambios grandes, correr `npm run build` también.
@@ -59,6 +60,7 @@ Antes de dar algo por terminado: `npm run typecheck && npm run lint && npm run t
 - **API**: toda ruta nueva usa `apiHandler` + esquemas Zod (`src/lib/api-handler.ts`, `src/lib/schemas.ts`). Paginación server-side (patrón de `/api/leads`).
 - **UI**: paleta dark zinc + emerald. Reutilizar `src/components/ui` (Radix/Base UI) y el design system de `src/components/liveflow`. No introducir dependencias de UI nuevas sin justificarlas.
 - **BD**: cambios de esquema con `npx prisma db push` y pensando en datos existentes (columnas nuevas nullable, enums solo se **agregan** valores).
+- **Diagramas**: se escriben a mano en texto — D2 (`docs/diagramas/*.d2`) o Mermaid (dentro del `.md`). **No** generar diagramas con IA ni pegar capturas. Si cambia la arquitectura o el modelo, actualizar el diagrama y correr `npm run diagramas`.
 - **No borrar/reescribir trabajo ajeno** sin entenderlo primero.
 - **Commits en español**, prefijos semánticos (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`).
 
@@ -87,6 +89,7 @@ Antes de dar algo por terminado: `npm run typecheck && npm run lint && npm run t
 | `docs/domain-model.md`      | Entidades, relaciones y enums de Prisma                                          | Al tocar `prisma/schema.prisma`          |
 | `docs/conventions.md`       | Convenciones de código y API                                                     | Al escribir código nuevo                 |
 | `docs/herramientas.md`      | Herramientas y repos externos recomendados                                       | Al evaluar nuevas herramientas           |
+| `docs/diagramas/`           | Diagramas D2 (fuente + SVG) y guía de Mermaid                                    | Al cambiar arquitectura o dominio        |
 | `product/vision.md`         | Visión y alcance                                                                 | Al priorizar                             |
 | `product/modules.md`        | Módulos y estado                                                                 | Al planear features                      |
 | `product/backlog.md`        | Pendientes priorizados                                                           | Al elegir qué hacer                      |

@@ -149,3 +149,23 @@ sed: no input files
 - La rama jjesusdev/auth-operadores tiene implementación alternativa con formato salt:hex
 - No fue necesario mergear por conflictos de implementación; master ya tiene auth funcional
 - Para continuar: verificar compatibilidad si se requieren cambios en auth flow
+
+## 2026-10-26 -- Sesión: Diagramas como código (D2 + Mermaid)
+
+### Contexto
+- Los diagramas se resolvían con imágenes generadas por IA o ASCII dibujado a mano: no se revisan en diff y se desactualizan solos.
+
+### Hecho
+- ✅ d2 v0.9.0 instalado sin sudo (`~/.local/bin/d2`, enlazado desde `~/.local/lib/d2`)
+- ✅ `docs/diagramas/arquitectura.d2` → `arquitectura.svg` con la arquitectura real (custom server, Socket.io, Baileys, workers, Prisma, externos)
+- ✅ Mermaid en `docs/architecture.md`: secuencia de una orden de cobro + estados de `PaymentOrder`
+- ✅ Mermaid en `docs/domain-model.md`: ER de 12 entidades + estados de `Shipment`
+- ✅ `npm run diagramas` / `npm run diagramas:watch` (`scripts/diagramas.sh`)
+- ✅ Job `diagramas` en CI: falla si el SVG commiteado no coincide con el `.d2`
+- ✅ Regla en `AGENTS.md`: diagramas a mano, nunca generados por IA
+- ✅ typecheck 0 errores; lint 0 errores (119 warnings preexistentes)
+
+### Pendiente
+- [ ] Commitear los cambios (`docs: diagramas como código con D2 y Mermaid`)
+- [ ] Evaluar un segundo D2 para el flujo operativo del live (clienta → cobro → envío)
+- [ ] Verificar render de Mermaid en GitHub tras el push

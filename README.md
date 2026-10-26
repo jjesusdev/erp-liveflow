@@ -11,6 +11,10 @@
 
 **LiveFlow CRM** es una plataforma operativa disenada para transmisiones de **Live Shopping** (TikTok, Instagram, YouTube Live) integrada a WhatsApp para emitir **ordenes de cobro express al vuelo** sin depender de inventario estricto.
 
+![Arquitectura](./docs/diagramas/arquitectura.svg)
+
+> Diagrama escrito a mano en `docs/diagramas/arquitectura.d2`. Regenerar con `npm run diagramas`.
+
 ---
 
 ## Stack Tecnologico

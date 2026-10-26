@@ -70,6 +70,22 @@ sudo apt update && sudo apt install -y fzf ripgrep
 | [Figma](https://www.figma.com/)     | Diseño/prototipos                          | 🟡 Evaluar                             |
 | Skills de diseño                    | `frontend-design`, `web-design-guidelines` | ✅ Instaladas                          |
 
+## Diagramas
+
+Diagramas escritos a mano en texto (nunca generados por IA), versionados en git. Guía completa en `docs/diagramas/README.md`.
+
+| Herramienta                                   | Uso acá                                                                 | Estado              |
+| --------------------------------------------- | ----------------------------------------------------------------------- | ------------------- |
+| [D2](https://github.com/d2lang/d2)            | Arquitectura en `docs/diagramas/*.d2` → SVG commiteado (`npm run diagramas`) | ✅ Implementada     |
+| [Mermaid](https://github.com/mermaid-js/mermaid) | ER, secuencias y estados dentro de `docs/*.md` (render nativo GitHub/Obsidian) | ✅ Implementada     |
+| [Excalidraw](https://github.com/excalidraw/excalidraw) | Bocetos a mano alzada, solo si hacen falta                         | 🟡 Evaluar          |
+| `diagram-design` / skills de diagramas por IA | Generan SVG "bonitos" pero no revisables en diff                        | ❌ No (queremos autoría y diff) |
+
+```bash
+npm run diagramas         # regenera los SVG desde los .d2
+npm run diagramas:watch   # re-render al guardar
+```
+
 ## Infra y despliegue
 
 | Herramienta                        | Uso acá                                                                   | Estado     |

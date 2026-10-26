@@ -4,24 +4,146 @@
 
 ## Diagrama de relaciones (resumen)
 
-```
-Lead 1───* Conversation 1───* Message
- │             │
- │             ├──* PaymentOrder 1───1 Shipment 1───* ShipmentEvent
- │             │
- │             └── (LiveSession 1───* PaymentOrder)
- ├──* Shipment
- ├──* PaymentOrder
- └──* CampaignRecipient *───1 Campaign
+```mermaid
+erDiagram
+    Lead ||--o{ Conversation : "abre"
+    Conversation ||--o{ Message : "contiene"
+    Conversation ||--o{ PaymentOrder : "genera"
+    Lead ||--o{ PaymentOrder : "debe"
+    Lead ||--o{ Shipment : "recibe"
+    LiveSession ||--o{ PaymentOrder : "agrupa"
+    PaymentOrder ||--|| Shipment : "1 a 1"
+    Shipment ||--o{ ShipmentEvent : "historial"
+    Carrier ||--o{ Shipment : "transporta"
+    Operator ||--o{ Conversation : "atiende"
+    Operator ||--o{ PaymentOrder : "crea"
+    Campaign ||--o{ CampaignRecipient : "envía"
+    Lead ||--o{ CampaignRecipient : "recibe"
 
-Operator 1───* Conversation (asignación)
-Operator 1───* PaymentOrder (creador)
-Product (catálogo, independiente)
-Carrier 1───* Shipment
-MessageTemplate (plantillas, independiente)
-BotConfig / BusinessConfig (configuración, 1 fila)
-ActivityLog (auditoría)
+    Lead {
+        uuid id PK
+        string phone UK
+        string name
+        string source
+        datetime firstContactAt
+        datetime lastInteractionAt
+    }
+
+    Conversation {
+        uuid id PK
+        uuid leadId FK
+        ConversationStatus status
+        int priority
+        uuid assignedToId FK
+        datetime lastMessageAt
+        datetime closedAt
+    }
+
+    Message {
+        uuid id PK
+        uuid conversationId FK
+        Direction direction
+        MessageType type
+        string content
+        string whatsappMsgId
+        datetime sentAt
+    }
+
+    PaymentOrder {
+        uuid id PK
+        uuid conversationId FK
+        uuid leadId FK
+        uuid liveSessionId FK
+        decimal amount
+        string currency
+        PaymentStatus status
+        PaymentProvider provider
+        datetime expiresAt
+    }
+
+    LiveSession {
+        uuid id PK
+        string title
+        string platform
+        string status
+        datetime startedAt
+    }
+
+    Shipment {
+        uuid id PK
+        uuid paymentOrderId FK
+        uuid leadId FK
+        uuid carrierId FK
+        ShipmentStatus status
+        ShipmentMode mode
+        string trackingNumber
+    }
+
+    ShipmentEvent {
+        uuid id PK
+        uuid shipmentId FK
+        ShipmentStatus status
+        EventSource source
+        datetime occurredAt
+    }
+
+    Carrier {
+        uuid id PK
+        string code
+        string name
+        CarrierMode mode
+        CarrierApiProvider apiProvider
+    }
+
+    Operator {
+        uuid id PK
+        string email UK
+        OperatorRole role
+        int currentLoad
+        boolean isOnline
+    }
+
+    Campaign {
+        uuid id PK
+        string name
+        CampaignStatus status
+        datetime scheduledAt
+    }
+
+    CampaignRecipient {
+        uuid id PK
+        uuid campaignId FK
+        uuid leadId FK
+        RecipientStatus status
+    }
 ```
+
+Tablas sin relaciones (catálogo y configuración): `Product`, `MessageTemplate`, `BotConfig`, `BusinessConfig`, `ActivityLog`.
+
+### Estados de un envío
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> READY: preparado
+    READY --> LABEL_PRINTED: etiqueta impresa
+    LABEL_PRINTED --> PICKED_UP: retiro
+    PICKED_UP --> IN_TRANSIT
+    IN_TRANSIT --> OUT_FOR_DELIVERY
+    OUT_FOR_DELIVERY --> DELIVERED
+    OUT_FOR_DELIVERY --> FAILED: intento fallido
+    FAILED --> OUT_FOR_DELIVERY: reintento
+    FAILED --> RETURNED: devolución
+    IN_TRANSIT --> LOST: extraviado
+    PENDING --> CANCELLED
+    READY --> CANCELLED
+    DELIVERED --> [*]
+    RETURNED --> [*]
+    LOST --> [*]
+    CANCELLED --> [*]
+```
+
+Cada transición se registra en `ShipmentEvent` (`source`: `MANUAL`, `API` o `WEBHOOK`).
 
 ## Entidades
 

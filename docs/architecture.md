@@ -6,22 +6,9 @@
 
 Aplicación **full-stack en un solo repositorio** (monolito modular) con Next.js 15 y un **custom server** (Express/Node HTTP) que además levanta **Socket.io** y **Baileys** (WhatsApp Web). No hay microservicios.
 
-```
-Navegador (React 19)
-   │  HTTP (App Router + API routes)
-   │  WebSocket (Socket.io, path /api/socketio)
-   ▼
-Custom server (server/index.ts) ── Express/Node + Next
-   ├── Socket.io handlers  (server/socket/handlers.ts)
-   ├── WhatsApp Baileys    (server/whatsapp/*)
-   ├── Workers en proceso (campañas, expiración)
-   └── Next.js API routes  (src/app/api/*)
-            │
-            ▼
-      PostgreSQL + Prisma  (prisma/schema.prisma)
-            │
-            └── MercadoPago / Stripe / Cloudinary (HTTP externo)
-```
+![Arquitectura de ERP LiveFlow](./diagramas/arquitectura.svg)
+
+> Fuente del diagrama: [`diagramas/arquitectura.d2`](./diagramas/arquitectura.d2). Se regenera con `npm run diagramas`; no editar el `.svg` a mano.
 
 ## 2. Capas
 
@@ -67,6 +54,58 @@ El cliente se conecta con `useSocket()` (`src/lib/socket.ts`).
 - Proveedores modelados en `PaymentProvider` (MERCADOPAGO, STRIPE, PAYPAL, CASH, TRANSFER).
 - `PaymentOrder` es el eje: enlaza `Conversation`, `Lead`, opcional `LiveSession` y un `Shipment` (1:1).
 - Expiración automática de órdenes PENDING (worker) según `BusinessConfig.orderExpirationMinutes`.
+
+### Flujo de una orden de cobro
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Clienta
+    participant W as WhatsApp (Baileys)
+    participant O as Operadora
+    participant API as API Routes
+    participant WK as Worker (45 s)
+    participant MP as MercadoPago
+
+    C->>W: pide el producto durante el Live
+    W->>API: mensaje entrante (Baileys)
+    API-->>O: socket message:new
+    O->>API: POST /api/payment-orders
+    API->>API: valida Zod y crea PENDING
+    alt MercadoPago
+        API->>MP: crea preferencia (external_reference = order.id)
+        MP-->>API: link de pago
+    else Transferencia / efectivo
+        API->>API: arma datos bancarios desde BusinessConfig
+    end
+    API->>W: envía el link por WhatsApp
+    API-->>O: socket payment:updated
+    C->>MP: paga
+    MP->>API: webhook payment.created
+    API->>API: $transaction → PAID + Conversation PAID + Shipment PENDING
+    API-->>O: socket payment:confirmed / shipment:created
+    Note over WK,API: si expiresAt pasa sin pago, el worker marca EXPIRED
+    WK->>API: libera stock y avisa a la clienta por WhatsApp
+```
+
+### Estados de una orden
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> SENT: link enviado
+    SENT --> PAID: webhook aprobado
+    PENDING --> PAID: pago directo / efectivo
+    PENDING --> EXPIRED: worker (expiresAt)
+    SENT --> EXPIRED: worker (expiresAt)
+    PENDING --> CANCELLED: cancelación manual
+    SENT --> CANCELLED: cancelación manual
+    PAID --> REFUNDED: devolución
+    PAID --> [*]
+    EXPIRED --> [*]
+    CANCELLED --> [*]
+    REFUNDED --> [*]
+```
 
 ## 6. API
 
