@@ -165,12 +165,13 @@ sed: no input files
 - ✅ Regla en `AGENTS.md`: diagramas a mano, nunca generados por IA
 - ✅ typecheck 0 errores; lint 0 errores (119 warnings preexistentes)
 - ✅ Commits `f07ed11` + `7cc8e43` pusheados a `master`; CI run 40384858446 en verde (`ci` y `diagramas`)
+- ✅ Render de los 4 bloques Mermaid verificado en navegador real (`mermaid-cli` + Chromium en WSL)
 
 ### Pendiente
-- [ ] Verificar visualmente el render de Mermaid en GitHub (`docs/architecture.md`, `docs/domain-model.md`)
 - [ ] Evaluar un segundo D2 para el flujo operativo del live (clienta → cobro → envío), si el usuario lo pide
 
 ### Notas
 - `d2` no está en `package.json` (es binario, no dependencia npm): en otra máquina hay que instalarlo con el comando de `docs/diagramas/README.md`.
 - El instalador oficial de d2 falla en WSL sin `make`; el binario queda en `~/.local/lib/d2/d2-*/bin/d2` y se enlaza a `~/.local/bin/d2`.
 - Primer intento de CI falló en `f07ed11`: el job `diagramas` quedó dentro del job `ci` y se llevó el step `Build` sin `npm ci`. Corregido en `7cc8e43`.
+- **Chromium en WSL resuelto sin sudo**: Ubuntu 26.04 no trae `libnspr4`, `libnss3` ni `libasound2`; se extrajeron los `.deb` a `~/.local/lib/chromium-deps` y se exporta `LD_LIBRARY_PATH` desde `~/.bashrc` y `~/.profile`. Envoltorios: `~/.local/bin/chromium-playwright` y `~/.local/bin/mmdc`. El MCP de Playwright quedó apuntando a ese Chromium (`--executable-path` en `~/.config/opencode/opencode.json`).
