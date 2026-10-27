@@ -8,6 +8,7 @@ import type { CarrierApiProvider } from "@prisma/client";
 import { manualProvider } from "./manual";
 import { shipitProvider } from "./providers/shipit";
 import { enviameProvider } from "./providers/enviame";
+import { chilexpressProvider } from "./providers/chilexpress";
 
 /**
  * Registro interno de proveedores
@@ -56,9 +57,9 @@ export function initializeCarrierRegistry(): void {
   // Fase 4 - Proveedores implementados
   registerCarrierProvider(shipitProvider);
   registerCarrierProvider(enviameProvider);
+  registerCarrierProvider(chilexpressProvider);
 
   // TODO: Fase 4.2+ - Registrar otros proveedores cuando se implementen
-  // registerCarrierProvider(chilexpressProvider);
   // registerCarrierProvider(blueProvider);
   // registerCarrierProvider(starkenProvider);
   // registerCarrierProvider(correosProvider);
