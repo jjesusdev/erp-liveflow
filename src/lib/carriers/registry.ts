@@ -9,6 +9,7 @@ import { manualProvider } from "./manual";
 import { shipitProvider } from "./providers/shipit";
 import { enviameProvider } from "./providers/enviame";
 import { chilexpressProvider } from "./providers/chilexpress";
+import { blueProvider } from "./providers/blue";
 
 /**
  * Registro interno de proveedores
@@ -58,9 +59,9 @@ export function initializeCarrierRegistry(): void {
   registerCarrierProvider(shipitProvider);
   registerCarrierProvider(enviameProvider);
   registerCarrierProvider(chilexpressProvider);
+  registerCarrierProvider(blueProvider);
 
   // TODO: Fase 4.2+ - Registrar otros proveedores cuando se implementen
-  // registerCarrierProvider(blueProvider);
   // registerCarrierProvider(starkenProvider);
   // registerCarrierProvider(correosProvider);
   // registerCarrierProvider(simplirouteProvider);
