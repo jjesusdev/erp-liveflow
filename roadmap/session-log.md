@@ -123,16 +123,19 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - Fuente única del código: `~/proyectos/erp-liveflow` (ext4). La copia de C: es solo respaldo temporal.
 - El vault NO se versiona con el código; su historial vive en su propio repo.
 - **Docker desde WSL**: la distro Ubuntu no tiene integración con Docker Desktop; se usa el binario `docker.exe` (Windows) desde WSL, o se habilita _WSL Integration_ en Docker Desktop. Postgres queda en el puerto 5432 y es alcanzable desde WSL.
-sed: no input files
+  sed: no input files
+
 ## 2026-10-23 -- Sesión X: Implementación autenticación operadores
 
 ### Contexto
+
 - Se implementó autenticación de operadores con login POST /api/auth/login
 - Hash scrypt con crypto native Node 22
 - Resolución de operatorId verificando password contra passwordHash
 - Worktree aislado en branch jjesusdev/auth-operadores para trabajo paralelo en carriers
 
 ### Hecho
+
 - ✅ typecheck: 0 errors
 - ✅ lint: 0 errors
 - ✅ test: 63 passed
@@ -140,11 +143,13 @@ sed: no input files
 - ✅ Worktree aislado permite trabajo paralelo en carriers
 
 ### Pendiente
+
 - [ ] Revisar compatibilidad de implementación auth entre ramas
 - [ ] Actualizar seed.js con password hasheado cuando BD esté disponible
 - [ ] Agregar tests unitarios específicos auth.ts
 
 ### Notas
+
 - Auth ya está implementado en master con hashPassword/comparePassword usando scrypt
 - La rama jjesusdev/auth-operadores tiene implementación alternativa con formato salt:hex
 - No fue necesario mergear por conflictos de implementación; master ya tiene auth funcional
@@ -153,9 +158,11 @@ sed: no input files
 ## 2026-10-26 -- Sesión: Diagramas como código (D2 + Mermaid)
 
 ### Contexto
+
 - Los diagramas se resolvían con imágenes generadas por IA o ASCII dibujado a mano: no se revisan en diff y se desactualizan solos.
 
 ### Hecho
+
 - ✅ d2 v0.9.0 instalado sin sudo (`~/.local/bin/d2`, enlazado desde `~/.local/lib/d2`)
 - ✅ `docs/diagramas/arquitectura.d2` → `arquitectura.svg` con la arquitectura real (custom server, Socket.io, Baileys, workers, Prisma, externos)
 - ✅ Mermaid en `docs/architecture.md`: secuencia de una orden de cobro + estados de `PaymentOrder`
@@ -168,10 +175,46 @@ sed: no input files
 - ✅ Render de los 4 bloques Mermaid verificado en navegador real (`mermaid-cli` + Chromium en WSL)
 
 ### Pendiente
+
 - [ ] Evaluar un segundo D2 para el flujo operativo del live (clienta → cobro → envío), si el usuario lo pide
 
 ### Notas
+
 - `d2` no está en `package.json` (es binario, no dependencia npm): en otra máquina hay que instalarlo con el comando de `docs/diagramas/README.md`.
 - El instalador oficial de d2 falla en WSL sin `make`; el binario queda en `~/.local/lib/d2/d2-*/bin/d2` y se enlaza a `~/.local/bin/d2`.
 - Primer intento de CI falló en `f07ed11`: el job `diagramas` quedó dentro del job `ci` y se llevó el step `Build` sin `npm ci`. Corregido en `7cc8e43`.
 - **Chromium en WSL resuelto sin sudo**: Ubuntu 26.04 no trae `libnspr4`, `libnss3` ni `libasound2`; se extrajeron los `.deb` a `~/.local/lib/chromium-deps` y se exporta `LD_LIBRARY_PATH` desde `~/.bashrc` y `~/.profile`. Envoltorios: `~/.local/bin/chromium-playwright` y `~/.local/bin/mmdc`. El MCP de Playwright quedó apuntando a ese Chromium (`--executable-path` en `~/.config/opencode/opencode.json`).
+
+---
+
+## 2026-10-27 — Sesión: Conectores de carriers Fase 4 inicio
+
+### Contexto
+
+- Inicio de Fase 4 Conectores de carriers según backlog alta prioridad y `docs/shipments-plan.md`.
+- Se creó plan detallado en `docs/plan-carriers-fase4.md`.
+
+### Hecho
+
+- ✅ Auditoría de infraestructura carriers completada; carpeta `src/lib/carriers/providers` creada
+- ✅ `src/lib/carriers/base.ts` — clase base abstracta BaseCarrierProvider con helpers
+- ✅ `src/lib/carriers/utils/http.ts` — fetchWithRetry y parseProviderError
+- ✅ `src/lib/schemas.ts` — carrierConfigSchemas para MANUAL, SHIPIT, ENVIAME, CHILEXPRESS, BLUE
+- ✅ `src/lib/carriers/providers/shipit.ts` — ShipitProvider implementado
+- ✅ `src/lib/carriers/providers/enviame.ts` — EnviameProvider implementado
+- ✅ `src/lib/carriers/registry.ts` actualizado para registrar Shipit y Enviame
+- ✅ `typecheck` 0 errores
+- ✅ Commit `ab77502` feat(carriers): base provider, utils http y schemas config; Shipit y Enviame providers registrados
+
+### Pendiente
+
+- [ ] Implementar providers Chilexpress, Blue, Starken, Correos, SimpliRoute, Beetrack
+- [ ] Integrar llamada real a APIs en createShipment para Shipit/Enviame
+- [ ] Actualizar API `/api/shipments` para invocar provider según carrier
+- [ ] Tests unitarios con mocks para Shipit/Enviame
+- [ ] UI Configuración dinámica por requiredConfig
+
+### Notas
+
+- Infra lista para plug-in. MANUAL sigue por defecto.
+- Se usaron subagentes para auditoría, base, utils, providers.
