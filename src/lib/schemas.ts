@@ -296,3 +296,39 @@ export const sweepRecoverySchema = z.object({
 });
 
 export type SweepRecoveryInput = z.infer<typeof sweepRecoverySchema>;
+
+// ── Carriers Config ─────────────────────────────────────────────────
+
+export const carrierConfigSchemas = {
+  MANUAL: z.object({}).optional(),
+  SHIPIT: z
+    .object({
+      apiKey: z.string().min(1),
+      apiSecret: z.string().min(1),
+    })
+    .optional(),
+  ENVIAME: z
+    .object({
+      apiKey: z.string().min(1),
+    })
+    .optional(),
+  CHILEXPRESS: z
+    .object({
+      clientId: z.string().min(1),
+      clientSecret: z.string().min(1),
+      subdomain: z.string().min(1),
+    })
+    .optional(),
+  BLUE: z
+    .object({
+      apiKey: z.string().min(1),
+      apiSecret: z.string().min(1),
+    })
+    .optional(),
+  STARKEN: z.object({}).optional(),
+  CORREOS: z.object({}).optional(),
+  SIMPLIROUTE: z.object({}).optional(),
+  BEETRACK: z.object({}).optional(),
+} as const;
+
+export type CarrierConfigSchema = typeof carrierConfigSchemas;
