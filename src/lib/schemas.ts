@@ -138,6 +138,7 @@ export const shipmentUpdateSchema = z.object({
   carrier: z.string().max(100).nullable().optional(),
   notes: z.string().max(1000).nullable().optional(),
   notifyCustomer: z.boolean().optional(),
+  syncTracking: z.boolean().optional(),
   mode: z.enum(["COURIER", "OWN_FLEET", "PICKUP"]).nullable().optional(),
   carrierId: z.string().max(50).nullable().optional(),
   service: z.string().max(120).nullable().optional(),

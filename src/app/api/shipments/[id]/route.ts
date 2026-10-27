@@ -3,6 +3,7 @@ import { apiHandler } from "@/lib/api-handler";
 import { shipmentUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, SHIPMENT_STATUSES } from "@/lib/enums";
+import { getCarrierProvider } from "@/lib/carriers";
 import type { ShipmentStatus as PrismaShipmentStatus, ConversationStatus } from "@prisma/client";
 
 const TRANSIT_STATUSES: string[] = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
@@ -37,7 +38,7 @@ export const PATCH = apiHandler({
 
     const existing = await prisma.shipment.findUnique({
       where: { id },
-      include: { lead: true, paymentOrder: true },
+      include: { lead: true, paymentOrder: true, carrierRef: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "Envio no encontrado" }, { status: 404 });
@@ -120,8 +121,33 @@ export const PATCH = apiHandler({
       include: {
         lead: true,
         paymentOrder: true,
+        carrierRef: true,
       },
     });
+
+    // Sincronizar tracking con proveedor si se solicita
+    if (body.syncTracking && existing.carrierRef?.apiProvider && existing.providerRef) {
+      const provider = getCarrierProvider(existing.carrierRef.apiProvider);
+      if (provider?.track) {
+        try {
+          const carrierConfig = (existing.carrierRef.config as Record<string, unknown>) ?? {};
+          const events = await provider.track(existing.providerRef, carrierConfig);
+          for (const ev of events) {
+            await prisma.shipmentEvent.create({
+              data: {
+                shipmentId: id,
+                status: ev.status,
+                source: "API",
+                note: ev.description,
+                occurredAt: ev.occurredAt,
+              },
+            });
+          }
+        } catch (err) {
+          console.error(`[Carrier ${existing.carrierRef.apiProvider}] sync tracking error:`, err);
+        }
+      }
+    }
 
     if (newStatus && newStatus !== existing.status) {
       await prisma.shipmentEvent.create({
