@@ -218,3 +218,47 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 
 - Infra lista para plug-in. MANUAL sigue por defecto.
 - Se usaron subagentes para auditoría, base, utils, providers.
+
+---
+
+## 2026-10-29 — Sesión: prioridades y suite de tests confiable
+
+### Contexto
+
+- Se definieron las 5 próximas tareas: (1) cerrar Fase 4 carriers, (2) tests de integración, (3) migraciones versionadas, (4) auth end-to-end, (5) observabilidad + WhatsApp.
+- Decisión de arranque: **primero la suite de tests**, porque estaba en rojo y cualquier verificación posterior no era confiable. Luego un corte vertical de carriers.
+
+### Hecho
+
+- ✅ **Causa raíz de los 5 tests rojos**: los tests "sin BD" de `leads.integration.test.ts` sí consultaban la BD (page/pageSize y 404) y no había Postgres local.
+- ✅ **Bug de fondo corregido**: `describe.skipIf(!dbAvailable)` se evalúa antes del `beforeAll`, así que los tests de BD se saltaban **siempre**, incluso en CI con Postgres.
+- ✅ Nuevo patrón `describeDb` (gate por `TEST_DB=1`) en `leads.integration.test.ts`; tests de BD movidos a sus bloques.
+- ✅ `npm run test`: suite rápida sin BD. `npm run test:db`: integración con BD. CI activa `TEST_DB=1`.
+- ✅ Documentado en `docs/conventions.md` (sección Tests).
+- ✅ `GET /api/carriers/providers` con metadata del registry (`requiredConfig`, capacidades, modos).
+- ✅ `/api/carriers?meta=1` usa el registry; se eliminó la lista hardcodeada de providers.
+- ✅ Tests nuevos para `/api/carriers/providers` (2).
+- ✅ `docs/plan-carriers-fase4.md` actualizado al estado real: los providers devuelven tracking **simulado**.
+- ✅ **Tests de BD verificados con Postgres real**: `TEST_DB=1 npm test` → **104 passed** (exit 0).
+- ✅ La primera corrida con BD destapó 3 fallos por datos de prueba residuales; se agregó limpieza idempotente (`cleanupTestLeads`) y aserciones de creación.
+- ✅ Verificación final: typecheck 0 errores; lint 0 errores (125 warnings); `npm test` 87 passed / 17 skipped; `TEST_DB=1 npm test` 104 passed.
+- ✅ Backlog actualizado.
+
+### Decisiones
+
+- **No** se agregó `ENABLE_CARRIER_PROVIDERS`: un solo despliegue, MANUAL como fallback; el flag agrega configuración sin beneficio.
+- Los tests de BD no se auto-detectan: se gatean explícitamente con `TEST_DB=1` para que el resultado sea determinista.
+
+### Pendiente
+
+- [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales), UI `/config/carriers`, tests con mocks.
+- [ ] `POST /api/shipments/:id/sync-tracking` y errores de provider como `ShipmentEvent`.
+- [ ] Tests de integración de `/api/shipments`, `/api/caja`, `/api/conversations` y webhook MercadoPago.
+- [ ] Migraciones SQL versionadas (baseline + `migrate deploy`).
+- [ ] Auth end-to-end (UI login, sesión, middleware).
+- [ ] Observabilidad + robustez WhatsApp.
+
+### Notas
+
+- Docker Desktop no tiene integración WSL en esta máquina, pero `docker.exe` funciona desde la distro: el contenedor `liveflow_postgres` queda accesible en `localhost:5432`. Los tests de BD se corren con `npm run test:db`.
+- El "80% de Fase 4" era engañoso: la infra estaba, pero ningún provider hace llamadas reales.

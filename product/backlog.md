@@ -4,8 +4,8 @@
 
 ## 🔴 Alta prioridad
 
-- [ ] **Conectores de carriers (Fase 4 de `docs/shipments-plan.md`)**: interfaz `CarrierProvider` + registro; empezar con MANUAL, luego agregador (Shipit/Enviame) y directos (Chilexpress/Blue).
-- [ ] **Tests de integración de rutas API**: cubrir los endpoints principales (`/api/leads`, `/api/shipments`, `/api/caja`, `/api/conversations`, webhook de MercadoPago).
+- [ ] **Conectores de carriers (Fase 4 de `docs/shipments-plan.md`)**: infra y registry completos (9 providers), endpoint `/api/carriers/providers` y UI de configuración listos. **Falta**: llamadas HTTP reales (hoy simuladas), UI `/config/carriers` y tests con mocks.
+- [ ] **Tests de integración de rutas API**: suite determinista (`npm run test` sin BD, `npm run test:db` con BD; CI activa `TEST_DB=1`). **Falta**: cubrir `/api/shipments`, `/api/caja`, `/api/conversations` y webhook de MercadoPago.
 - [ ] **Migraciones SQL versionadas**: hoy solo `prisma db push`; evaluar `prisma migrate` para producción.
 - [ ] **Autenticación de operadores**: completar login/sesión (hoy `Operator.passwordHash` sin flujo).
 
