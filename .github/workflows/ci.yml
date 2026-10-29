@@ -57,6 +57,7 @@ jobs:
       - name: Unit & Integration tests
         run: npm test
         env:
+          TEST_DB: "1"
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
 
       - name: Build

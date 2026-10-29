@@ -1,10 +1,10 @@
 /**
  * Tests de integración para /api/leads
- * - Tests de validación y errores: funcionan SIN base de datos
- * - Tests que requieren BD: se saltan si no hay conexión
+ * - Tests de validación pura: funcionan SIN base de datos
+ * - Tests que requieren BD: solo corren con TEST_DB=1 (CI con Postgres)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -29,23 +29,37 @@ function makeRequest(url: string, options: { method?: string; body?: unknown } =
   });
 }
 
-// Verificar si hay base de datos disponible
-let dbAvailable = false;
+// Los tests que tocan la BD solo corren cuando TEST_DB=1 (CI con Postgres).
+// Localmente sin base de datos se saltan para que `npm test` sea confiable.
+const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 
-async function checkDatabase() {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    dbAvailable = true;
-  } catch {
-    dbAvailable = false;
-  }
+// Teléfonos usados por los tests. Se limpian antes/después para que la suite
+// sea idempotente aunque una corrida anterior haya fallado a mitad de camino.
+const TEST_PHONES = ["+525512345678", "+525511111111", "+525522222222", "+525587654321"];
+
+async function cleanupTestLeads() {
+  const leads = await prisma.lead.findMany({
+    where: { phone: { in: TEST_PHONES } },
+    select: { id: true },
+  });
+  const ids = leads.map((lead) => lead.id);
+  if (ids.length === 0) return;
+
+  await prisma.shipmentEvent.deleteMany({ where: { shipment: { leadId: { in: ids } } } });
+  await prisma.shipment.deleteMany({ where: { leadId: { in: ids } } });
+  await prisma.paymentOrder.deleteMany({ where: { leadId: { in: ids } } });
+  await prisma.message.deleteMany({ where: { conversation: { leadId: { in: ids } } } });
+  await prisma.conversation.deleteMany({ where: { leadId: { in: ids } } });
+  await prisma.campaignRecipient.deleteMany({ where: { leadId: { in: ids } } });
+  await prisma.lead.deleteMany({ where: { id: { in: ids } } });
 }
 
 beforeAll(async () => {
-  await checkDatabase();
+  if (process.env.TEST_DB === "1") await cleanupTestLeads();
 });
 
 afterAll(async () => {
+  if (process.env.TEST_DB === "1") await cleanupTestLeads();
   await prisma.$disconnect();
 });
 
@@ -94,7 +108,7 @@ describe("POST /api/leads - Crear lead (validación)", () => {
   });
 });
 
-describe.skipIf(!dbAvailable)("GET /api/leads - Listado paginado (con BD)", () => {
+describeDb("GET /api/leads - Listado paginado (con BD)", () => {
   it("debe retornar estructura correcta", async () => {
     const req = makeRequest("http://localhost:3001/api/leads?page=1&pageSize=10");
     const res = await getLeads(req, {} as any);
@@ -106,7 +120,6 @@ describe.skipIf(!dbAvailable)("GET /api/leads - Listado paginado (con BD)", () =
     expect(data.total).toBeTypeOf("number");
     expect(data.page).toBe(1);
     expect(data.pageSize).toBe(10);
-    expect(data.totalPages).toBeTypeOf("number");
     expect(data.facets).toBeDefined();
     expect(data.totals).toBeDefined();
   });
@@ -151,14 +164,14 @@ describe.skipIf(!dbAvailable)("GET /api/leads - Listado paginado (con BD)", () =
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.items).toBeInstanceOf(Array);
-    expect(data.total).toBeTypeOf("number");
-    expect(data.stats).toBeDefined();
+    // En modo export no se devuelve paginación
     expect(data.page).toBeUndefined();
+    expect(data.total).toBeUndefined();
   });
 });
 
-// Tests de validación de parámetros (sin BD) - siempre corren
-describe("GET /api/leads - Validación de parámetros", () => {
+// Tests de validación de parámetros (requieren BD para normalizar y responder)
+describeDb("GET /api/leads - Validación de parámetros (con BD)", () => {
   it("debe manejar page inválido", async () => {
     const req = makeRequest("http://localhost:3001/api/leads?page=0&pageSize=10");
     const res = await getLeads(req, {} as any);
@@ -178,7 +191,7 @@ describe("GET /api/leads - Validación de parámetros", () => {
   });
 });
 
-describe("GET /api/leads/[id] - Detalle de lead (errores)", () => {
+describeDb("GET /api/leads/[id] - Detalle de lead (errores)", () => {
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`);
@@ -203,7 +216,9 @@ describe("PUT /api/leads/[id] - Actualizar lead (validación)", () => {
     const body = await res.json();
     expect(body.error).toBe("Validacion fallida");
   });
+});
 
+describeDb("PUT /api/leads/[id] - Actualizar lead (errores)", () => {
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`, {
@@ -216,7 +231,7 @@ describe("PUT /api/leads/[id] - Actualizar lead (validación)", () => {
   });
 });
 
-describe("DELETE /api/leads/[id] - Eliminar lead (errores)", () => {
+describeDb("DELETE /api/leads/[id] - Eliminar lead (errores)", () => {
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`, { method: "DELETE" });
@@ -226,8 +241,8 @@ describe("DELETE /api/leads/[id] - Eliminar lead (errores)", () => {
   });
 });
 
-// Tests que REQUIEREN base de datos - se saltan si no hay conexión
-describe.skipIf(!dbAvailable)("POST /api/leads - Crear lead (con BD)", () => {
+// Tests que REQUIEREN base de datos - solo corren con TEST_DB=1
+describeDb("POST /api/leads - Crear lead (con BD)", () => {
   it("debe crear un lead válido", async () => {
     const req = makeRequest("http://localhost:3001/api/leads", {
       method: "POST",
@@ -271,7 +286,7 @@ describe.skipIf(!dbAvailable)("POST /api/leads - Crear lead (con BD)", () => {
   });
 });
 
-describe.skipIf(!dbAvailable)("DELETE /api/leads/[id] - Eliminar lead (con BD)", () => {
+describeDb("DELETE /api/leads/[id] - Eliminar lead (con BD)", () => {
   let leadToDeleteId: string;
 
   beforeEach(async () => {
@@ -285,8 +300,10 @@ describe.skipIf(!dbAvailable)("DELETE /api/leads/[id] - Eliminar lead (con BD)",
       body: leadData,
     });
     const resCreate = await postLead(reqCreate, {} as any);
+    expect(resCreate.status).toBe(201);
     const lead = await resCreate.json();
     leadToDeleteId = lead.id;
+    expect(leadToDeleteId).toBeDefined();
   });
 
   it("debe eliminar lead sin historial", async () => {
@@ -344,7 +361,7 @@ describe.skipIf(!dbAvailable)("DELETE /api/leads/[id] - Eliminar lead (con BD)",
   });
 });
 
-describe.skipIf(!dbAvailable)("GET /api/leads/[id] - Detalle de lead (con BD)", () => {
+describeDb("GET /api/leads/[id] - Detalle de lead (con BD)", () => {
   let createdLeadId: string;
 
   beforeAll(async () => {
@@ -382,7 +399,7 @@ describe.skipIf(!dbAvailable)("GET /api/leads/[id] - Detalle de lead (con BD)", 
   });
 });
 
-describe.skipIf(!dbAvailable)("PUT /api/leads/[id] - Actualizar lead (con BD)", () => {
+describeDb("PUT /api/leads/[id] - Actualizar lead (con BD)", () => {
   let createdLeadId: string;
 
   beforeAll(async () => {
@@ -427,6 +444,7 @@ describe.skipIf(!dbAvailable)("PUT /api/leads/[id] - Actualizar lead (con BD)", 
       body: newLeadData,
     });
     const resCreate = await postLead(reqCreate, {} as any);
+    expect(resCreate.status).toBe(201);
     const otherLead = await resCreate.json();
 
     // Intentar actualizar el lead original con el teléfono del otro

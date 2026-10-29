@@ -59,7 +59,9 @@ export const POST = (req: NextRequest) =>
 
 - `vitest` + `@testing-library/react`. Config en `vitest.config.ts`, setup en `src/__tests__/setup.ts`.
 - Prioridad: **tests de integración** de rutas/servicios > tests unitarios de utilidades.
-- Correr con `npm run test`.
+- `npm run test`: suite rápida sin base de datos. Los tests que tocan BD usan `describeDb` y se saltan.
+- `npm run test:db`: corre también los tests de integración con BD (`TEST_DB=1`). Requiere Postgres levantado; en CI lo activa el workflow.
+- Los tests que dependen de BD deben agruparse con `describeDb` (ver `leads.integration.test.ts`), nunca con `describe.skipIf(!dbAvailable)` — esa condición se evalúa antes de conectar y los salta siempre.
 
 ## Commits
 

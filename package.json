@@ -19,6 +19,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:db": "TEST_DB=1 vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
