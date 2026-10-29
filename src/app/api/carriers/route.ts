@@ -2,28 +2,21 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { carrierCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getAvailableProviders } from "@/lib/carriers";
 
-const CARRIER_PROVIDERS = [
-  { code: "MANUAL", label: "Manual / sin API", requiresConfig: false, supportsTracking: false },
-  { code: "CHILEXPRESS", label: "Chilexpress", requiresConfig: true, supportsTracking: true },
-  { code: "BLUE", label: "Blue Express", requiresConfig: true, supportsTracking: true },
-  { code: "STARKEN", label: "Starken", requiresConfig: true, supportsTracking: true },
-  { code: "CORREOS", label: "Correos de Chile", requiresConfig: true, supportsTracking: true },
-  { code: "SHIPIT", label: "Shipit (agregador)", requiresConfig: true, supportsTracking: true },
-  { code: "ENVIAME", label: "Enviame (agregador)", requiresConfig: true, supportsTracking: true },
-  {
-    code: "SIMPLIROUTE",
-    label: "SimpliRoute (flota propia)",
-    requiresConfig: true,
-    supportsTracking: true,
-  },
-  {
-    code: "BEETRACK",
-    label: "Beetrack (flota propia)",
-    requiresConfig: true,
-    supportsTracking: true,
-  },
-] as const;
+function providerMeta() {
+  return getAvailableProviders().map((provider) => ({
+    code: provider.code,
+    label: provider.name,
+    requiresConfig: provider.requiredConfig.length > 0,
+    requiredConfig: provider.requiredConfig,
+    supportsTracking: provider.canTrack,
+    supportsLabel: provider.canPrintLabel,
+    supportedModes: provider.supportedModes,
+    canQuote: provider.canQuote,
+    canWebhook: provider.canWebhook,
+  }));
+}
 
 export const GET = apiHandler({
   handler: async (req) => {
@@ -41,7 +34,7 @@ export const GET = apiHandler({
     });
 
     if (sp.get("meta") === "1") {
-      return NextResponse.json({ items: carriers, providers: CARRIER_PROVIDERS });
+      return NextResponse.json({ items: carriers, providers: providerMeta() });
     }
 
     return NextResponse.json({ items: carriers });
