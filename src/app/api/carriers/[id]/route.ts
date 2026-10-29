@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { carrierUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { validateCarrierConfig } from "@/lib/carriers";
 
 export const GET = apiHandler({
   handler: async (_req, _body, context) => {
@@ -28,6 +29,20 @@ export const PATCH = apiHandler({
     const existing = await prisma.carrier.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Carrier no encontrado" }, { status: 404 });
+    }
+
+    const providerCode = body.apiProvider ?? existing.apiProvider;
+    const effectiveConfig =
+      body.config !== undefined
+        ? (body.config as Record<string, unknown> | null)
+        : (existing.config as Record<string, unknown> | null);
+
+    const validation = validateCarrierConfig(providerCode, effectiveConfig);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "Configuracion invalida", details: validation.errors },
+        { status: 400 }
+      );
     }
 
     const data: Record<string, unknown> = {};

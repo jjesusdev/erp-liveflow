@@ -88,5 +88,18 @@ export function getAvailableProviders() {
   }));
 }
 
+/**
+ * Valida la configuración de un carrier usando el provider registrado.
+ * Si el provider no existe o no implementa `validateConfig`, se considera válida.
+ */
+export function validateCarrierConfig(
+  code: CarrierApiProvider,
+  config: Record<string, unknown> | null | undefined
+): { valid: boolean; errors: string[] } {
+  const provider = getCarrierProvider(code);
+  if (!provider?.validateConfig) return { valid: true, errors: [] };
+  return provider.validateConfig(config ?? {});
+}
+
 // Inicializar al importar el módulo
 initializeCarrierRegistry();

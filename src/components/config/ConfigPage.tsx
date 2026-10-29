@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Save, Building2, Smartphone, Clock, Bot, Trash2 } from "lucide-react";
+import { Save, Building2, Smartphone, Clock, Bot, Trash2, Truck } from "lucide-react";
 import { WhatsAppSection } from "./WhatsAppSection";
 import { BankSection } from "./BankSection";
 import { LiveRulesSection } from "./LiveRulesSection";
 import { BotSection } from "./BotSection";
 import { MaintenanceSection } from "./MaintenanceSection";
+import { CarriersSection } from "./CarriersSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
@@ -138,6 +139,10 @@ export function ConfigPage() {
               <Bot className="size-3.5" />
               Bot & Respuestas
             </TabsTrigger>
+            <TabsTrigger value="carriers" className="text-xs">
+              <Truck className="size-3.5" />
+              Carriers & Envíos
+            </TabsTrigger>
             <TabsTrigger value="mantenimiento" className="text-xs">
               <Trash2 className="size-3.5" />
               Mantenimiento
@@ -158,6 +163,10 @@ export function ConfigPage() {
 
           <TabsContent value="bot" className="pt-2">
             <BotSection config={config} onChange={setConfig} />
+          </TabsContent>
+
+          <TabsContent value="carriers" className="pt-2">
+            <CarriersSection />
           </TabsContent>
 
           <TabsContent value="mantenimiento" className="pt-2">

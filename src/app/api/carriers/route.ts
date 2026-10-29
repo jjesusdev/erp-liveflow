@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { carrierCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { getAvailableProviders } from "@/lib/carriers";
+import { getAvailableProviders, validateCarrierConfig } from "@/lib/carriers";
 
 function providerMeta() {
   return getAvailableProviders().map((provider) => ({
@@ -52,13 +52,22 @@ export const POST = apiHandler({
       return NextResponse.json({ error: "Ya existe un carrier con ese codigo" }, { status: 409 });
     }
 
+    const apiProvider = body.apiProvider ?? "MANUAL";
+    const validation = validateCarrierConfig(apiProvider, body.config);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "Configuracion invalida", details: validation.errors },
+        { status: 400 }
+      );
+    }
+
     const carrier = await prisma.carrier.create({
       data: {
         orgId: null,
         code: body.code,
         name: body.name,
         mode: body.mode,
-        apiProvider: body.apiProvider ?? "MANUAL",
+        apiProvider,
         active: body.active ?? true,
         config: (body.config as object | undefined) ?? undefined,
       },
