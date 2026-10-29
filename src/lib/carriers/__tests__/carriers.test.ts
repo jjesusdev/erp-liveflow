@@ -61,7 +61,7 @@ describe("Carrier Registry", () => {
 
   it("should check if provider exists", () => {
     expect(hasCarrierProvider("MANUAL")).toBe(true);
-    expect(hasCarrierProvider("CHILEXPRESS")).toBe(false);
+    expect(hasCarrierProvider("CHILEXPRESS")).toBe(true);
   });
 
   it("should return available providers with metadata", () => {
