@@ -11,6 +11,9 @@ import { enviameProvider } from "./providers/enviame";
 import { chilexpressProvider } from "./providers/chilexpress";
 import { blueProvider } from "./providers/blue";
 import { starkenProvider } from "./providers/starken";
+import { correosProvider } from "./providers/correos";
+import { simplirouteProvider } from "./providers/simpliroute";
+import { beetrackProvider } from "./providers/beetrack";
 
 /**
  * Registro interno de proveedores
@@ -62,11 +65,11 @@ export function initializeCarrierRegistry(): void {
   registerCarrierProvider(chilexpressProvider);
   registerCarrierProvider(blueProvider);
   registerCarrierProvider(starkenProvider);
+  registerCarrierProvider(correosProvider);
+  registerCarrierProvider(simplirouteProvider);
+  registerCarrierProvider(beetrackProvider);
 
-  // TODO: Fase 4.2+ - Registrar otros proveedores cuando se implementen
-  // registerCarrierProvider(correosProvider);
-  // registerCarrierProvider(simplirouteProvider);
-  // registerCarrierProvider(beetrackProvider);
+  // TODO: Fase 4.2+ - Sin proveedores pendientes
 }
 
 /**
