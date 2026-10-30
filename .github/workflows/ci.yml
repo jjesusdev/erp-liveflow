@@ -40,8 +40,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Push database schema
-        run: npx prisma db push
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
+
+      - name: Verify schema matches migrations
+        run: npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
         env:
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
 
