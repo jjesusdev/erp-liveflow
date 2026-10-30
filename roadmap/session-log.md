@@ -349,3 +349,36 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 
 - No se pudo ejecutar `TEST_DB=1 npm test` en esta sesión porque Docker/Postgres no estaban disponibles en el entorno. Los tests de BD están listos y se ejecutarán en CI cuando haya Postgres.
 - `resolveOperatorId` de `src/lib/operator.ts` y `src/lib/auth.ts` queda disponible pero ya no se usa en las rutas de campañas ni payment-orders (se reemplazó por `getOperatorIdFromSession`).
+
+---
+
+## 2026-10-30 — Sesión: issues para versión final v1.0
+
+### Contexto
+
+- Se definieron las tareas pendientes para alcanzar una versión final estable del ERP LiveFlow.
+- Se crearon 9 issues en GitHub (números 7 a 15) cubriendo carriers reales, multi-tenant, cola de workers, E2E, lint, documentación webhooks, WhatsApp, build de producción y documentación general.
+
+### Hecho
+
+- ✅ Creado issue #7: Carriers HTTP reales (enhancement, help wanted) — bloqueado por docs/credenciales de cada carrier.
+- ✅ Creado issue #8: Cola externa para workers (enhancement) — reemplazar setInterval por cola persistente.
+- ✅ Creado issue #9: Limpiar warnings de ESLint (enhancement).
+- ✅ Creado issue #10: Tests E2E con Playwright (enhancement).
+- ✅ Creado issue #11: Multi-tenant real con orgId (enhancement).
+- ✅ Creado issue #12: Documentar webhooks MercadoPago (documentation).
+- ✅ Creado issue #13: Actualizar documentación versión final (documentation).
+- ✅ Creado issue #14: Centralizar errores y reconexión de WhatsApp (enhancement).
+- ✅ Creado issue #15: Build de producción y release v1.0.0 (enhancement).
+
+### Pendiente para v1.0
+
+- [ ] Carriers: llamadas HTTP reales (requiere docs + credenciales).
+- [ ] Multi-tenant real (orgId generalizado).
+- [ ] Cola externa para workers.
+- [ ] Tests E2E con Playwright.
+- [ ] Limpiar warnings ESLint.
+- [ ] Documentar webhooks MercadoPago.
+- [ ] Centralizar errores WhatsApp.
+- [ ] Build de producción y tag v1.0.0.
+- [ ] Actualizar documentación.
