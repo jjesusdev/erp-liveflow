@@ -296,8 +296,6 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 ### Pendiente
 
 - [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales), tests con mocks.
-- [ ] Auth end-to-end (UI login, sesión, middleware, operatorId de auditoría).
-- [ ] Observabilidad + robustez WhatsApp (health endpoint, logger estructurado, estado UI).
 
 ### Notas
 
@@ -305,3 +303,49 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - Limpieza idempotente por teléfono (`cleanupByPhone`) en cada suite para evitar datos residuales entre corridas.
 - Se encontró que `conversationUpdateSchema` solo acepta `["OPEN","PENDING","CLOSED","PAID","SHIPPED"]` en Zod, mientras `CONVERSION_STATUSES` tiene más valores; los tests usan la intersección válida.
 - Sweep-recovery no filtra por lead, por lo que `totalPending` puede incluir datos de otras suites; los tests asercionan `recoveredCount === 0` (sin WhatsApp) en vez de `totalPending === 0`.
+
+---
+
+## 2026-10-29 — Sesión: Auth end-to-end + Observabilidad (completa Tareas 4 y 5)
+
+### Contexto
+
+- Continuación de las pendientes del roadmap.
+- Tarea 4 (Auth end-to-end) y Tarea 5 (Observabilidad + WhatsApp) ejecutadas completamente.
+- Tarea 3 (Carriers HTTP reales) permanece bloqueada: falta documentación y credenciales de los carriers.
+
+### Hecho
+
+- ✅ **feat(auth): autenticación end-to-end de operadores** (commit `57482bd`)
+  - `src/lib/session.ts`: cookie de sesión firmada (HMAC-SHA256, base64url) con `SESSION_SECRET`; httpOnly, secure (producción), sameSite=lax, TTL 7 días; `createSession`, `getSession`, `clearSession`, `hasSession`, `getOperatorIdFromSession`.
+  - `POST /api/auth/login`: autentica con scrypt y establece cookie de sesión; retorna `operatorId`, `name`, `role`.
+  - `POST /api/auth/logout`: limpia la cookie de sesión.
+  - `src/middleware.ts`: protege páginas y APIs excepto `/login`, `/api/auth/*`, `/api/webhooks/*`, `/api/health`, `/api/carriers/providers`, `_next`, static. Redirige a `/login` o retorna 401 JSON.
+  - `src/app/login/page.tsx` + `src/components/auth/LoginForm.tsx`: UI de login con credenciales de demo (`admin@erp.local` / `admin123`).
+  - `src/app/api/campaigns/route.ts` y `src/app/api/payment-orders/route.ts`: toman `operatorId` de `getOperatorIdFromSession()` (sesión) en lugar de `resolveOperatorId(body.operatorId)` (que caía al admin por defecto). Retornan 401 si no hay sesión.
+
+- ✅ **feat(observability): logger estructurado, health endpoint y estado WhatsApp en UI** (commit `738e8df`)
+  - `src/lib/logger.ts`: logger estructurado JSON con nivel (info/warn/error), `requestId`, `operatorId`, contexto; `createRequestLogger` para ámbito de request.
+  - `src/lib/api-handler.ts`: integra logger — errores 500 y advertencias de validación con `requestId`.
+  - `GET /api/health`: verifica BD (`SELECT 1`), WhatsApp (estado de authState de Baileys), workers (Socket.io `io`). Retorna 200 ok/degraded, 503 si DB caída.
+  - `src/components/config/WhatsAppStatusSection.tsx`: badge de estado WhatsApp (conectado / QR pendiente / reconectando / desconectado), estado DB y workers, botón de reconexión.
+  - `src/components/config/ConfigPage.tsx`: nueva pestaña "Estado del Sistema".
+  - `.env.example`: creado con `SESSION_SECRET` y todas las variables del `.env`.
+  - Tests: `logger.test.ts` (puro, 3 tests), `health.integration.test.ts` (BD, gated TEST_DB=1).
+
+- ✅ **Suite completa sin BD**: `npm test` → 90 passed, 68 skipped, 0 errores.
+- ✅ **typecheck**: 0 errores. **lint**: 0 errores. **format:check**: limpio.
+
+### Commits
+
+- `57482bd` feat(auth): autenticación end-to-end de operadores
+- `738e8df` feat(observability): logger estructurado, health endpoint y estado WhatsApp en UI
+
+### Pendiente
+
+- [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales), tests con mocks.
+
+### Notas
+
+- No se pudo ejecutar `TEST_DB=1 npm test` en esta sesión porque Docker/Postgres no estaban disponibles en el entorno. Los tests de BD están listos y se ejecutarán en CI cuando haya Postgres.
+- `resolveOperatorId` de `src/lib/operator.ts` y `src/lib/auth.ts` queda disponible pero ya no se usa en las rutas de campañas ni payment-orders (se reemplazó por `getOperatorIdFromSession`).
