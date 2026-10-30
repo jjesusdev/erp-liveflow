@@ -8,6 +8,7 @@ import { LiveRulesSection } from "./LiveRulesSection";
 import { BotSection } from "./BotSection";
 import { MaintenanceSection } from "./MaintenanceSection";
 import { CarriersSection } from "./CarriersSection";
+import { WhatsAppStatusSection } from "./WhatsAppStatusSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
@@ -143,6 +144,10 @@ export function ConfigPage() {
               <Truck className="size-3.5" />
               Carriers & Envíos
             </TabsTrigger>
+            <TabsTrigger value="estado" className="text-xs">
+              <Smartphone className="size-3.5" />
+              Estado del Sistema
+            </TabsTrigger>
             <TabsTrigger value="mantenimiento" className="text-xs">
               <Trash2 className="size-3.5" />
               Mantenimiento
@@ -167,6 +172,10 @@ export function ConfigPage() {
 
           <TabsContent value="carriers" className="pt-2">
             <CarriersSection />
+          </TabsContent>
+
+          <TabsContent value="estado" className="pt-2">
+            <WhatsAppStatusSection />
           </TabsContent>
 
           <TabsContent value="mantenimiento" className="pt-2">

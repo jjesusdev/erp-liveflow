@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema, ZodError } from "zod";
+import { logger, generateRequestId, LogLevel } from "@/lib/logger";
 
 type ApiContext = { params: Promise<Record<string, string>> };
 
@@ -28,6 +29,16 @@ export function apiHandler<TBody = unknown>({
   handler: (req: NextRequest, parsedBody: TBody, context: ApiContext) => Promise<NextResponse>;
 }): (req: NextRequest, context: ApiContext) => Promise<NextResponse> {
   return async (req: NextRequest, context: ApiContext) => {
+    const requestId = req.headers.get("x-request-id") || generateRequestId();
+    const log = {
+      info: (message: string, extra?: Record<string, unknown>) =>
+        logger(LogLevel.INFO, message, { requestId, ...extra }),
+      warn: (message: string, extra?: Record<string, unknown>) =>
+        logger(LogLevel.WARN, message, { requestId, ...extra }),
+      error: (message: string, extra?: Record<string, unknown>) =>
+        logger(LogLevel.ERROR, message, { requestId, ...extra }),
+    };
+
     try {
       let parsedBody: TBody = undefined as TBody;
 
@@ -36,6 +47,7 @@ export function apiHandler<TBody = unknown>({
         const result = bodySchema.safeParse(raw);
         if (!result.success) {
           const details = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+          log.warn("Validacion fallida", { path: req.nextUrl.pathname, details });
           return jsonError("Validacion fallida", 400, details);
         }
         parsedBody = result.data;
@@ -45,10 +57,15 @@ export function apiHandler<TBody = unknown>({
     } catch (error) {
       if (error instanceof ZodError) {
         const details = error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+        log.warn("Validacion fallida", { path: req.nextUrl.pathname, details });
         return jsonError("Validacion fallida", 400, details);
       }
 
-      console.error(`[API] ${req.method} ${req.nextUrl.pathname}:`, error);
+      log.error("Error interno del servidor", {
+        path: req.nextUrl.pathname,
+        method: req.method,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return jsonError("Error interno del servidor", 500);
     }
   };
