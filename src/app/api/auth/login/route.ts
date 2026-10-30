@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { apiHandler } from "@/lib/api-handler";
-import { resolveOperatorId } from "@/lib/operator";
-import { comparePassword, hashPassword } from "@/lib/auth";
+import { comparePassword } from "@/lib/auth";
+import { createSession } from "@/lib/session";
 import { NextResponse } from "next/server";
 
 type LoginBody = {
@@ -29,7 +29,9 @@ export const POST = apiHandler<LoginBody>({
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
 
-    // Return operator info (en un sistema real, aquí iría un token JWT o sesión)
+    // Establecer cookie de sesión firmada
+    await createSession(operator.id, operator.role);
+
     return NextResponse.json({
       operatorId: operator.id,
       name: operator.name,

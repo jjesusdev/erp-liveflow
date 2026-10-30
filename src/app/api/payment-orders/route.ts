@@ -3,7 +3,7 @@ import axios from "axios";
 import { apiHandler } from "@/lib/api-handler";
 import { paymentOrderCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { resolveOperatorId } from "@/lib/operator";
+import { getOperatorIdFromSession } from "@/lib/session";
 
 async function createMercadoPagoPreference({
   amount,
@@ -133,7 +133,10 @@ export const POST = apiHandler({
     }
 
     const resolvedProvider = normalizeProvider(rawProvider);
-    const createdById = await resolveOperatorId(body.operatorId);
+    const operatorId = await getOperatorIdFromSession();
+    if (!operatorId) {
+      return NextResponse.json({ error: "Sesión requerida" }, { status: 401 });
+    }
 
     // Si hay una sesión de Live activa en este momento, vinculamos la orden automáticamente
     const activeLive = await prisma.liveSession.findFirst({
@@ -155,7 +158,7 @@ export const POST = apiHandler({
         amount: numericAmount,
         currency: businessConfig?.currency || "MXN",
         concept,
-        createdById,
+        createdById: operatorId,
         provider: resolvedProvider,
         status: "PENDING",
         expiresAt,

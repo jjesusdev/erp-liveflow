@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api-handler";
 import { campaignCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { resolveOperatorId } from "@/lib/operator";
+import { getOperatorIdFromSession } from "@/lib/session";
 import { parseEnum, CAMPAIGN_STATUSES } from "@/lib/enums";
 import { sendCampaign } from "@/lib/campaignSender";
 
@@ -38,7 +38,10 @@ export const POST = apiHandler({
   handler: async (_req, body) => {
     const { name, message, scheduledAt, sendNow } = body;
 
-    const createdById = await resolveOperatorId(body.operatorId);
+    const operatorId = await getOperatorIdFromSession();
+    if (!operatorId) {
+      return NextResponse.json({ error: "Sesión requerida" }, { status: 401 });
+    }
 
     const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
     if (scheduledDate && scheduledDate <= new Date()) {
@@ -52,7 +55,7 @@ export const POST = apiHandler({
       data: {
         name,
         message,
-        createdById,
+        createdById: operatorId,
         status: scheduledDate ? "SCHEDULED" : "DRAFT",
         scheduledAt: scheduledDate,
       },
