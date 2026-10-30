@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { PaymentStatus } from "@prisma/client";
 
 import { POST as mpWebhook } from "@/app/api/webhooks/mercadopago/route";
 
@@ -52,7 +53,7 @@ async function cleanupByPhone() {
   await prisma.lead.deleteMany({ where: { id: { in: ids } } });
 }
 
-async function setupOrder(status: string = "PENDING") {
+async function setupOrder(status: PaymentStatus = "PENDING") {
   const lead = await prisma.lead.upsert({
     where: { phone: TEST_PHONE },
     update: { name: "Cliente Test MP Webhook" },

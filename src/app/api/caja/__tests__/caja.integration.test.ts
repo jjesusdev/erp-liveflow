@@ -54,7 +54,10 @@ async function setupOrders() {
       data: {
         conversationId: conversation.id,
         leadId: lead.id,
-        ...o,
+        status: o.status as "PAID" | "PENDING" | "EXPIRED",
+        provider: o.provider as "MERCADOPAGO" | "TRANSFER",
+        concept: o.concept,
+        amount: o.amount,
       },
     });
     orderIds.push(order.id);
