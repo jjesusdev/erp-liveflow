@@ -326,10 +326,28 @@ export const carrierConfigSchemas = {
       apiSecret: z.string().min(1),
     })
     .optional(),
-  STARKEN: z.object({}).optional(),
-  CORREOS: z.object({}).optional(),
-  SIMPLIROUTE: z.object({}).optional(),
-  BEETRACK: z.object({}).optional(),
+  STARKEN: z
+    .object({
+      apiKey: z.string().min(1),
+    })
+    .optional(),
+  CORREOS: z
+    .object({
+      apiKey: z.string().min(1),
+    })
+    .optional(),
+  SIMPLIROUTE: z
+    .object({
+      apiKey: z.string().min(1),
+      accountId: z.string().min(1),
+    })
+    .optional(),
+  BEETRACK: z
+    .object({
+      apiKey: z.string().min(1),
+      organizationId: z.string().min(1),
+    })
+    .optional(),
 } as const;
 
 export type CarrierConfigSchema = typeof carrierConfigSchemas;

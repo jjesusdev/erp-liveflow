@@ -305,3 +305,40 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - Limpieza idempotente por teléfono (`cleanupByPhone`) en cada suite para evitar datos residuales entre corridas.
 - Se encontró que `conversationUpdateSchema` solo acepta `["OPEN","PENDING","CLOSED","PAID","SHIPPED"]` en Zod, mientras `CONVERSION_STATUSES` tiene más valores; los tests usan la intersección válida.
 - Sweep-recovery no filtra por lead, por lo que `totalPending` puede incluir datos de otras suites; los tests asercionan `recoveredCount === 0` (sin WhatsApp) en vez de `totalPending === 0`.
+
+---
+
+## 2026-10-30 — Sesión: Carriers llamadas HTTP reales (issue #7)
+
+### Contexto
+
+Implementar llamadas HTTP reales a APIs de proveedores de carriers en lugar de stubs simulados, según issue #7. Los 9 proveedores (SHIPIT, ENVIAME, CHILEXPRESS, BLUE, STARKEN, CORREOS, SIMPLIROUTE, BEETRACK, MANUAL) devolver tracking/eventos falsos. Requiere `fetchWithRetry` + `parseProviderError` (ya existían en `src/lib/carriers/utils/http.ts`).
+
+### Decisiones
+
+- **Shipit como provider de referencia** con llamadas HTTP reales (`createShipment` POST + `track` GET) cuando se proveen credenciales; stub simulado como fallback seguro sin credenciales.
+- Las credenciales se resuelven de la config del Carrier (campo `config` en BD) con fallback a variables de entorno `SHIPIT_API_KEY` / `SHIPIT_API_SECRET` / `SHIPIT_BASE_URL`. Nunca se hardcodean.
+- Los demás providers se dejan simulados pendiente de documentación y credenciales de cada carrier (bloqueo del issue).
+- No se agregó flag `ENABLE_CARRIER_PROVIDERS` (descartado en sesiones previas).
+
+### Hecho
+
+- ✅ `src/lib/carriers/providers/shipit.ts`: `createShipment` y `track` hacen llamadas HTTP reales vía `fetchWithRetry` + `parseProviderError` cuando hay credenciales; stub simulado (`SHIP-<id>`) cuando no. Mapea respuesta a `CreateShipmentResult` / `TrackingEvent`.
+- ✅ `src/app/api/shipments/route.ts`: errores de provider al crear envío se registran como `ShipmentEvent` (`source: "API"`, `status: "FAILED"`, nota descriptiva) además de `console.error`.
+- ✅ `src/lib/schemas.ts`: `carrierConfigSchemas` para STARKEN, CORREOS, SIMPLIROUTE, BEETRACK ahora coinciden con su `requiredConfig` (antes `z.object({})`).
+- ✅ `.env.example`: agregadas variables `SHIPIT_API_KEY`, `SHIPIT_API_SECRET`, `SHIPIT_BASE_URL`.
+- ✅ `src/lib/carriers/__tests__/shipit.test.ts`: 13 tests con fetch mockeado (stub sin creds, HTTP real con creds, error 4xx, error de red, tracking, validateConfig).
+- ✅ `src/app/api/shipments/__tests__/sync-tracking.integration.test.ts`: se agregó carrier/envío ENVIAME (sin `track`) para el caso "proveedor no soporta tracking", ya que Shipit ahora sí lo soporta.
+- ✅ `typecheck`: 0 errores. `lint`: 0 errores. `test`: 100 pasados. `build`: exitoso.
+
+### Pendiente
+
+- [ ] Probar `TEST_DB=1` con Postgres real (no disponible en este entorno).
+- [ ] Implementar HTTP real en ENVIAME, CHILEXPRESS, BLUE, STARKEN, CORREOS, SIMPLIROUTE, BEETRACK (requiere docs + credenciales).
+- [ ] UI `/config/carriers` con campos dinámicos por `requiredConfig`.
+- [ ] `docs/carriers/README.md` con instrucciones por proveedor.
+
+### Notas
+
+- Endpoints y cabeceras de Shipit (`/v1/shipments`, `/v1/shipments/{ref}/tracking`, `X-Api-Key`/`X-Api-Secret`) son estimaciones razonables pendientes de confirmar contra la documentación oficial de Shipit.
+- Se actualizó `roadmap/session-log.md` al cierre.

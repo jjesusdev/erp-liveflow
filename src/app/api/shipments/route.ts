@@ -3,6 +3,7 @@ import { apiHandler } from "@/lib/api-handler";
 import { shipmentCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { getCarrierProvider, type CreateShipmentContext } from "@/lib/carriers";
+import { parseProviderError } from "@/lib/carriers/utils/http";
 import type { ShipmentMode } from "@prisma/client";
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -354,6 +355,21 @@ export const POST = apiHandler({
             },
           });
         } catch (providerError) {
+          const parsed = parseProviderError(providerError);
+          // Registrar el error del carrier como ShipmentEvent (source API),
+          // no solo como console.error, para que quede trazable en el envío.
+          await prisma.shipmentEvent
+            .create({
+              data: {
+                shipmentId: shipment.id,
+                status: "FAILED",
+                source: "API",
+                note: `Error del carrier ${carrierRef.apiProvider}: ${parsed.message}`,
+              },
+            })
+            .catch(() => {
+              // No fallar la creación del envío si no se puede registrar el evento.
+            });
           console.error(
             `[Carrier ${carrierRef.apiProvider}] Error creating shipment:`,
             providerError
