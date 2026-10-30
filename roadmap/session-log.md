@@ -262,3 +262,46 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 
 - Docker Desktop no tiene integración WSL en esta máquina, pero `docker.exe` funciona desde la distro: el contenedor `liveflow_postgres` queda accesible en `localhost:5432`. Los tests de BD se corren con `npm run test:db`.
 - El "80% de Fase 4" era engañoso: la infra estaba, pero ningún provider hace llamadas reales.
+
+---
+
+## 2026-10-29 — Sesión: tests de integración + migraciones SQL (completa Tareas 2 y 3)
+
+### Contexto
+
+- Continuación de las 5 tareas definidas en sesión anterior.
+- Tarea 2 (tests de integración) y Tarea 3 (migraciones SQL) ejecutadas completamente.
+- Tarea 1 (carriers UI + sync-tracking) ya estaba completa de sesión previa.
+
+### Hecho
+
+- ✅ **test(shipments)**: `src/app/api/shipments/__tests__/shipments.integration.test.ts` — 11 tests: creación, duplicado, listado paginado, filtrado por leadId, detalle con relaciones, transiciones PENDING→READY→PICKED_UP→DELIVERED, eliminación, 404.
+- ✅ **test(caja)**: `src/app/api/caja/__tests__/caja.integration.test.ts` — 9 tests: listado con paginación, filtros por status/provider/search/range, sweep-recovery sin WhatsApp.
+- ✅ **test(conversations)**: `src/app/api/conversations/__tests__/conversations.integration.test.ts` — 12 tests: creación, idempotencia, 404 lead, listado con filtro por status, detalle con relaciones/tier, transiciones PAID→SHIPPED→CLOSED con closedAt, estado inválido, 404.
+- ✅ **test(webhooks/mercadopago)**: `src/app/api/webhooks/mercadopago/__tests__/mercadopago.integration.test.ts` — 7 tests con axios mockeado: JSON inválido (400), eventos no-payment ignorados, MP_ACCESS_TOKEN missing (500), pago rechazado no actualiza, pago aprobado → orden PAID + conversación PAID + envío creado, idempotencia (alreadyProcessed).
+- ✅ **Suite completa**: `TEST_DB=1 npm test` → **16 archivos, 153 tests pasados**.
+- ✅ **typecheck**: 0 errores. **lint**: 0 errores. **format:check**: limpio.
+- ✅ **feat(db)**: migración baseline `prisma/migrations/20261029210000_init/` (505 líneas), `migration_lock.toml`, scripts `db:migrate`/`db:deploy`/`db:status` en package.json, CI usa `migrate deploy` + `migrate diff --exit-code` en lugar de `db push`. Baseline aplicada a BD existente con `migrate resolve`. Verificado en BD vacía (`liveflow_migrate_test`) sin divergencia.
+- ✅ Plan de implementación guardado en `docs/superpowers/plans/2026-10-29-integration-tests.md`.
+
+### Commits
+
+- `4083651` test(shipments): tests de integración de envíos
+- `d3a866d` test(caja): tests de integración de caja
+- `06ccfdf` test(conversations): tests de integración de conversaciones
+- `d5a3359` test(webhooks/mercadopago): tests de integración de webhook MP
+- `17bad00` fix(tests): corregir tipos de Prisma en tests
+- `3f822de` feat(db): migraciones SQL versionadas y scripts de despliegue
+
+### Pendiente
+
+- [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales), tests con mocks.
+- [ ] Auth end-to-end (UI login, sesión, middleware, operatorId de auditoría).
+- [ ] Observabilidad + robustez WhatsApp (health endpoint, logger estructurado, estado UI).
+
+### Notas
+
+- Patrón `describeDb` (gate por `TEST_DB=1`) se mantiene consistente en todos los tests nuevos.
+- Limpieza idempotente por teléfono (`cleanupByPhone`) en cada suite para evitar datos residuales entre corridas.
+- Se encontró que `conversationUpdateSchema` solo acepta `["OPEN","PENDING","CLOSED","PAID","SHIPPED"]` en Zod, mientras `CONVERSION_STATUSES` tiene más valores; los tests usan la intersección válida.
+- Sweep-recovery no filtra por lead, por lo que `totalPending` puede incluir datos de otras suites; los tests asercionan `recoveredCount === 0` (sin WhatsApp) en vez de `totalPending === 0`.
