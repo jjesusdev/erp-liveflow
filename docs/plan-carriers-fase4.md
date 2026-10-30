@@ -12,7 +12,7 @@ Implementar el sistema plug-in `CarrierProvider` y los primeros conectores reale
 - **Infra completa**: interfaz, clase base, utilidades HTTP, schemas Zod y registry con 9 providers (MANUAL + 8 reales).
 - **API lista para la UI**: `GET /api/carriers/providers` expone `requiredConfig` y capacidades desde el registry; `/api/carriers?meta=1` usa la misma fuente (se eliminó la lista hardcodeada).
 - **Integración de shipments**: `POST /api/shipments` invoca el provider y `PATCH /api/shipments/[id]` refresca tracking.
-- **⚠️ Los providers son simulados**: `createShipment` devuelve un tracking ficticio (`SHIP-<id>`, `CHX-<id>`, etc.). No hay llamadas HTTP reales todavía. Implementarlas requiere documentación y credenciales de cada carrier.
+- **⚠️ Los providers son simulados salvo Shipit**: `Shipit.createShipment` y `Shipit.track` hacen llamadas HTTP reales cuando se proveen credenciales (apiKey/apiSecret en config del Carrier o env `SHIPIT_*`); sin credenciales usan stub simulado (fallback seguro). Los demás providers (ENVIAME, CHILEXPRESS, BLUE, STARKEN, CORREOS, SIMPLIROUTE, BEETRACK) siguen simulados pendiente de docs y credenciales.
 - **Decisión**: no se agregó el flag `ENABLE_CARRIER_PROVIDERS`. Con un solo despliegue y MANUAL como fallback, el flag agrega superficie de configuración sin beneficio. Se reevalúa si aparece un segundo entorno.
 
 ## Tareas
@@ -38,10 +38,10 @@ Implementar el sistema plug-in `CarrierProvider` y los primeros conectores reale
 
 - [x] 3.1 **Shipit** — `src/lib/carriers/providers/shipit.ts`
   - [x] 3.1.1 Implementar `code = 'SHIPIT'`, `requiredConfig: ['apiKey','apiSecret']`
-  - [ ] 3.1.2 `createShipment` → POST a Shipit, mapear respuesta a `CreateShipmentResult` (**hoy simulado**)
-  - [ ] 3.1.3 `track` opcional
+  - [x] 3.1.2 `createShipment` → POST a Shipit, mapear respuesta a `CreateShipmentResult` (llamada HTTP real cuando hay credenciales; stub sin ellas)
+  - [x] 3.1.3 `track` → GET a Shipit (llamada HTTP real cuando hay credenciales; `[]` sin ellas)
   - [x] 3.1.4 `validateConfig`
-  - [ ] 3.1.5 Unit test con mock HTTP
+  - [x] 3.1.5 Unit test con mock HTTP (`src/lib/carriers/__tests__/shipit.test.ts`)
 - [x] 3.2 **Enviame** — `src/lib/carriers/providers/enviame.ts`
   - [x] 3.2.1 Mismo patrón que Shipit (**simulado**)
   - [ ] 3.2.2 Tests unitarios

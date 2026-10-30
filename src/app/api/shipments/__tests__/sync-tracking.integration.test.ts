@@ -23,9 +23,11 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   let conversationId = "";
   let manualCarrierId = "";
   let shipitCarrierId = "";
+  let enviameCarrierId = "";
   let beetrackCarrierId = "";
   let manualShipmentId = "";
   let shipitShipmentId = "";
+  let enviameShipmentId = "";
   let noCarrierShipmentId = "";
   let errorShipmentId = "";
   const orderIds: string[] = [];
@@ -87,6 +89,16 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     });
     shipitCarrierId = shipitCarrier.id;
 
+    const enviameCarrier = await prisma.carrier.create({
+      data: {
+        code: `TEST-ENVIAME-${RUN_ID}`,
+        name: "Enviame Test",
+        mode: "COURIER",
+        apiProvider: "ENVIAME",
+      },
+    });
+    enviameCarrierId = enviameCarrier.id;
+
     const beetrackCarrier = await prisma.carrier.create({
       data: {
         code: `TEST-BEETRACK-${RUN_ID}`,
@@ -99,6 +111,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     manualShipmentId = await createShipment(manualCarrierId, "manual-ref");
     shipitShipmentId = await createShipment(shipitCarrierId, "shipit-ref");
+    enviameShipmentId = await createShipment(enviameCarrierId, "enviame-ref");
     noCarrierShipmentId = await createShipment(null, null);
     errorShipmentId = await createShipment(beetrackCarrierId, "beetrack-ref");
 
@@ -130,7 +143,13 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     if (conversationId) await prisma.conversation.deleteMany({ where: { id: conversationId } });
     if (leadId) await prisma.lead.deleteMany({ where: { id: leadId } });
     await prisma.carrier.deleteMany({
-      where: { id: { in: [manualCarrierId, shipitCarrierId, beetrackCarrierId].filter(Boolean) } },
+      where: {
+        id: {
+          in: [manualCarrierId, shipitCarrierId, enviameCarrierId, beetrackCarrierId].filter(
+            Boolean
+          ),
+        },
+      },
     });
   });
 
@@ -150,7 +169,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   });
 
   it("retorna 400 si el proveedor no soporta tracking", async () => {
-    const res = await syncTracking(makeRequest(), makeContext(shipitShipmentId));
+    const res = await syncTracking(makeRequest(), makeContext(enviameShipmentId));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("no soporta tracking");
