@@ -454,3 +454,63 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 ### Pendiente
 
 - Ejecutar `npm run db:seed` contra una BD real cuando esté disponible PostgreSQL.
+
+---
+
+## 2026-11-01 — Sesión: cierre multi-tenant v1.1.0 (Tasks 1-9, build, tag y release)
+
+### Contexto
+
+- Implementación completa de multi-tenant real con orgId según el plan en `docs/superpowers/plans/2026-11-01-multi-tenant-orgid.md` y diseño en `docs/superpowers/specs/2026-11-01-multi-tenant-orgid-design.md`.
+- Ejecutado con subagente `general` task por task (skill `superpowers:subagent-driven-development` no disponible en este entorno; se usó `general` como sustituto).
+- Sin PostgreSQL disponible en el entorno (P1001): no se ejecutaron `prisma migrate deploy`, `db:seed` ni `test:db` contra una BD real. Todas las migraciones SQL se escribieron y verificaron con `prisma validate`.
+
+### Decisiones
+
+- `Organization` con `slug` reservado para futuro (no usado en routing todavía); rutas unificadas (`/dashboard`) inyectando `orgId` desde la sesión.
+- Operador 1:1 con organización (sin tabla pivote de momento).
+- `Product` con `orgId` obligatorio (inventario aislado por tienda).
+- `BusinessConfig` eliminada; su información vive en `Organization.settings` (JSONB).
+- Tablas globales (`Users`, `SubscriptionPlans`) no creadas en este MVP; documentadas como futuras sin `orgId`.
+
+### Hecho (Tasks 1-9)
+
+- ✅ Task 1: `prisma/schema.prisma` — modelo `Organization`, `orgId` en 12 entidades, `Carrier.orgId` requerido, `BusinessConfig` eliminada. Migración `20261101223825_add_organization`. Commit `7136022`.
+- ✅ Task 2: Migración `20261101224000_backfill_orgid_default` — org "Default", backfill en 12 tablas, NOT NULL en todas. Commit `50c25e4`.
+- ✅ Task 3: `src/lib/session.ts` — `createSession(operatorId, role, orgId)`, `getOperatorContext()`. `src/app/api/auth/login/route.ts` — guarda `orgId` en sesión. Commit `65e5664`.
+- ✅ Task 4: `src/lib/org.ts` — `whereOrg(orgId)`, `assertOrgMembership()`. Commit `302f685`.
+- ✅ Task 5: `src/app/api/leads/route.ts` — GET filtra por `orgId`, POST asigna `orgId`, detalle `{ id, orgId }` → 404. Test de aislamiento `leads.org.isolation.test.ts`. Commit `1b37e29`.
+- ✅ Task 6: `conversations`, `payment-orders`, `shipments`, `products`, `campaigns`, `carriers` — todas aisladas por `orgId`. Shipment verifica paymentOrder y lead en misma org → 400. Commit `97556b9`.
+- ✅ Task 7: Middleware ya protege rutas con sesión (sin cambios funcionales necesarios).
+- ✅ Task 8: `prisma/seed.js` — org "Demo LiveFlow", operadores demo, datos con `orgId`. Commits `bfbd6c0`, `b89649e`.
+- ✅ Task 9: `product/backlog.md` actualizado (multi-tenant v1.1.0 completado, v1.0.0 build/tag marcado como hecho). Commit `a55c564`.
+
+### Verificación final
+
+- `npx tsc --noEmit` → 0 errores ✅
+- `npx eslint .` → 0 errores (167 warnings preexistentes, ninguno en archivos modificados) ✅
+- `npm test` (sin BD) → 90 passed, 72 skipped ✅ (fallo flaky de jsdom en primera corrida, segundo run limpio)
+- `npm run build` (producción) → EXIT 0 ✅
+- `npx prisma validate` → schema válido ✅
+
+### Commits y release
+
+- `7136022` feat(db): agregar modelo Organization y orgId a entidades (nullable)
+- `50c25e4` feat(db): backfill orgId default y NOT NULL en entidades
+- `65e5664` feat(auth): guardar orgId en la sesión del operador
+- `302f685` feat(org): helper de filtrado por organización
+- `1b37e29` feat(org): aislar leads por organización
+- `97556b9` feat(org): aislar rutas restantes por organización
+- `bfbd6c0` feat(seed): organización y datos de demostración con orgId
+- `b89649e` docs: registrar Task 8 seed con orgId en session-log y plan
+- `a55c564` docs: actualizar backlog con multi-tenant v1.1.0 completado
+- Tag `v1.1.0` creado y publicado a `origin/master` junto con todos los commits
+
+### Pendiente (fuera de alcance v1.1)
+
+- [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales). Issue #7.
+- [ ] Cola externa para workers (reemplazar setInterval). Issue #8.
+- [ ] Tests E2E con Playwright (no instalado). Issue #10.
+- [ ] Limpiar warnings ESLint restantes (~167). Issue #9.
+- [ ] Centralizar errores y reconexión de WhatsApp. Issue #14.
+- [ ] Ejecutar `npm run db:seed` y `npm run test:db` contra BD real cuando PostgreSQL esté disponible.
