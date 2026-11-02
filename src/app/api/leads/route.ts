@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api-handler";
 import { leadCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100];
 const EXPORT_LIMIT = 20000;
@@ -82,6 +84,12 @@ function normalizePhone(raw: string) {
 
 export const GET = apiHandler({
   handler: async (req: NextRequest) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const sp = req.nextUrl.searchParams;
     const search = (sp.get("search") || "").trim();
     const rawTier = (sp.get("tier") || "all").trim();
@@ -101,6 +109,7 @@ export const GET = apiHandler({
       ? Prisma.sql`AND (l.name ILIKE ${like} OR l.phone LIKE ${like})`
       : Prisma.empty;
     const tierCond = tier === "all" ? Prisma.empty : TIER_WHERE[tier];
+    const orgCond = Prisma.sql`AND l."orgId" = ${orgId}`;
     const orderExpr = SORT_EXPR[sort];
     const dirSql = Prisma.raw(dir.toUpperCase());
     const nullsSql = TEXT_SORTS.has(sort) ? Prisma.raw(" NULLS LAST") : Prisma.empty;
@@ -126,7 +135,7 @@ export const GET = apiHandler({
       FROM "Lead" l
       LEFT JOIN paid p ON p.lid = l.id
       LEFT JOIN failed f ON f.lid = l.id
-      WHERE TRUE ${searchCond} ${tierCond}
+      WHERE TRUE ${orgCond} ${searchCond} ${tierCond}
       ORDER BY ${orderExpr} ${dirSql}${nullsSql}
       LIMIT ${limit} OFFSET ${offset}
     `);
@@ -141,7 +150,7 @@ export const GET = apiHandler({
       FROM "Lead" l
       LEFT JOIN paid p ON p.lid = l.id
       LEFT JOIN failed f ON f.lid = l.id
-      WHERE TRUE ${searchCond}
+      WHERE TRUE ${orgCond} ${searchCond}
       GROUP BY 1
     `);
 
@@ -155,10 +164,10 @@ export const GET = apiHandler({
       { count: number; revenue: number; orders: number; active30: number }[]
     >(Prisma.sql`
       SELECT
-        (SELECT COUNT(*)::int FROM "Lead") AS count,
+        (SELECT COUNT(*)::int FROM "Lead" WHERE "orgId" = ${orgId}) AS count,
         (SELECT COALESCE(SUM(amount), 0)::float8 FROM "PaymentOrder" WHERE status = 'PAID') AS revenue,
         (SELECT COUNT(*)::int FROM "PaymentOrder" WHERE status = 'PAID') AS orders,
-        (SELECT COUNT(*)::int FROM "Lead" WHERE "lastInteractionAt" >= NOW() - INTERVAL '30 days') AS active30
+        (SELECT COUNT(*)::int FROM "Lead" WHERE "orgId" = ${orgId} AND "lastInteractionAt" >= NOW() - INTERVAL '30 days') AS active30
     `);
 
     return NextResponse.json({
@@ -175,13 +184,21 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: leadCreateSchema,
   handler: async (req: NextRequest, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const phone = normalizePhone(String(body.phone || ""));
 
     if (!phone || phone.replace(/\D/g, "").length < 8) {
       return NextResponse.json({ error: "Telefono invalido (minimo 8 digitos)" }, { status: 400 });
     }
 
-    const existing = await prisma.lead.findUnique({ where: { phone } });
+    const existing = await prisma.lead.findUnique({
+      where: { ...whereOrg(orgId), phone },
+    });
     if (existing) {
       return NextResponse.json({ error: "Ya existe un cliente con ese telefono" }, { status: 409 });
     }
@@ -200,6 +217,7 @@ export const POST = apiHandler({
         addressZipCode: body.addressZipCode?.trim() || null,
         addressNotes: body.addressNotes?.trim() || null,
         lastInteractionAt: new Date(),
+        orgId,
       },
     });
 
