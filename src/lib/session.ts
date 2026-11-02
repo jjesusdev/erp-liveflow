@@ -7,6 +7,7 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 interface SessionPayload {
   operatorId: string;
   role: string;
+  orgId: string;
   issuedAt: number;
 }
 
@@ -57,11 +58,17 @@ function deserializeSession(token: string): SessionPayload | null {
 /**
  * Crea y establece la cookie de sesión firmada en la respuesta.
  * Se llama desde los route handlers de API tras autenticar al operador.
+ * Guarda operatorId, role y orgId en la sesión.
  */
-export async function createSession(operatorId: string, role: string): Promise<string> {
+export async function createSession(
+  operatorId: string,
+  role: string,
+  orgId: string
+): Promise<string> {
   const session: SessionPayload = {
     operatorId,
     role,
+    orgId,
     issuedAt: Date.now(),
   };
   const token = serializeSession(session);
@@ -82,7 +89,11 @@ export async function createSession(operatorId: string, role: string): Promise<s
  * Lee y valida la cookie de sesión de la request actual.
  * Retorna null si no hay sesión válida.
  */
-export async function getSession(): Promise<{ operatorId: string; role: string } | null> {
+export async function getSession(): Promise<{
+  operatorId: string;
+  orgId: string;
+  role: string;
+} | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -90,7 +101,19 @@ export async function getSession(): Promise<{ operatorId: string; role: string }
   const session = deserializeSession(token);
   if (!session) return null;
 
-  return { operatorId: session.operatorId, role: session.role };
+  return { operatorId: session.operatorId, orgId: session.orgId, role: session.role };
+}
+
+/**
+ * Retorna el contexto del operador autenticado: operatorId, orgId y role.
+ * Retorna null si no hay sesión válida.
+ */
+export async function getOperatorContext(): Promise<{
+  operatorId: string;
+  orgId: string;
+  role: string;
+} | null> {
+  return getSession();
 }
 
 /**

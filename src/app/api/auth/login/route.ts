@@ -19,18 +19,26 @@ export const POST = apiHandler<LoginBody>({
   handler: async (req, parsedBody) => {
     const { email, password } = parsedBody;
 
-    // Buscar operador por email
+    // Buscar operador por email, cargando su organización para obtener el orgId
     const operator = await prisma.operator.findUnique({
       where: { email },
-      select: { id: true, name: true, role: true, passwordHash: true },
+      include: { organization: true },
     });
 
     if (!operator || !(await comparePassword(password, operator.passwordHash ?? ""))) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
 
-    // Establecer cookie de sesión firmada
-    await createSession(operator.id, operator.role);
+    const orgId = operator.organization?.id;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "El operador no pertenece a ninguna organización" },
+        { status: 400 }
+      );
+    }
+
+    // Establecer cookie de sesión firmada con operatorId, role y orgId
+    await createSession(operator.id, operator.role, orgId);
 
     return NextResponse.json({
       operatorId: operator.id,
