@@ -1,11 +1,6 @@
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
 
-const SESSION_SECRET = process.env.SESSION_SECRET;
-if (!SESSION_SECRET) {
-  throw new Error("SESSION_SECRET no está configurada en las variables de entorno");
-}
-
 const SESSION_COOKIE = "lf_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 
@@ -15,8 +10,22 @@ interface SessionPayload {
   issuedAt: number;
 }
 
+/**
+ * Retorna el secreto de sesión, validando que esté configurado.
+ * Se valida en runtime (al firmar una sesión), no en el top-level del módulo,
+ * para no romper el build de Next.js cuando la variable de entorno no está
+ * disponible durante la recolección de datos de página.
+ */
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("SESSION_SECRET no está configurada en las variables de entorno");
+  }
+  return secret;
+}
+
 function sign(payload: string): string {
-  return createHmac("sha256", SESSION_SECRET!).update(payload).digest("base64url");
+  return createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
 }
 
 function serializeSession(session: SessionPayload): string {
