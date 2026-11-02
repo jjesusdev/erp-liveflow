@@ -382,3 +382,46 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - [ ] Centralizar errores WhatsApp.
 - [ ] Build de producción y tag v1.0.0.
 - [ ] Actualizar documentación.
+
+---
+
+## 2026-11-01 — Sesión: cierre v1.0.0 (build, tag y release)
+
+### Contexto
+
+- Cierre de las tareas pendientes para versión final estable v1.0.0.
+- master estaba 6 commits por delante de origin/master (sin publicar): auth, observabilidad, migraciones, tests de integración, docs issues v1.0.
+- Build de producción fallaba por `SESSION_SECRET` no disponible en tiempo de compilación de Next.js (validación en top-level de `src/lib/session.ts`).
+
+### Decisiones
+
+- **Build v1.0.0**: se corrigió `src/lib/session.ts` moviendo la validación de `SESSION_SECRET` del top-level a una función lazy (`getSessionSecret`) ejecutada al firmar la sesión. El módulo se importa limpio en el build y en runtime se mantiene la validación obligatoria.
+- **Release**: tag `v1.0.0` creado y publicado junto con master a `origin/master`.
+- No se forzaron las tareas bloqueadas por credenciales externas (carriers HTTP reales, multi-tenant, cola de workers, E2E Playwright).
+
+### Hecho
+
+- ✅ `fix(session): validar SESSION_SECRET en runtime para no romper el build` (commit `879f85f`)
+- ✅ `npm run build` (producción) → EXIT 0, todas las rutas compiladas
+- ✅ `npx tsc --noEmit` → 0 errores
+- ✅ `npm run lint` → 0 errores (161 warnings preexistentes; reducidos 2)
+- ✅ `npm test` (sin BD) → 90 passed, 68 skipped (fallos flaky preexistentes de jsdom/scrypt, no relacionados)
+- ✅ `docs/webhooks-mercadopago.md` creado (issue #12): flujo del webhook MP, variables de entorno, idempotencia, prueba en local con túnel
+- ✅ `product/backlog.md` actualizado: completados tests de integración, migraciones SQL y auth; documentado estado v1.0.0
+- ✅ 2 warnings ESLint triviales eliminados (`createHmac` no usado en `logger.ts`; `eslint-disable` innecesario en `carriers/base.ts`)
+- ✅ Tag `v1.0.0` publicado + 6 commits de master pusheados a `origin/master`
+
+### Commits
+
+- `879f85f` fix(session): validar SESSION_SECRET en runtime para no romper el build
+- `a93183d` docs: documentar webhooks de MercadoPago
+- `6036f05` chore: reducir warnings ESLint y actualizar backlog v1.0
+
+### Pendiente para v1.0 (bloqueados / fuera de alcance v1)
+
+- [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales de cada carrier). Issue #7.
+- [ ] Multi-tenant real con orgId generalizado. Issue #11.
+- [ ] Cola externa para workers (reemplazar setInterval). Issue #8.
+- [ ] Tests E2E con Playwright (no instalado). Issue #10.
+- [ ] Limpiar warnings ESLint restantes (~159). Issue #9.
+- [ ] Centralizar errores y reconexión de WhatsApp. Issue #14.
