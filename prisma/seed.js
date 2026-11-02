@@ -16,6 +16,7 @@ function hashPassword(password) {
 }
 
 const ADMIN_PASSWORD_HASH = hashPassword("admin123");
+const VENDEDORA_PASSWORD_HASH = hashPassword("vendedora123");
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -23,41 +24,57 @@ const DAY = 24 * HOUR;
 async function main() {
   console.log("Sembrando datos de ejemplo...");
 
-  const operator = await prisma.operator.upsert({
+  // 1. Organización de demostración (idempotente por slug)
+  //    Nota: BusinessConfig fue eliminada y su info vive ahora en Organization.settings.
+  const org = await prisma.organization.upsert({
+    where: { slug: "demo" },
+    update: { name: "Demo LiveFlow", isActive: true, settings: {} },
+    create: {
+      name: "Demo LiveFlow",
+      slug: "demo",
+      isActive: true,
+      settings: {},
+    },
+  });
+
+  const orgId = org.id;
+
+  // 2. Operadores de ejemplo asociados a la organización (orgId requerido)
+  const admin = await prisma.operator.upsert({
     where: { email: "admin@erp.local" },
-    update: {},
+    update: { orgId, role: "ADMIN", isOnline: true },
     create: {
       name: "Administrador",
       email: "admin@erp.local",
       role: "ADMIN",
       isOnline: true,
+      orgId,
       passwordHash: ADMIN_PASSWORD_HASH,
     },
   });
 
-  await prisma.businessConfig.upsert({
-    where: { id: "default" },
-    update: {},
+  const vendedora = await prisma.operator.upsert({
+    where: { email: "vendedora@erp.local" },
+    update: { orgId, role: "AGENT", isOnline: true },
     create: {
-      id: "default",
-      businessName: "Live Shop MX",
-      currency: "MXN",
-      timezone: "America/Mexico_City",
-      businessHoursStart: "09:00",
-      businessHoursEnd: "22:00",
-      autoReplyEnabled: true,
-      autoReplyDelayMs: 1200,
-      welcomeMessage: "Hola! Gracias por escribirnos. En un momento te ayudamos con tu pedido.",
-      awayMessage: "Ahora mismo estamos fuera de horario, te contestamos temprano.",
-      queueMessage: "Estamos Saturados, tu mensaje fue recibido.",
+      name: "Vendedora Demo",
+      email: "vendedora@erp.local",
+      role: "AGENT",
+      isOnline: true,
+      orgId,
+      passwordHash: VENDEDORA_PASSWORD_HASH,
     },
   });
 
-  const productCount = await prisma.product.count();
+  // 3. Productos de la organización (idempotente: solo si no hay productos de esta org)
+  const productCount = await prisma.product.count({
+    where: { orgId },
+  });
   if (productCount === 0) {
     await prisma.product.createMany({
       data: [
         {
+          orgId,
           name: "Playera Oversize Negra",
           description: "Algodon premium, talla M",
           price: 299,
@@ -66,6 +83,7 @@ async function main() {
           imageUrl: "https://placehold.co/400x400/png?text=Playera",
         },
         {
+          orgId,
           name: "Gorra Oversize Beige",
           description: "Unitario, borde curvo",
           price: 259,
@@ -74,6 +92,7 @@ async function main() {
           imageUrl: "https://placehold.co/400x400/png?text=Gorra",
         },
         {
+          orgId,
           name: "Set de Calcetas Antideslizantes",
           description: "Paquete de 3 pares",
           price: 199,
@@ -81,6 +100,7 @@ async function main() {
           category: "Accesorios",
         },
         {
+          orgId,
           name: "Mochila Urbana Compacta",
           description: "Color azul marino",
           price: 549,
@@ -170,13 +190,14 @@ async function main() {
   for (const seed of seeds) {
     const lead = await prisma.lead.upsert({
       where: { phone: seed.phone },
-      update: {},
+      update: { orgId },
       create: {
         phone: seed.phone,
         name: seed.name,
         source: seed.source,
         lastInteractionAt: seed.lastInteractionAt,
         firstContactAt: seed.lastInteractionAt,
+        orgId,
       },
     });
 
@@ -191,8 +212,9 @@ async function main() {
     const conversation = await prisma.conversation.create({
       data: {
         leadId: lead.id,
+        orgId,
         status: seed.status,
-        assignedToId: operator.id,
+        assignedToId: admin.id,
         lastMessageAt: seed.lastInteractionAt,
         createdAt: seed.lastInteractionAt,
         firstResponseAt: seed.lastInteractionAt,
@@ -214,13 +236,14 @@ async function main() {
         data: {
           conversationId: conversation.id,
           leadId: lead.id,
+          orgId,
           amount: p.amount,
           currency: "MXN",
           concept: p.concept,
           status: p.status,
           provider: p.provider || "MERCADOPAGO",
           providerLinkUrl: p.providerLinkUrl || null,
-          createdById: operator.id,
+          createdById: admin.id,
           sentAt: p.status !== "PENDING" ? seed.lastInteractionAt : null,
           paidAt: p.status === "PAID" ? seed.lastInteractionAt : null,
         },
@@ -229,7 +252,7 @@ async function main() {
 
     if (seed.shipment) {
       const order = await prisma.paymentOrder.findFirst({
-        where: { leadId: lead.id },
+        where: { leadId: lead.id, orgId },
         orderBy: { createdAt: "desc" },
       });
 
@@ -239,6 +262,7 @@ async function main() {
           data: {
             paymentOrderId: order.id,
             leadId: lead.id,
+            orgId,
             trackingNumber: s.trackingNumber,
             carrier: s.carrier,
             status: s.status,
@@ -252,15 +276,19 @@ async function main() {
 
   console.log("  Leads y conversaciones creados");
 
-  const campaignCount = await prisma.campaign.count();
+  // 4. Campaña de la organización (idempotente: solo si no hay campañas de esta org)
+  const campaignCount = await prisma.campaign.count({
+    where: { orgId },
+  });
   if (campaignCount === 0) {
     await prisma.campaign.create({
       data: {
+        orgId,
         name: "Promo del fin de semana",
         message:
           "Hola! Este fin de semana tenemos 15% de descuento en todo el catalogo. Tu enlace de pago sigue vigente.",
         status: "SENT",
-        createdById: operator.id,
+        createdById: admin.id,
         sentAt: new Date(now - 2 * DAY),
         totalLeads: seeds.length,
         sentCount: seeds.length,
@@ -278,13 +306,14 @@ async function main() {
   }
 
   const totals = {
-    leads: await prisma.lead.count(),
-    conversations: await prisma.conversation.count(),
-    messages: await prisma.message.count(),
-    products: await prisma.product.count(),
-    payments: await prisma.paymentOrder.count(),
-    shipments: await prisma.shipment.count(),
-    campaigns: await prisma.campaign.count(),
+    orgId,
+    leads: await prisma.lead.count({ where: { orgId } }),
+    conversations: await prisma.conversation.count({ where: { orgId } }),
+    messages: await prisma.message.count({ where: { orgId } }),
+    products: await prisma.product.count({ where: { orgId } }),
+    payments: await prisma.paymentOrder.count({ where: { orgId } }),
+    shipments: await prisma.shipment.count({ where: { orgId } }),
+    campaigns: await prisma.campaign.count({ where: { orgId } }),
   };
 
   console.log("Seed completado:", totals);
