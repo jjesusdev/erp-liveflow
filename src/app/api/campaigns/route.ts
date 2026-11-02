@@ -3,12 +3,19 @@ import { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api-handler";
 import { campaignCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { getOperatorIdFromSession } from "@/lib/session";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 import { parseEnum, CAMPAIGN_STATUSES } from "@/lib/enums";
 import { sendCampaign } from "@/lib/campaignSender";
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const rawStatus = req.nextUrl.searchParams.get("status");
     const status = parseEnum(CAMPAIGN_STATUSES, rawStatus);
 
@@ -16,7 +23,9 @@ export const GET = apiHandler({
       return NextResponse.json({ error: "Estado de campana invalido" }, { status: 400 });
     }
 
-    const where: Prisma.CampaignWhereInput = status ? { status } : {};
+    const where: Prisma.CampaignWhereInput = status
+      ? { ...whereOrg(orgId), status }
+      : { ...whereOrg(orgId) };
 
     const campaigns = await prisma.campaign.findMany({
       where,
@@ -36,12 +45,13 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: campaignCreateSchema,
   handler: async (_req, body) => {
-    const { name, message, scheduledAt, sendNow } = body;
-
-    const operatorId = await getOperatorIdFromSession();
-    if (!operatorId) {
-      return NextResponse.json({ error: "Sesión requerida" }, { status: 401 });
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
+    const { operatorId, orgId } = ctx;
+
+    const { name, message, scheduledAt, sendNow } = body;
 
     const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
     if (scheduledDate && scheduledDate <= new Date()) {
@@ -56,6 +66,7 @@ export const POST = apiHandler({
         name,
         message,
         createdById: operatorId,
+        orgId,
         status: scheduledDate ? "SCHEDULED" : "DRAFT",
         scheduledAt: scheduledDate,
       },

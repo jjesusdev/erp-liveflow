@@ -3,7 +3,8 @@ import axios from "axios";
 import { apiHandler } from "@/lib/api-handler";
 import { paymentOrderCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
-import { getOperatorIdFromSession } from "@/lib/session";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 async function createMercadoPagoPreference({
   amount,
@@ -120,11 +121,17 @@ function buildTransferMessage({
 export const POST = apiHandler({
   body: paymentOrderCreateSchema,
   handler: async (_req, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const { operatorId, orgId } = ctx;
+
     const { conversationId, concept, provider: rawProvider } = body;
     const numericAmount = body.amount;
 
     const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
+      where: { ...whereOrg(orgId), id: conversationId },
       include: { lead: true },
     });
 
@@ -133,10 +140,6 @@ export const POST = apiHandler({
     }
 
     const resolvedProvider = normalizeProvider(rawProvider);
-    const operatorId = await getOperatorIdFromSession();
-    if (!operatorId) {
-      return NextResponse.json({ error: "Sesión requerida" }, { status: 401 });
-    }
 
     // Si hay una sesión de Live activa en este momento, vinculamos la orden automáticamente
     const activeLive = await prisma.liveSession.findFirst({
@@ -145,7 +148,7 @@ export const POST = apiHandler({
     });
 
     // Si es transferencia bancaria, leemos la configuracion del negocio desde Organization.settings
-    const org = await prisma.organization.findFirst();
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
     const businessConfig = (org?.settings as any) ?? {};
 
     // Apartado exprés en Live Shopping: expira en 30 minutos
@@ -160,6 +163,7 @@ export const POST = apiHandler({
         currency: businessConfig?.currency || "MXN",
         concept,
         createdById: operatorId,
+        orgId,
         provider: resolvedProvider,
         status: "PENDING",
         expiresAt,

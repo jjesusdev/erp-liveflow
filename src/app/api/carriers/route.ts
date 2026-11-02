@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { carrierCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 import { getAvailableProviders, validateCarrierConfig } from "@/lib/carriers";
 
 function providerMeta() {
@@ -20,11 +22,17 @@ function providerMeta() {
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const sp = req.nextUrl.searchParams;
     const includeInactive = sp.get("all") === "1";
     const mode = sp.get("mode");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { ...whereOrg(orgId) };
     if (!includeInactive) where.active = true;
     if (mode) where.mode = mode;
 
@@ -44,13 +52,14 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: carrierCreateSchema,
   handler: async (_req, body) => {
-    const org = await prisma.organization.findFirst();
-    if (!org) {
-      return NextResponse.json({ error: "No hay organización disponible" }, { status: 400 });
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
+    const orgId = ctx.orgId;
 
     const existing = await prisma.carrier.findFirst({
-      where: { code: body.code },
+      where: { ...whereOrg(orgId), code: body.code },
     });
 
     if (existing) {
@@ -68,7 +77,7 @@ export const POST = apiHandler({
 
     const carrier = await prisma.carrier.create({
       data: {
-        orgId: org.id,
+        orgId,
         code: body.code,
         name: body.name,
         mode: body.mode,

@@ -4,6 +4,8 @@ import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { conversationCreateSchema } from "@/lib/schemas";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 const OPEN_STATUSES: Prisma.ConversationWhereInput["status"] = {
   in: ["NEW", "ATTENTION", "AWAITING_PAYMENT", "PAID", "SHIPPED"],
@@ -11,6 +13,12 @@ const OPEN_STATUSES: Prisma.ConversationWhereInput["status"] = {
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const searchParams = req.nextUrl.searchParams;
     const rawStatus = searchParams.get("status");
     const status = parseEnum(CONVERSATION_STATUSES, rawStatus);
@@ -19,7 +27,10 @@ export const GET = apiHandler({
       return NextResponse.json({ error: "Estado de conversacion invalido" }, { status: 400 });
     }
 
-    const where: Prisma.ConversationWhereInput = status ? { status } : { status: OPEN_STATUSES };
+    const baseWhere: Prisma.ConversationWhereInput = status
+      ? { status }
+      : { status: OPEN_STATUSES };
+    const where: Prisma.ConversationWhereInput = { ...whereOrg(orgId), ...baseWhere };
 
     const conversations = await prisma.conversation.findMany({
       where,
@@ -81,14 +92,22 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: conversationCreateSchema,
   handler: async (_req, body) => {
-    const lead = await prisma.lead.findUnique({ where: { id: body.leadId } });
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
+    const lead = await prisma.lead.findUnique({
+      where: { ...whereOrg(orgId), id: body.leadId },
+    });
 
     if (!lead) {
       return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
     }
 
     const existing = await prisma.conversation.findFirst({
-      where: { leadId: body.leadId, status: OPEN_STATUSES },
+      where: { ...whereOrg(orgId), leadId: body.leadId, status: OPEN_STATUSES },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     });
 
@@ -97,7 +116,7 @@ export const POST = apiHandler({
     }
 
     const conversation = await prisma.conversation.create({
-      data: { leadId: body.leadId, status: "NEW" },
+      data: { leadId: body.leadId, status: "NEW", orgId },
     });
 
     return NextResponse.json(conversation, { status: 201 });

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { shipmentCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 import { getCarrierProvider, type CreateShipmentContext } from "@/lib/carriers";
 import type { ShipmentMode } from "@prisma/client";
 
@@ -53,6 +55,12 @@ const LIST_SELECT = {
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const sp = req.nextUrl.searchParams;
 
     const statusParam = sp.get("status");
@@ -109,7 +117,7 @@ export const GET = apiHandler({
       conditions.push({ createdAt });
     }
 
-    const where = conditions.length > 0 ? { AND: conditions } : {};
+    const where = { ...whereOrg(orgId), ...(conditions.length > 0 ? { AND: conditions } : {}) };
 
     const [rows, countRows] = await Promise.all([
       exportAll
@@ -224,6 +232,12 @@ async function buildCreateShipmentContext(
 export const POST = apiHandler({
   body: shipmentCreateSchema,
   handler: async (_req, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const {
       paymentOrderId,
       trackingNumber,
@@ -245,13 +259,23 @@ export const POST = apiHandler({
       return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
     }
 
-    if (!paymentOrder.lead) {
-      return NextResponse.json({ error: "Cliente no encontrado en el cobro" }, { status: 404 });
+    // Aislamiento: el cobro y su cliente deben pertenecer a la org del operador
+    if (paymentOrder.orgId !== orgId) {
+      return NextResponse.json(
+        { error: "El cobro no pertenece a su organizacion" },
+        { status: 400 }
+      );
+    }
+    if (!paymentOrder.lead || paymentOrder.lead.orgId !== orgId) {
+      return NextResponse.json(
+        { error: "El cliente del cobro no pertenece a su organizacion" },
+        { status: 400 }
+      );
     }
 
-    // Verificar si ya existe envío para este cobro
+    // Verificar si ya existe envío para este cobro (en esta org)
     const existing = await prisma.shipment.findUnique({
-      where: { paymentOrderId },
+      where: { paymentOrderId, orgId },
     });
 
     if (existing) {
@@ -267,7 +291,7 @@ export const POST = apiHandler({
 
     if (carrierId) {
       carrierRef = await prisma.carrier.findUnique({
-        where: { id: carrierId },
+        where: { ...whereOrg(orgId), id: carrierId },
       });
 
       if (!carrierRef) {
@@ -286,6 +310,7 @@ export const POST = apiHandler({
       data: {
         paymentOrderId,
         leadId: paymentOrder.leadId,
+        orgId,
         trackingNumber: trackingNumber || null,
         carrier: carrier || carrierRef?.name || null,
         mode: mode ?? null,

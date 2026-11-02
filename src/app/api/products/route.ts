@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { productCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
   handler: async (req: NextRequest) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const searchParams = req.nextUrl.searchParams;
     const available = searchParams.get("available");
     const category = searchParams.get("category");
     const search = searchParams.get("search");
 
-    const where: any = {};
+    const where: any = { ...whereOrg(orgId) };
 
     if (available !== null) {
       where.isAvailable = available === "true";
@@ -38,6 +46,12 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: productCreateSchema,
   handler: async (req: NextRequest, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const { name, description, price, currency, imageUrl, category, isAvailable } = body;
 
     const product = await prisma.product.create({
@@ -49,6 +63,7 @@ export const POST = apiHandler({
         imageUrl: imageUrl || null,
         category: category || null,
         isAvailable: isAvailable ?? true,
+        orgId,
       },
     });
 
