@@ -4,25 +4,24 @@
 
 ## 🔴 Alta prioridad
 
-- [ ] **Conectores de carriers (Fase 4 de `docs/shipments-plan.md`)**: infra y registry completos (9 providers), endpoint `/api/carriers/providers` y UI de configuración listos. **Falta**: llamadas HTTP reales (hoy simuladas), UI `/config/carriers` y tests con mocks.
-- [ ] **Tests de integración de rutas API**: suite determinista (`npm run test` sin BD, `npm run test:db` con BD; CI activa `TEST_DB=1`). **Falta**: cubrir `/api/shipments`, `/api/caja`, `/api/conversations` y webhook de MercadoPago.
-- [ ] **Migraciones SQL versionadas**: hoy solo `prisma db push`; evaluar `prisma migrate` para producción.
-- [ ] **Autenticación de operadores**: completar login/sesión (hoy `Operator.passwordHash` sin flujo).
+- [ ] **Conectores de carriers (Fase 4 de `docs/shipments-plan.md`)**: infra y registry completos (9 providers), endpoint `/api/carriers/providers` y UI de configuración listos. **Bloqueado**: llamadas HTTP reales por provider (requiere docs + credenciales de cada carrier). Ver issue #7.
+- [x] **Tests de integración de rutas API**: suite determinista (`npm test` sin BD, `npm run test:db` con BD; CI activa `TEST_DB=1`). Completados: `/api/shipments`, `/api/caja`, `/api/conversaciones`, webhook MercadoPago, health, carriers. (153 tests con BD, 90 sin BD)
+- [x] **Migraciones SQL versionadas**: `prisma/migrations/20261029210000_init` + `migration_lock.toml`, scripts `db:migrate`/`db:deploy`/`db:status`, CI usa `migrate deploy` + `migrate diff --exit-code`.
+- [x] **Autenticación de operadores**: login/sesión end-to-end (`POST /api/auth/login`, cookie firmada, middleware, UI `/login`). Completado.
 
 ## 🟡 Media prioridad
 
-- [ ] **Multi-tenant real**: generalizar `orgId` más allá de `Carrier` (Lead, Conversation, PaymentOrder, Shipment).
-- [ ] **Cola externa para workers**: reemplazar `setInterval` en proceso por un worker/cola que soporte múltiples instancias.
-- [ ] **E2E con Playwright**: flujos críticos (crear lead → orden de pago → envío).
-- [ ] **Cobertura de tests**: subir de 63 tests; priorizar integración.
+- [ ] **Multi-tenant real**: generalizar `orgId` más allá de `Carrier` (Lead, Conversation, PaymentOrder, Shipment). Ver issue #11.
+- [ ] **Cola externa para workers**: reemplazar `setInterval` en proceso por un worker/cola que soporte múltiples instancias. Ver issue #8.
+- [ ] **E2E con Playwright**: flujos críticos (crear lead → orden de pago → envío). Playwright no está instalado. Ver issue #10.
 
 ## 🟢 Deuda / mejoras
 
-- [ ] Limpiar warnings de ESLint (104 preexistentes).
-- [ ] Revisar dependencias sin uso (p. ej. `cloudinary` vs flujo real de medios).
-- [ ] Documentar webhooks (MercadoPago) y cómo probarlos en local (ngrok/túnel).
-- [ ] Centralizar manejo de errores de WhatsApp (reconexión, QR expirado).
-- [ ] Observabilidad básica (logs estructurados, errores).
+- [ ] **Limpiar warnings de ESLint**: 161 advertencias preexistentes (0 errores). Mayormente `no-explicit-any` y vars no usadas en proveedores simulados. Ver issue #9.
+- [ ] **Revisar dependencias sin uso** (p. ej. `cloudinary` vs flujo real de medios).
+- [x] **Documentar webhooks (MercadoPago)**: `docs/webhooks-mercadopago.md` creado (flujo, variables de entorno, cómo probar en local con túnel). Ver issue #12.
+- [ ] **Centralizar manejo de errores de WhatsApp** (reconexión, QR expirado). Ver issue #14.
+- [x] **Observabilidad básica**: logger estructurado (`src/lib/logger.ts`), `GET /api/health`, pestaña "Estado del Sistema" en Config. Completado.
 
 ## 💡 Ideas / explorar
 
@@ -30,3 +29,8 @@
 - [ ] Recordatorios automáticos de órdenes de pago pendientes.
 - [ ] Integración con calendario de transmisiones.
 - [ ] Exportación/reportes programados por correo.
+
+## Estado v1.0.0
+
+- [x] Código funcional y verificado: `typecheck` 0 errores, `lint` 0 errores, `test` 90 passed (sin BD).
+- [ ] **Build de producción y tag v1.0.0**: pendiente ejecutar `npm run build`, crear tag y publicar a `origin/master`. Ver issue #15.

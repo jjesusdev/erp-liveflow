@@ -79,7 +79,6 @@ export abstract class BaseCarrierProvider implements CarrierProvider {
    */
   protected logProviderCall(method: string, params?: unknown): void {
     // Evitar dependencia de logger externo; usar console por ahora
-    // eslint-disable-next-line no-console
     console.log(`[Carrier:${this.code}] ${method}`, params ?? "");
   }
 
