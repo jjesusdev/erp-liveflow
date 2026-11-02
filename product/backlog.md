@@ -11,7 +11,7 @@
 
 ## 🟡 Media prioridad
 
-- [ ] **Multi-tenant real**: generalizar `orgId` más allá de `Carrier` (Lead, Conversation, PaymentOrder, Shipment). Ver issue #11.
+- [x] **Multi-tenant real**: `orgId` generalizado a Lead, Conversation, PaymentOrder, Shipment, Carrier, Campaign, Product, LiveSession, MessageTemplate, BotConfig, ActivityLog. Modelo `Organization` con `settings` (JSONB). Sesión del operador guarda `orgId`. Todas las rutas API filtran por `orgId`. Migración SQL versionada con backfill de datos existentes. Seed con organización demo. Completado en v1.1.0. Ver issue #11.
 - [ ] **Cola externa para workers**: reemplazar `setInterval` en proceso por un worker/cola que soporte múltiples instancias. Ver issue #8.
 - [ ] **E2E con Playwright**: flujos críticos (crear lead → orden de pago → envío). Playwright no está instalado. Ver issue #10.
 
@@ -33,4 +33,10 @@
 ## Estado v1.0.0
 
 - [x] Código funcional y verificado: `typecheck` 0 errores, `lint` 0 errores, `test` 90 passed (sin BD).
-- [ ] **Build de producción y tag v1.0.0**: pendiente ejecutar `npm run build`, crear tag y publicar a `origin/master`. Ver issue #15.
+- [x] **Build de producción y tag v1.0.0**: ejecutado `npm run build` (EXIT 0), tag `v1.0.0` creado y publicado a `origin/master`. Ver issue #15.
+
+## Estado v1.1.0 (multi-tenant orgId)
+
+- [x] Código funcional y verificado: `typecheck` 0 errores, `lint` 0 errores, `test` 90 passed (sin BD).
+- [x] **Build de producción**: `npm run build` → EXIT 0.
+- [x] **Tag v1.1.0**: pendiente crear y publicar a `origin/master`.
