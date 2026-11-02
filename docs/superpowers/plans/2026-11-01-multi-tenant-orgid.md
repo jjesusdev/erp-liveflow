@@ -297,14 +297,14 @@ git commit -m "docs(org): verificar middleware protege rutas con sesión"
 - Consumes: schema con `Organization`.
 - Produces: seed crea organización "Demo LiveFlow", operadores de ejemplo asociados, y datos de ejemplo (leads, conversaciones, cobros, envíos) con `orgId`.
 
-- [ ] **Step 1: Actualizar `prisma/seed.js` para crear org y datos con `orgId`**
+- [x] **Step 1: Actualizar `prisma/seed.js` para crear org y datos con `orgId`**
 
-- [ ] **Step 2: Ejecutar `npm run db:seed` y verificar**
+- [x] **Step 2: Ejecutar `npm run db:seed` y verificar** (no ejecutado: sin PostgreSQL P1001; verificado con `tsc`, `prisma validate` y `node --check`)
 
 Run: `npm run db:seed`
 Expected: éxito, datos creados con `orgId` de la org demo
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add prisma/seed.js

@@ -425,3 +425,32 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - [ ] Tests E2E con Playwright (no instalado). Issue #10.
 - [ ] Limpiar warnings ESLint restantes (~159). Issue #9.
 - [ ] Centralizar errores y reconexión de WhatsApp. Issue #14.
+
+---
+
+## 2026-11-01 — Sesión: Task 8 - Seed de demostración con organización (multi-tenant orgId)
+
+### Contexto
+
+- Implementación de la Task 8 del plan multi-tenant orgId (`docs/superpowers/plans/2026-11-01-multi-tenant-orgid.md`).
+- Sin PostgreSQL disponible (P1001): no se ejecuta `npm run db:seed`; verificación con `tsc`, `prisma validate` y `node --check`.
+
+### Hecho
+
+- `prisma/seed.js` reescrito para crear organización "Demo LiveFlow" (slug `demo`, `isActive: true`, `settings: {}`).
+- Operadores `admin@erp.local` (ADMIN) y `vendedora@erp.local` (AGENT) creados con `orgId` de la org demo.
+- Leads, conversaciones, paymentOrders, shipments, productos y campañas creados con `orgId` de la org demo.
+- Idempotencia mantenida: upsert por slug de organización, upsert por email de operador, `count where orgId === 0` para productos y campañas, `continue` si la conversación ya existe.
+- Se eliminó la referencia a `prisma.businessConfig` (tabla `BusinessConfig` droppeada en migración `20261101223825_add_organization`; su info vive ahora en `Organization.settings`, ya poblada al crear la org).
+- Commit `bfbd6c0` feat(seed): organización y datos de demostración con orgId.
+
+### Verificación
+
+- `npx tsc --noEmit` → 0 errores.
+- `npx prisma validate` → schema válido.
+- `node --check prisma/seed.js` → sintaxis OK.
+- `npm run db:seed` no ejecutado (sin PostgreSQL P1001).
+
+### Pendiente
+
+- Ejecutar `npm run db:seed` contra una BD real cuando esté disponible PostgreSQL.
