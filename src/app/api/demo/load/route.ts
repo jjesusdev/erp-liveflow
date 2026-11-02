@@ -33,11 +33,11 @@ export const POST = apiHandler({
       create: DEMO_OPERATOR,
     });
 
-    // 2. Business Config
-    await prisma.businessConfig.upsert({
-      where: { id: "default" },
-      update: {},
-      create: { id: "default", ...DEMO_BUSINESS_CONFIG },
+    // 2. Organización por defecto (reemplaza BusinessConfig)
+    await prisma.organization.upsert({
+      where: { id: "default-org" },
+      update: { settings: DEMO_BUSINESS_CONFIG },
+      create: { id: "default-org", name: "Default", settings: DEMO_BUSINESS_CONFIG },
     });
 
     // 3. Live Sessions

@@ -1,22 +1,22 @@
-import type { WASocket } from '@whiskeysockets/baileys';
-import { prisma } from '../../src/lib/prisma';
+import type { WASocket } from "@whiskeysockets/baileys";
+import { prisma } from "../../src/lib/prisma";
 
 function minutesOf(hhmm: string) {
-  const [h, m] = hhmm.split(':').map(Number);
+  const [h, m] = hhmm.split(":").map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return null;
   return h * 60 + m;
 }
 
 function nowMinutesInTz(timezone?: string | null) {
   try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone || 'America/Mexico_City',
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "America/Mexico_City",
       hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     }).formatToParts(new Date());
-    const hour = Number(parts.find((p) => p.type === 'hour')?.value);
-    const minute = Number(parts.find((p) => p.type === 'minute')?.value);
+    const hour = Number(parts.find((p) => p.type === "hour")?.value);
+    const minute = Number(parts.find((p) => p.type === "minute")?.value);
     if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
     return hour * 60 + minute;
   } catch {
@@ -29,9 +29,7 @@ export function isOutsideBusinessHours(config: {
   businessHoursEnd?: string | null;
   timezone?: string | null;
 }): boolean {
-  const start = config.businessHoursStart
-    ? minutesOf(config.businessHoursStart)
-    : null;
+  const start = config.businessHoursStart ? minutesOf(config.businessHoursStart) : null;
   const end = config.businessHoursEnd ? minutesOf(config.businessHoursEnd) : null;
   if (start === null || end === null || start === end) return false;
 
@@ -53,7 +51,7 @@ export async function processBotTriggers(
   incomingText: string,
   conversationId: string
 ): Promise<boolean> {
-  if (!incomingText || typeof incomingText !== 'string') return false;
+  if (!incomingText || typeof incomingText !== "string") return false;
 
   const normalized = incomingText.trim().toLowerCase();
   if (normalized.length === 0) return false;
@@ -65,22 +63,22 @@ export async function processBotTriggers(
 
     // Busca coincidencia por atajo/shortcut (ej: "combo", "quiero", "apartar") o en el nombre de plantilla
     const matched = templates.find((t) => {
-      const shortcut = t.shortcut?.trim().toLowerCase().replace('/', '');
-      if (shortcut && (normalized === shortcut || normalized.startsWith(shortcut + ' '))) {
+      const shortcut = t.shortcut?.trim().toLowerCase().replace("/", "");
+      if (shortcut && (normalized === shortcut || normalized.startsWith(shortcut + " "))) {
         return true;
       }
       return false;
     });
 
     if (matched) {
-      const jid = `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
+      const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
       await sock.sendMessage(jid, { text: matched.content });
 
       const created = await prisma.message.create({
         data: {
           conversationId,
-          direction: 'OUTBOUND',
-          type: 'TEXT',
+          direction: "OUTBOUND",
+          type: "TEXT",
           content: matched.content,
           isTemplate: true,
           templateId: matched.id,
@@ -91,45 +89,42 @@ export async function processBotTriggers(
       await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          status: 'ATTENTION',
+          status: "ATTENTION",
           lastMessageAt: created.sentAt,
         },
       });
 
       const io = (globalThis as any).io;
-      io?.emit('message:new', created);
+      io?.emit("message:new", created);
 
       const full = await prisma.conversation.findUnique({
         where: { id: conversationId },
         include: {
           lead: true,
-          messages: { orderBy: { sentAt: 'desc' }, take: 1 },
-          paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+          messages: { orderBy: { sentAt: "desc" }, take: 1 },
+          paymentOrders: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       });
-      if (full) io?.emit('conversation:updated', full);
+      if (full) io?.emit("conversation:updated", full);
 
       return true;
     }
 
     return false;
   } catch (error) {
-    console.error('[bot] error evaluando triggers de Live:', error);
+    console.error("[bot] error evaluando triggers de Live:", error);
     return false;
   }
 }
 
 /**
- * Bienvenida / mensaje de ausencia. Se usa BusinessConfig (la config real del
- * negocio) y respeta autoReplyEnabled, autoReplyDelayMs y el horario.
+ * Bienvenida / mensaje de ausencia. Usa Organization.settings (JSON) y respeta
+ * autoReplyEnabled, autoReplyDelayMs y el horario.
  */
-export async function sendWelcomeMessage(
-  sock: WASocket,
-  phone: string,
-  conversationId?: string
-) {
+export async function sendWelcomeMessage(sock: WASocket, phone: string, conversationId?: string) {
   try {
-    const config = await prisma.businessConfig.findFirst();
+    const org = await prisma.organization.findFirst();
+    const config = (org?.settings as any) ?? {};
     if (config && !config.autoReplyEnabled) return;
 
     const outside = config ? isOutsideBusinessHours(config) : false;
@@ -137,7 +132,7 @@ export async function sendWelcomeMessage(
       outside && config?.awayMessage
         ? config.awayMessage
         : config?.welcomeMessage ||
-          '¡Hola! Bienvenido. Envíanos captura de lo que te gusta y te ayudamos enseguida.';
+          "¡Hola! Bienvenido. Envíanos captura de lo que te gusta y te ayudamos enseguida.";
 
     if (!text) return;
 
@@ -146,14 +141,14 @@ export async function sendWelcomeMessage(
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    const jid = `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
+    const jid = `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
     await sock.sendMessage(jid, { text });
 
     let convId = conversationId;
     if (!convId) {
       const conversation = await prisma.conversation.findFirst({
         where: { lead: { phone } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
       convId = conversation?.id;
     }
@@ -162,8 +157,8 @@ export async function sendWelcomeMessage(
     const created = await prisma.message.create({
       data: {
         conversationId: convId,
-        direction: 'OUTBOUND',
-        type: 'TEXT',
+        direction: "OUTBOUND",
+        type: "TEXT",
         content: text,
         isTemplate: true,
         sentAt: new Date(),
@@ -176,17 +171,17 @@ export async function sendWelcomeMessage(
     });
 
     const io = (globalThis as any).io;
-    io?.emit('message:new', created);
+    io?.emit("message:new", created);
     const full = await prisma.conversation.findUnique({
       where: { id: convId },
       include: {
         lead: true,
-        messages: { orderBy: { sentAt: 'desc' }, take: 1 },
-        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+        messages: { orderBy: { sentAt: "desc" }, take: 1 },
+        paymentOrders: { orderBy: { createdAt: "desc" }, take: 1 },
       },
     });
-    if (full) io?.emit('conversation:updated', full);
+    if (full) io?.emit("conversation:updated", full);
   } catch (error) {
-    console.error('[whatsapp] error enviando mensaje de bienvenida:', error);
+    console.error("[whatsapp] error enviando mensaje de bienvenida:", error);
   }
 }

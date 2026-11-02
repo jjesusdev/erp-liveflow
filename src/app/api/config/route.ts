@@ -4,9 +4,10 @@ import { apiHandler } from "@/lib/api-handler";
 import { businessConfigSchema, type BusinessConfigInput } from "@/lib/schemas";
 
 export async function GET() {
-  const config = await prisma.businessConfig.findFirst();
+  const org = await prisma.organization.findFirst();
+  const config = (org?.settings as any) ?? {};
 
-  if (!config) {
+  if (!config || Object.keys(config).length === 0) {
     return NextResponse.json({
       businessName: "Mi Negocio",
       currency: "MXN",
@@ -28,44 +29,24 @@ export async function GET() {
   return NextResponse.json(config);
 }
 
-/** Converts nullable string fields to Prisma-compatible update format. */
-function toPrismaUpdate(body: BusinessConfigInput) {
-  const update: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(body)) {
-    if (value === null) {
-      update[key] = { set: null };
-    } else if (value !== undefined) {
-      update[key] = value;
-    }
-  }
-  return update;
-}
-
 export const PUT = apiHandler<BusinessConfigInput>({
   body: businessConfigSchema,
   handler: async (_req, body) => {
-    const config = await prisma.businessConfig.upsert({
-      where: { id: "default" },
-      update: toPrismaUpdate(body),
-      create: {
-        id: "default",
-        businessName: body.businessName || "Mi Negocio",
-        currency: body.currency || "MXN",
-        timezone: body.timezone || "America/Mexico_City",
-        bankName: body.bankName || null,
-        bankBeneficiary: body.bankBeneficiary || null,
-        bankAccountNumber: body.bankAccountNumber || null,
-        bankClabe: body.bankClabe || null,
-        bankNotes: body.bankNotes || null,
-        soundAlertsEnabled: body.soundAlertsEnabled ?? false,
-        autoReplyEnabled: body.autoReplyEnabled ?? true,
-        autoReplyDelayMs: body.autoReplyDelayMs ?? 1000,
-        welcomeMessage: body.welcomeMessage || "¡Hola! Bienvenido.",
-        awayMessage: body.awayMessage ?? null,
-        queueMessage: body.queueMessage ?? null,
-      },
-    });
+    const org = await prisma.organization.findFirst();
+    const settings = { ...(org?.settings as any), ...body };
 
-    return NextResponse.json(config);
+    if (org) {
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: { settings },
+      });
+    } else {
+      await prisma.organization.create({
+        data: { id: "default-org", name: "Default", settings },
+      });
+    }
+
+    const updatedOrg = await prisma.organization.findFirst();
+    return NextResponse.json(updatedOrg?.settings);
   },
 });

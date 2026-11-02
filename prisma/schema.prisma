@@ -7,8 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Organization {
+  id             String   @id @default(uuid())
+  name           String
+  slug           String?  @unique
+  isActive       Boolean  @default(true)
+  settings       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  operators         Operator[]
+  leads             Lead[]
+  conversations     Conversation[]
+  messages          Message[]
+  paymentOrders     PaymentOrder[]
+  shipments         Shipment[]
+  carriers          Carrier[]
+  campaigns         Campaign[]
+  products          Product[]
+  liveSessions      LiveSession[]
+  messageTemplates  MessageTemplate[]
+  botConfigs        BotConfig[]
+  activityLogs      ActivityLog[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
 model Lead {
   id                String    @id @default(uuid())
+  orgId             String?
+  organization      Organization? @relation(fields: [orgId], references: [id])
   phone             String    @unique
   name              String?
   source            String?
@@ -31,10 +60,13 @@ model Lead {
 
   @@index([phone])
   @@index([lastInteractionAt])
+  @@index([orgId])
 }
 
 model Conversation {
   id               String            @id @default(uuid())
+  orgId            String?
+  organization     Organization?      @relation(fields: [orgId], references: [id])
   leadId           String
   lead             Lead              @relation(fields: [leadId], references: [id])
   status           ConversationStatus @default(NEW)
@@ -55,6 +87,7 @@ model Conversation {
   @@index([assignedToId])
   @@index([leadId])
   @@index([lastMessageAt])
+  @@index([orgId])
 }
 
 enum ConversationStatus {
@@ -69,6 +102,8 @@ enum ConversationStatus {
 
 model Message {
   id             String    @id @default(uuid())
+  orgId          String?
+  organization   Organization? @relation(fields: [orgId], references: [id])
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   direction      Direction
@@ -87,6 +122,7 @@ model Message {
   @@index([conversationId])
   @@index([whatsappMsgId])
   @@index([sentAt])
+  @@index([orgId])
 }
 
 enum Direction {
@@ -107,6 +143,8 @@ enum MessageType {
 
 model PaymentOrder {
   id              String        @id @default(uuid())
+  orgId           String?
+  organization    Organization?  @relation(fields: [orgId], references: [id])
   conversationId  String
   conversation    Conversation  @relation(fields: [conversationId], references: [id])
   leadId          String
@@ -135,10 +173,13 @@ model PaymentOrder {
   @@index([liveSessionId])
   @@index([createdById])
   @@index([paidAt])
+  @@index([orgId])
 }
 
 model LiveSession {
   id          String         @id @default(uuid())
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id])
   title       String
   platform    String         @default("TIKTOK")
   status      String         @default("ACTIVE")
@@ -152,6 +193,7 @@ model LiveSession {
 
   @@index([status])
   @@index([startedAt])
+  @@index([orgId])
 }
 
 enum PaymentStatus {
@@ -173,6 +215,8 @@ enum PaymentProvider {
 
 model Operator {
   id                String    @id @default(uuid())
+  orgId             String?
+  organization      Organization? @relation(fields: [orgId], references: [id])
   name              String
   email             String    @unique
   passwordHash      String?
@@ -190,6 +234,7 @@ model Operator {
 
   @@index([isOnline])
   @@index([role])
+  @@index([orgId])
 }
 
 enum OperatorRole {
@@ -200,6 +245,8 @@ enum OperatorRole {
 
 model MessageTemplate {
   id          String    @id @default(uuid())
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id])
   name        String
   content     String
   category    String
@@ -208,10 +255,14 @@ model MessageTemplate {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([orgId])
 }
 
 model BotConfig {
   id                String    @id @default(uuid())
+  orgId             String?
+  organization      Organization? @relation(fields: [orgId], references: [id])
   name              String    @default("default")
   welcomeMessage    String
   awayMessage       String?
@@ -222,10 +273,14 @@ model BotConfig {
   businessHoursEnd   String?
   timezone          String    @default("America/Mexico_City")
   updatedAt         DateTime  @updatedAt
+
+  @@index([orgId])
 }
 
 model ActivityLog {
   id             String    @id @default(uuid())
+  orgId          String?
+  organization   Organization? @relation(fields: [orgId], references: [id])
   operatorId     String?
   conversationId String?
   action         String
@@ -235,10 +290,13 @@ model ActivityLog {
   @@index([conversationId])
   @@index([operatorId])
   @@index([createdAt])
+  @@index([orgId])
 }
 
 model Product {
   id          String    @id @default(uuid())
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id])
   name        String
   description String?
   price       Decimal   @db.Decimal(10, 2)
@@ -254,6 +312,7 @@ model Product {
   @@index([isActive])
   @@index([isAvailable])
   @@index([category])
+  @@index([orgId])
 }
 
 enum CarrierMode {
@@ -288,7 +347,8 @@ enum EventSource {
 
 model Carrier {
   id         String            @id @default(uuid())
-  orgId      String?
+  orgId      String
+  organization Organization @relation(fields: [orgId], references: [id])
   code       String
   name       String
   mode       CarrierMode
@@ -306,6 +366,8 @@ model Carrier {
 
 model Shipment {
   id             String         @id @default(uuid())
+  orgId          String?
+  organization   Organization?   @relation(fields: [orgId], references: [id])
   paymentOrderId String         @unique
   paymentOrder   PaymentOrder   @relation(fields: [paymentOrderId], references: [id])
   leadId         String
@@ -341,6 +403,7 @@ model Shipment {
   @@index([paymentOrderId])
   @@index([mode])
   @@index([carrierId])
+  @@index([orgId])
 }
 
 model ShipmentEvent {
@@ -373,6 +436,8 @@ enum ShipmentStatus {
 
 model Campaign {
   id          String    @id @default(uuid())
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id])
   name        String
   message     String
   status      CampaignStatus @default(DRAFT)
@@ -388,6 +453,7 @@ model Campaign {
 
   @@index([status])
   @@index([scheduledAt])
+  @@index([orgId])
 }
 
 enum CampaignStatus {
@@ -424,27 +490,4 @@ enum RecipientStatus {
   FAILED
 }
 
-model BusinessConfig {
-  id                    String    @id @default(uuid())
-  businessName          String
-  currency              String    @default("MXN")
-  timezone              String    @default("America/Mexico_City")
-  bankName              String?
-  bankBeneficiary       String?
-  bankAccountNumber     String?
-  bankClabe             String?
-  bankNotes             String?
-  soundAlertsEnabled    Boolean   @default(false)
-  autoExpireOrders      Boolean   @default(true)
-  orderExpirationMinutes Int      @default(30)
-  autoReleaseStock      Boolean   @default(true)
-  businessHoursStart    String?
-  businessHoursEnd      String?
-  autoReplyEnabled      Boolean   @default(true)
-  autoReplyDelayMs      Int       @default(1000)
-  welcomeMessage        String
-  awayMessage           String?
-  queueMessage          String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-}
+

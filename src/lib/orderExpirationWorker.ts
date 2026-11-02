@@ -7,7 +7,8 @@ import { logActivity } from "./audit";
  */
 export async function processExpiredPaymentOrders() {
   try {
-    const config = await prisma.businessConfig.findFirst();
+    const org = await prisma.organization.findFirst();
+    const config = (org?.settings as any) ?? {};
     if (config && config.autoExpireOrders === false) {
       return 0;
     }

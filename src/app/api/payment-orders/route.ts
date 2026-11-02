@@ -144,8 +144,9 @@ export const POST = apiHandler({
       orderBy: { startedAt: "desc" },
     });
 
-    // Si es transferencia bancaria, leemos la configuracion del negocio
-    const businessConfig = await prisma.businessConfig.findFirst();
+    // Si es transferencia bancaria, leemos la configuracion del negocio desde Organization.settings
+    const org = await prisma.organization.findFirst();
+    const businessConfig = (org?.settings as any) ?? {};
 
     // Apartado exprés en Live Shopping: expira en 30 minutos
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);

@@ -44,8 +44,13 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: carrierCreateSchema,
   handler: async (_req, body) => {
+    const org = await prisma.organization.findFirst();
+    if (!org) {
+      return NextResponse.json({ error: "No hay organización disponible" }, { status: 400 });
+    }
+
     const existing = await prisma.carrier.findFirst({
-      where: { orgId: null, code: body.code },
+      where: { code: body.code },
     });
 
     if (existing) {
@@ -63,7 +68,7 @@ export const POST = apiHandler({
 
     const carrier = await prisma.carrier.create({
       data: {
-        orgId: null,
+        orgId: org.id,
         code: body.code,
         name: body.name,
         mode: body.mode,

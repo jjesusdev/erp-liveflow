@@ -24,6 +24,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   let manualCarrierId = "";
   let shipitCarrierId = "";
   let beetrackCarrierId = "";
+  let orgId = "";
   let manualShipmentId = "";
   let shipitShipmentId = "";
   let noCarrierShipmentId = "";
@@ -58,6 +59,11 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   }
 
   beforeAll(async () => {
+    const org = await prisma.organization.create({
+      data: { id: "test-org", name: "Test Org" },
+    });
+    orgId = org.id;
+
     const lead = await prisma.lead.create({
       data: { phone: TEST_PHONE, name: "Test sync tracking" },
     });
@@ -68,6 +74,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     const manualCarrier = await prisma.carrier.create({
       data: {
+        orgId,
         code: `TEST-MANUAL-${RUN_ID}`,
         name: "Manual Test",
         mode: "COURIER",
@@ -78,6 +85,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     const shipitCarrier = await prisma.carrier.create({
       data: {
+        orgId,
         code: `TEST-SHIPIT-${RUN_ID}`,
         name: "Shipit Test",
         mode: "COURIER",
@@ -89,6 +97,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     const beetrackCarrier = await prisma.carrier.create({
       data: {
+        orgId,
         code: `TEST-BEETRACK-${RUN_ID}`,
         name: "Beetrack Test",
         mode: "COURIER",
