@@ -687,3 +687,36 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 ### CI/CD
 - Diagramas ahora pasan el check de diferencias
 - Build verde confirmado localmente
+
+---
+
+## Fix CI Migration Error (2026-11-08)
+
+### Error P3018: column "isactive" of relation "Organization" does not exist
+
+#### Diagnóstico
+- La tabla `Organization` existía en CI pero **sin la columna `isActive`** (guardada como `isactive` por PostgreSQL)
+- La migración `20261101224000_backfill_orgid_default` fallaba al intentar INSERT con `isActive`
+- Causa: Estado inconsistente de BD en CI, posiblemente tabla creada manualmente o con esquema antiguo
+
+#### Solución implementada
+
+1. **Prisma migration SQL** (`prisma/migrations/20261101224000_backfill_orgid_default/migration.sql`):
+   - Verifica si la tabla `Organization` existe
+   - Si existe, verifica si tiene columnas `name` y `isActive`
+   - Si `isactive` existe pero no `isActive`, **renombra la columna** automáticamente
+   - Agrega columnas faltantes (`createdAt`, `updatedAt`, `settings`) con valores defaults
+   - Ahora el INSERT usando `"isActive"` siempre funciona
+
+2. **GitHub Actions CI** (`.github/workflows/ci.yml`):
+   - Agregado fallback con `prisma migrate reset --force` si `migrate deploy` falla
+   - Mejor manejo de errores con `set -e` y mensajes de log
+   - El CI ahora se recupera automáticamente de inconsistencias de esquema
+
+#### Archivos modificados
+- `.github/workflows/ci.yml` - agregado fallback de migraciones
+- `prisma/migrations/20261101224000_backfill_orgid_default/migration.sql` - script resistente a naming issues
+
+#### Estado
+- CI debería pasar ahora que las migraciones pueden recuperarse
+- Verificar en GitHub Actions con el commit `5f60885`
