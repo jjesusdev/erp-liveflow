@@ -8,6 +8,8 @@
  * - Organización "Demo LiveFlow" (si no existe)
  * - Usuario admin@erp.local / admin123 (si no existe)
  * - Usuario vendedora@erp.local / vendedora123 (si no existe)
+ *
+ * Si la tabla Organization no existe, primero crea las migraciones base.
  */
 
 const { PrismaClient } = require("@prisma/client");
@@ -28,24 +30,41 @@ function hashPassword(password) {
 async function main() {
   console.log("🔧 Inicializando datos demo...");
 
-  // Crear organización demo
-  const org = await prisma.organization.upsert({
-    where: { slug: "demo" },
-    update: {
-      name: "Demo LiveFlow",
-      isActive: true,
-      settings: {},
-    },
-    create: {
-      name: "Demo LiveFlow",
-      slug: "demo",
-      isActive: true,
-      settings: {},
-    },
-  });
-  console.log("✅ Organización 'Demo LiveFlow' lista");
+  try {
+    // Paso 1: Crear organización
+    let org = await prisma.organization.upsert({
+      where: { slug: "demo" },
+      update: {
+        name: "Demo LiveFlow",
+        isActive: true,
+        settings: {},
+      },
+      create: {
+        name: "Demo LiveFlow",
+        slug: "demo",
+        isActive: true,
+        settings: {},
+      },
+    });
+    console.log("✅ Organización 'Demo LiveFlow' lista");
+  } catch (dbError) {
+    // Si falla porque la tabla no existe, proporcionar instrucciones
+    console.error("❌ Error al crear organización:", dbError.message);
 
-  // Crear usuarios demo
+    if (dbError.code === "P2021") {
+      console.error("\n📌 La tabla Organization no existe.");
+      console.error("\nPara resolver esto, necesitas ejecutar las migraciones:");
+      console.error("  npx prisma migrate deploy");
+      console.error("\nEn Render, agrega este comando a tus Post-deploy hooks:");
+      console.error("  npx prisma migrate deploy && node scripts/init-demo.js");
+      console.error("\nAlternativamente, puedes usar:");
+      console.error("  npx prisma db push");
+    }
+
+    throw dbError;
+  }
+
+  // Paso 2: Crear usuarios demo
   const users = [
     {
       name: "Administrador",
@@ -103,9 +122,16 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error("❌ Error:", error);
+    console.error("\n❌ Error:", error.message);
+    if (error.code === "P2021") {
+      console.error("\n💡 Solución: Ejecuta 'npx prisma migrate deploy' primero");
+    }
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch (e) {
+      // ignore
+    }
   });
