@@ -648,3 +648,29 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 - Los warnings de ESLint (`@typescript-eslint/no-explicit-any`) son preexistentes en el codebase y críticos para el código de WhatsApp/Baileys
 - Los tests E2E carecen de selectors `data-testid` que podrían necesitar ser agregados en componentes
 - Los tests E2E usan credenciales hardcodeadas (aceptable para prototipo)
+
+---
+
+## Mejoras adicionales implementadas
+
+### 1. Indicator de recordatorios en header ✅
+- Agregado Bell icon en LiveStatusBar muestra contador de recordatorios pendientes
+- Click en el indicator navega a /config?tab=reminders
+- Polling cada 30 segundos del endpoint /api/caja/reminders
+
+### 2. Navegación directa a pestana de recordatorios ✅
+- ConfigPage ahora acepta parámetro `tab` en URL
+- Auto-selecciona la pestaña correcta al cargar
+
+### 3. Worker de recordatorios ✅
+- Lógica corregida para buscar órdenes no expiradas
+- Mensajes con tiempo positivo garantizado
+- Socket event `reminders:processed` emitido
+
+### 4. Tests de integración ✅
+- Tests para GET y POST del endpoint /api/caja/reminders
+- Cobertura de dryRun y diferentes tipos de recordatorios
+
+### 5. Documentación ✅
+- docs/recordatorios-pagos.md completo
+- Ejemplos de uso y flujo de datos
