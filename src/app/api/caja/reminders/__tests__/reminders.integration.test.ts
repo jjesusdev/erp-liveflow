@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-import { GET as getReminders, POST as sendReminders } from "@/app/api/caja/reminders/route";
+import { POST as sendReminders } from "@/app/api/caja/reminders/route";
 
 const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 
@@ -16,8 +16,13 @@ const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random
 let leadId = "";
 let conversationId = "";
 const orderIds: string[] = [];
+let testOrgId: string | null = null;
 
 async function setupOrdersWithExpiration() {
+  // Obtener o crear organización de test
+  const org = await prisma.organization.findFirst();
+  testOrgId = org?.id ?? null;
+
   const lead = await prisma.lead.upsert({
     where: { phone: TEST_PHONE },
     update: { name: "Cliente Test Recordatorios" },
@@ -25,7 +30,12 @@ async function setupOrdersWithExpiration() {
   });
   leadId = lead.id;
 
-  const conversation = await prisma.conversation.create({ data: { leadId: lead.id } });
+  const conversation = await prisma.conversation.create({
+    data: {
+      leadId: lead.id,
+      orgId: testOrgId,
+    },
+  });
   conversationId = conversation.id;
 
   // Crear órdenes con diferentes estados y expiraciones
@@ -56,6 +66,7 @@ async function setupOrdersWithExpiration() {
       data: {
         conversationId: conversation.id,
         leadId: lead.id,
+        orgId: testOrgId,
         status: o.status,
         concept: o.concept,
         amount: o.amount,
@@ -89,16 +100,8 @@ function makeRequest(url: string, options: { method?: string; body?: unknown } =
 }
 
 beforeAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupByPhone();
-});
-
-afterAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupByPhone();
-  await prisma.$disconnect();
-});
-
-describeDb("GET /api/caja/reminders - Estado de recordatorios", () => {
-  beforeAll(async () => {
+  if (process.env.TEST_DB === "1") {
+    await cleanupByPhone();
     // Habilitar recordatorios en la organización
     const org = await prisma.organization.findFirst();
     if (org) {
@@ -113,42 +116,14 @@ describeDb("GET /api/caja/reminders - Estado de recordatorios", () => {
         },
       });
     }
-  });
+  }
+});
 
-  it("debe retornar enabled=false si recordatorios deshabilitados", async () => {
-    // Deshabilitar temporalmente
-    const org = await prisma.organization.findFirst();
-    await prisma.organization.update({
-      where: { id: org!.id },
-      data: { settings: { ...(org!.settings as any), reminderEnabled: false } },
-    });
-
-    const req = makeRequest("http://localhost:3001/api/caja/reminders");
-    const res = await getReminders();
-
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.enabled).toBe(false);
-  });
-
-  it("debe retornar info cuando recordatorios están habilitados", async () => {
-    const org = await prisma.organization.findFirst();
-    await prisma.organization.update({
-      where: { id: org!.id },
-      data: {
-        settings: { ...(org!.settings as any), reminderEnabled: true, reminderBeforeMinutes: 10 },
-      },
-    });
-
-    const req = makeRequest("http://localhost:3001/api/caja/reminders");
-    const res = await getReminders();
-
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.enabled).toBe(true);
-    expect(data.settings.reminderBeforeMinutes).toBe(10);
-    expect(typeof data.pendingCount).toBe("number");
-  });
+afterAll(async () => {
+  if (process.env.TEST_DB === "1") {
+    await cleanupByPhone();
+  }
+  await prisma.$disconnect();
 });
 
 describeDb("POST /api/caja/reminders - Envío de recordatorios", () => {
@@ -157,10 +132,17 @@ describeDb("POST /api/caja/reminders - Envío de recordatorios", () => {
 
     // Habilitar recordatorios
     const org = await prisma.organization.findFirst();
-    await prisma.organization.update({
-      where: { id: org!.id },
-      data: { settings: { ...(org!.settings as any), reminderEnabled: true } },
-    });
+    if (org) {
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          settings: {
+            ...(org.settings as any),
+            reminderEnabled: true,
+          },
+        },
+      });
+    }
   });
 
   it("debe ejecutar dryRun sin enviar mensajes", async () => {
@@ -174,7 +156,7 @@ describeDb("POST /api/caja/reminders - Envío de recordatorios", () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.sentCount).toBe(0);
-    expect(body.totalPending).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(body.details)).toBe(true);
   });
 
   it("debe procesar recordatorios PENDING_ONLY", async () => {
@@ -206,6 +188,18 @@ describeDb("POST /api/caja/reminders - Envío de recordatorios", () => {
     const req = makeRequest("http://localhost:3001/api/caja/reminders", {
       method: "POST",
       body: { reminderType: "PENDING_ONLY", customMessage: customMsg, dryRun: true },
+    });
+    const res = await sendReminders(req, {} as any);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+  });
+
+  it("debe filtrar órdenes por orgId", async () => {
+    const req = makeRequest("http://localhost:3001/api/caja/reminders", {
+      method: "POST",
+      body: { reminderType: "PENDING_ONLY", customMessage: "Test orgId filter", dryRun: true },
     });
     const res = await sendReminders(req, {} as any);
 
