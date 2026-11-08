@@ -8,6 +8,28 @@ interface ReminderResult {
 }
 
 /**
+ * Type for Organization.settings - configuración de recordatorios y negocio
+ */
+interface OrganizationSettings {
+  reminderEnabled?: boolean;
+  reminderBeforeMinutes?: number;
+  reminderDays?: number;
+  currency?: string;
+  bankName?: string;
+  bankBeneficiary?: string;
+  bankAccountNumber?: string;
+  bankClabe?: string;
+  bankNotes?: string;
+  autoExpireOrders?: boolean;
+  orderExpirationMinutes?: number;
+  autoReplyEnabled?: boolean;
+  autoReplyDelayMs?: number;
+  welcomeMessage?: string;
+  awayMessage?: string;
+  queueMessage?: string;
+}
+
+/**
  * Worker para buscar y enviar recordatorios automáticos de órdenes de pago pendientes.
  * Se ejecuta antes de la expiración de la orden (configurado en reminderBeforeMinutes).
  */
@@ -23,48 +45,40 @@ export async function processPaymentReminders(
     const org = await prisma.organization.findFirst({
       where: orgId ? { id: orgId } : {},
     });
-    const config = (org?.settings as any) ?? {};
-    const targetOrgId = orgId || org?.id;
+    const config = (org?.settings as OrganizationSettings) ?? {};
 
     // Verificar si los recordatorios están habilitados
     if (!config.reminderEnabled) {
       return { sentCount: 0, totalPending: 0, details: [] };
     }
 
-    const reminderBeforeMinutes = config.reminderBeforeMinutes || 15;
+    const targetOrgId = orgId || org?.id;
     const now = new Date();
-
-    // Ventana de tiempo: buscar órdenes que expiren entre ahora y ahora + 24 horas
-    // Esto permite enviar recordatorios antes de la expiración
     const expirationCutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     // Construir el filtro según el tipo de recordatorio
-    const statusFilter =
-      reminderType === "PENDING_ONLY"
-        ? "PENDING"
-        : reminderType === "EXPIRED_ONLY"
-          ? "EXPIRED"
-          : { in: ["PENDING", "SENT", "EXPIRED"] };
-
-    // Construir el where base
-    const where: any = {
-      ...(typeof statusFilter === "object"
-        ? { status: statusFilter }
-        : { status: statusFilter as any }),
-      expiresAt: {
-        gte: now, // Sólo órdenes que aún no hayan expirado
-        lte: expirationCutoff,
-      },
-    };
-
-    // Agregar filtro por orgId si se proporcionó
-    if (targetOrgId) {
-      where.orgId = targetOrgId;
+    let statusFilter:
+      "PENDING" | "SENT" | "EXPIRED" | "PAID" | "CANCELLED" | "REFUNDED" | "PENDING_SENT" =
+      "PENDING";
+    if (reminderType === "EXPIRED_ONLY") {
+      statusFilter = "EXPIRED";
+    } else if (reminderType === "ALL_PRIOR") {
+      statusFilter = "PENDING_SENT"; // Usaremos el array en el where
     }
 
     // Buscar órdenes que cumplan con los criterios
+    // Usamos include explícito para obtener lead y conversation
     const pendingOrders = await prisma.paymentOrder.findMany({
-      where,
+      where: {
+        expiresAt: {
+          gte: now, // Sólo órdenes que aún no hayan expirado
+          lte: expirationCutoff,
+        },
+        ...(targetOrgId ? { orgId: targetOrgId } : {}),
+        ...(reminderType === "ALL_PRIOR"
+          ? { status: { in: ["PENDING", "SENT", "EXPIRED"] } }
+          : { status: statusFilter as any }),
+      },
       include: {
         lead: true,
         conversation: true,
@@ -76,8 +90,8 @@ export async function processPaymentReminders(
       return { sentCount: 0, totalPending: 0, details: [] };
     }
 
-    const client = (globalThis as any).whatsappClient;
-    const io = (globalThis as any).io;
+    const client = (globalThis as { whatsappClient?: unknown }).whatsappClient;
+    const io = (globalThis as { io?: unknown }).io;
     let sentCount = 0;
     const details: Array<{ orderId: string; leadPhone: string; status: string }> = [];
 
@@ -110,7 +124,9 @@ export async function processPaymentReminders(
       if (client) {
         try {
           const jid = `${order.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
-          await client.sendMessage(jid, { text: message });
+          await (
+            client as { sendMessage: (jid: string, text: { text: string }) => Promise<void> }
+          ).sendMessage(jid, { text: message });
 
           // Registrar el mensaje enviado
           await prisma.message.create({
@@ -144,7 +160,7 @@ export async function processPaymentReminders(
 
     // Emitir evento por Socket.io
     if (io) {
-      io.emit("reminders:processed", {
+      (io as { emit: (event: string, data: unknown) => void }).emit("reminders:processed", {
         sentCount,
         totalPending: pendingOrders.length,
         details,
