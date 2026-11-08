@@ -19,14 +19,14 @@
 
 - [x] **Recordatorios automáticos de órdenes de pago pendientes**: Implementado worker, API `/api/caja/reminders`, UI en ConfigPage, y documentación. Ver feature #8.
 - [x] **Documentar webhooks (MercadoPago)**: `docs/webhooks-mercadopago.md` creado (flujo, variables de entorno, cómo probar en local con túnel). Ver issue #12.
-- [ ] **Limpiar warnings de ESLint**: 161 advertencias preexistentes (0 errores). Mayormente `no-explicit-any` y vars no usadas en proveedores simulados. Ver issue #9.
-- [ ] **Revisar dependencias sin uso** (p. ej. `cloudinary` vs flujo real de medios).
+- [x] **Revisar dependencias sin uso**: Removido `cloudinary` (no estaba en uso). Diagramas actualizados.
+- [ ] **Limpiar warnings de ESLint**: ~185 warnings preexistentes (`@typescript-eslint/no-explicit-any` y vars no usadas en proveedores simulados). Ver issue #9.
 - [ ] **Centralizar manejo de errores de WhatsApp** (reconexión, QR expirado). Ver issue #14.
 
 ## 💡 Ideas / explorar
 
+- [x] **E2E con Playwright**: Instalado `@playwright/test`, configuración y tests básicos creados. Ver issue #10.
 - [ ] Panel de métricas en vivo por transmisión (LiveSession).
-- [ ] Recordatorios automáticos de órdenes de pago pendientes.
 - [ ] Integración con calendario de transmisiones.
 - [ ] Exportación/reportes programados por correo.
 
