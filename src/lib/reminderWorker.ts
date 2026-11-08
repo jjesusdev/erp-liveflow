@@ -28,38 +28,32 @@ export async function processPaymentReminders(
 
     const reminderBeforeMinutes = config.reminderBeforeMinutes || 15;
     const now = new Date();
-    const reminderCutoff = new Date(now.getTime() - reminderBeforeMinutes * 60_000);
-    const expirationCutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Solo recordatorios de hoy
+
+    // Ventana de tiempo: buscar órdenes que expiren entre ahora y ahora + 24 horas
+    // Esto permite enviar recordatorios antes de la expiración
+    const expirationCutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     // Construir el filtro según el tipo de recordatorio
-    const where: any = {
-      status:
-        reminderType === "PENDING_ONLY"
-          ? "PENDING"
-          : reminderType === "EXPIRED_ONLY"
-            ? "EXPIRED"
-            : undefined,
-    };
+    const statusFilter =
+      reminderType === "PENDING_ONLY"
+        ? "PENDING"
+        : reminderType === "EXPIRED_ONLY"
+          ? "EXPIRED"
+          : { in: ["PENDING", "SENT", "EXPIRED"] };
 
-    if (reminderType === "ALL_PRIOR") {
-      where.status = { in: ["PENDING", "SENT", "EXPIRED"] };
-    }
-
-    // Buscar órdenes que cumplan con los criterios
+    // Buscar órdenes que:
+    // 1. Tengan el status apropiado
+    // 2. No hayan expirado aún (expiresAt > ahora)
+    // 3. Estén dentro de la ventana de 24 horas
     const pendingOrders = await prisma.paymentOrder.findMany({
       where: {
-        ...where,
+        ...(typeof statusFilter === "object"
+          ? { status: statusFilter }
+          : { status: statusFilter as any }),
         expiresAt: {
-          gte: reminderCutoff,
+          gte: now, // Sólo órdenes que aún no hayan expirado
           lte: expirationCutoff,
         },
-        OR: [
-          { sentAt: null, expiresAt: { gte: reminderCutoff, lte: expirationCutoff } },
-          {
-            sentAt: { gte: reminderCutoff },
-            expiresAt: { gte: reminderCutoff, lte: expirationCutoff },
-          },
-        ],
       },
       include: {
         lead: true,
@@ -87,7 +81,11 @@ export async function processPaymentReminders(
         message = customMessage;
       } else {
         const clientName = order.lead.name || "Hola";
-        const remainingTime = Math.round((order.expiresAt!.getTime() - now.getTime()) / 60_000);
+        // Tiempo restante (mínimo 0 para evitar valores negativos)
+        const remainingTime = Math.max(
+          0,
+          Math.round((order.expiresAt!.getTime() - now.getTime()) / 60_000)
+        );
         const reference = order.id.slice(0, 8).toUpperCase();
 
         message = `¡Hola ${clientName}! Te recordamos tu apartado "${order.concept}" por $${amount.toFixed(2)} ${order.currency} (Ref: ${reference}). Tu apartado expirará en aproximadamente ${remainingTime} minutos. Si aún deseas tu pedido, por favor confírmalo para que podamos reservar las prendas. 🙏`;
