@@ -3,13 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { apiHandler } from "@/lib/api-handler";
 import { reminderSendSchema } from "@/lib/schemas";
 import { processPaymentReminders } from "@/lib/reminderWorker";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 /**
  * GET /api/caja/reminders
  * Obtiene información sobre órdenes pendientes que podrían recibir recordatorios.
  */
 export async function GET() {
-  const org = await prisma.organization.findFirst();
+  // Verificar autenticación y obtener orgId
+  const ctx = await getOperatorContext();
+  if (!ctx) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+  const { orgId } = ctx;
+
+  // Obtener configuración de la organización actual
+  const org = await prisma.organization.findUnique({ where: { id: orgId } });
   const config = (org?.settings as any) ?? {};
 
   const reminderEnabled = config.reminderEnabled ?? false;
@@ -31,6 +41,7 @@ export async function GET() {
 
   const pendingCount = await prisma.paymentOrder.count({
     where: {
+      ...whereOrg(orgId),
       status: { in: ["PENDING", "SENT"] },
       expiresAt: {
         gte: now,
@@ -56,9 +67,17 @@ export async function GET() {
 export const POST = apiHandler({
   body: reminderSendSchema,
   handler: async (_req, body) => {
+    // Verificar autenticación
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const { orgId } = ctx;
+
     const { reminderType = "PENDING_ONLY", customMessage = null, dryRun = false } = body;
 
-    const result = await processPaymentReminders(reminderType, customMessage, dryRun);
+    // Pasar orgId al worker
+    const result = await processPaymentReminders(reminderType, customMessage, dryRun, orgId);
 
     return NextResponse.json({
       success: true,

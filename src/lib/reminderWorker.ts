@@ -14,12 +14,17 @@ interface ReminderResult {
 export async function processPaymentReminders(
   reminderType: "PENDING_ONLY" | "EXPIRED_ONLY" | "ALL_PRIOR" = "PENDING_ONLY",
   customMessage: string | null = null,
-  dryRun: boolean = false
+  dryRun: boolean = false,
+  orgId?: string // <-- Nuevo parámetro para multi-tenant
 ): Promise<ReminderResult> {
   try {
     // Obtener configuración de la organización
-    const org = await prisma.organization.findFirst();
+    // Si no se proporciona orgId, usar la primera organización en base (fallback para workers legacy)
+    const org = await prisma.organization.findFirst({
+      where: orgId ? { id: orgId } : {},
+    });
     const config = (org?.settings as any) ?? {};
+    const targetOrgId = orgId || org?.id;
 
     // Verificar si los recordatorios están habilitados
     if (!config.reminderEnabled) {
@@ -41,20 +46,25 @@ export async function processPaymentReminders(
           ? "EXPIRED"
           : { in: ["PENDING", "SENT", "EXPIRED"] };
 
-    // Buscar órdenes que:
-    // 1. Tengan el status apropiado
-    // 2. No hayan expirado aún (expiresAt > ahora)
-    // 3. Estén dentro de la ventana de 24 horas
-    const pendingOrders = await prisma.paymentOrder.findMany({
-      where: {
-        ...(typeof statusFilter === "object"
-          ? { status: statusFilter }
-          : { status: statusFilter as any }),
-        expiresAt: {
-          gte: now, // Sólo órdenes que aún no hayan expirado
-          lte: expirationCutoff,
-        },
+    // Construir el where base
+    const where: any = {
+      ...(typeof statusFilter === "object"
+        ? { status: statusFilter }
+        : { status: statusFilter as any }),
+      expiresAt: {
+        gte: now, // Sólo órdenes que aún no hayan expirado
+        lte: expirationCutoff,
       },
+    };
+
+    // Agregar filtro por orgId si se proporcionó
+    if (targetOrgId) {
+      where.orgId = targetOrgId;
+    }
+
+    // Buscar órdenes que cumplan con los criterios
+    const pendingOrders = await prisma.paymentOrder.findMany({
+      where,
       include: {
         lead: true,
         conversation: true,
