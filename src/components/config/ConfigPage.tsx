@@ -51,6 +51,13 @@ export function ConfigPage() {
   const [config, setConfig] = useState<BusinessConfig>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("tab") || "banco";
+    }
+    return "banco";
+  });
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -127,7 +134,7 @@ export function ConfigPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="banco" className="space-y-4">
+        <Tabs defaultValue={activeTab} className="space-y-4">
           <TabsList className="w-full justify-start border-b border-border bg-transparent p-0 gap-2 overflow-x-auto">
             <TabsTrigger value="banco" className="text-xs">
               <Building2 className="size-3.5" />

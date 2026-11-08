@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MonitorPlay, Radio, Users } from "lucide-react";
+import { Bell, MonitorPlay, Radio, Users } from "lucide-react";
 import { clock, money } from "@/lib/format";
 import { Badge, LiveDot } from "@/components/liveflow/primitives";
 import type { LiveSession } from "@/types";
@@ -17,10 +17,29 @@ export function LiveStatusBar({
   onEndLive?: () => void;
 }) {
   const [elapsed, setElapsed] = useState(42 * 60 + 18);
+  const [pendingReminders, setPendingReminders] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  // Fetch recordatorios pendientes
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        const res = await fetch("/api/caja/reminders");
+        if (res.ok) {
+          const data = await res.json();
+          setPendingReminders(data.pendingCount || 0);
+        }
+      } catch {
+        // Ignore
+      }
+    };
+    fetchReminders();
+    const interval = setInterval(fetchReminders, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const h = Math.floor(elapsed / 3600);
@@ -41,6 +60,16 @@ export function LiveStatusBar({
             {String(h).padStart(2, "0")}:{clock(elapsed % 3600)}
           </span>
           <div className="ml-auto flex items-center gap-4">
+            {pendingReminders > 0 && (
+              <Link
+                href="/config?tab=reminders"
+                className="flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500 hover:bg-amber-500/20"
+                title="Recordatorios pendientes"
+              >
+                <Bell className="size-3" />
+                <span className="font-mono">{pendingReminders}</span>
+              </Link>
+            )}
             <span className="font-mono font-bold text-emerald-500">
               {money(activeSession.totalSales || 0)}
             </span>
@@ -65,6 +94,16 @@ export function LiveStatusBar({
         <>
           <span className="text-muted-foreground">Sin transmisión activa</span>
           <div className="ml-auto flex items-center gap-3">
+            {pendingReminders > 0 && (
+              <Link
+                href="/config?tab=reminders"
+                className="flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500 hover:bg-amber-500/20"
+                title="Recordatorios pendientes"
+              >
+                <Bell className="size-3" />
+                <span className="font-mono">{pendingReminders}</span>
+              </Link>
+            )}
             {onStartLive && (
               <button
                 onClick={onStartLive}
