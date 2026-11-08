@@ -632,3 +632,19 @@ Continuación con las tareas pendientes del backlog.
 | Revisar dependencias sin uso | ✅     | package.json, arquitectura.d2                |
 | Tests E2E Playwright         | ✅     | playwright.config.ts, e2e/crud-flows.e2e.ts  |
 | v1.2.0 release               | ✅     | push + tag                                   |
+
+---
+
+## Review de código (automático)
+
+Se solicitó review de los cambios de implementación de recordatorios. Se identificaron y corrigieron:
+
+### Bugs críticos corregidos:
+1. **Filtro de tiempo incorrecto**: El worker buscaba órdenes que ya habían expirado en lugar de las que iban a expirar. Corregido para usar `expiresAt >= now`.
+2. **Lógica de status**: Eliminado filtro OR redundante que causaba confusiones.
+3. **Tiempo negativo**: Agregado `Math.max(0, ...)` para evitar mostrar "-5 minutos" en mensajes.
+
+### Observaciones menores:
+- Los warnings de ESLint (`@typescript-eslint/no-explicit-any`) son preexistentes en el codebase y críticos para el código de WhatsApp/Baileys
+- Los tests E2E carecen de selectors `data-testid` que podrían necesitar ser agregados en componentes
+- Los tests E2E usan credenciales hardcodeadas (aceptable para prototipo)
