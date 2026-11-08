@@ -13,6 +13,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:seed": "node prisma/seed.js",
+    "init-demo": "node scripts/init-demo.js",
     "db:studio": "prisma studio",
     "diagramas": "bash scripts/diagramas.sh",
     "diagramas:watch": "bash scripts/diagramas.sh --watch",

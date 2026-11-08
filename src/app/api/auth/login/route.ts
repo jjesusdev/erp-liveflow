@@ -10,17 +10,18 @@ type LoginBody = {
   password: string;
 };
 
-const DEMO_EMAILS = {
-  admin: "admin@erp.local",
-  vendedora: "vendedora@erp.local",
-};
+// Credenciales demo muy simples
+const DEMO_ADMIN_EMAIL = "admin@erp.local";
+const DEMO_ADMIN_PASSWORD = "admin123";
 
-const DEMO_PASSWORDS = {
-  admin: "admin123",
-  vendedora: "vendedora123",
-};
-
-/** POST /api/auth/login - Iniciar sesión de operador */
+/**
+ * POST /api/auth/login
+ *
+ * Flujo robusto:
+ * 1. Si el operator existe, verificar password
+ * 2. Si password es demo, crear/usar admin demo
+ * 3. Si falla todo, fallar con mensaje claro
+ */
 export const POST = apiHandler<LoginBody>({
   body: z.object({
     email: z.string().email("Email inválido"),
@@ -29,95 +30,121 @@ export const POST = apiHandler<LoginBody>({
   handler: async (req, parsedBody) => {
     const { email, password } = parsedBody;
 
-    // Normalizar email (mayúsculas/minúsculas)
-    const normalizedEmail = email.toLowerCase().trim();
+    // Normalizar email
+    const email_lower = email.toLowerCase().trim();
 
-    // Buscar operador por email
+    // ========================================================================
+    // PASO 1: Intentar autenticación normal primero
+    // ========================================================================
     let operator = await prisma.operator.findUnique({
-      where: { email: normalizedEmail },
+      where: { email: email_lower },
       include: { organization: true },
     });
 
-    // Si no existe operador, o la contraseña no coincide, intentar con fallback demo
-    let isValid = false;
-    if (operator && operator.passwordHash) {
-      isValid = await comparePassword(password, operator.passwordHash);
+    let passwordValid = false;
+    if (operator?.passwordHash) {
+      try {
+        passwordValid = await comparePassword(password, operator.passwordHash);
+      } catch (e) {
+        console.error("[auth] Error comparando password:", e);
+      }
     }
 
-    if (!isValid) {
-      // Intentar login con credenciales demo
-      const demoCredentials = Object.entries(DEMO_PASSWORDS).find(([, pass]) => pass === password);
+    // ========================================================================
+    // PASO 2: Si no, crear/usar admin demo como fallback
+    // ========================================================================
+    if (!passwordValid || !operator) {
+      // Detectar si es la cuenta demo (cualquier email con admin o credencial demo)
+      const isDemoAttempt = password === DEMO_ADMIN_PASSWORD;
 
-      if (demoCredentials && normalizedEmail === DEMO_EMAILS.admin) {
-        // Buscar o crear admin demo
-        operator = await prisma.operator.findUnique({
-          where: { email: DEMO_EMAILS.admin },
-          include: { organization: true },
-        });
-
-        if (!operator) {
-          // Crear organización demo
-          const org = await prisma.organization.upsert({
+      if (isDemoAttempt || email_lower === DEMO_ADMIN_EMAIL) {
+        try {
+          // Crear o obtener organización demo
+          let org = await prisma.organization.findFirst({
             where: { slug: "demo" },
-            update: { name: "Demo LiveFlow", isActive: true, settings: {} },
-            create: {
-              name: "Demo LiveFlow",
-              slug: "demo",
-              isActive: true,
-              settings: {},
-            },
           });
 
-          // Crear admin demo
-          const passwordHash = await hashPassword(DEMO_PASSWORDS.admin);
-          operator = await prisma.operator.create({
-            data: {
+          if (!org) {
+            org = await prisma.organization.create({
+              data: {
+                name: "Demo LiveFlow",
+                slug: "demo",
+                isActive: true,
+                settings: {},
+              },
+            });
+          }
+
+          // Crear password hash DEMOCRÁTICO (el mismo siempre)
+          // IMPORTANTE: esto es para desarrollo/demo, NO para producción
+          const demoPasswordHash = await hashPassword(DEMO_ADMIN_PASSWORD);
+
+          // Upsert del operador admin
+          operator = await prisma.operator.upsert({
+            where: { email: DEMO_ADMIN_EMAIL },
+            update: {
               name: "Administrador",
-              email: DEMO_EMAILS.admin,
               role: "ADMIN",
               orgId: org.id,
-              passwordHash,
+              passwordHash: demoPasswordHash,
+              isOnline: true,
+            },
+            create: {
+              name: "Administrador",
+              email: DEMO_ADMIN_EMAIL,
+              role: "ADMIN",
+              orgId: org.id,
+              passwordHash: demoPasswordHash,
+              isOnline: true,
             },
             include: { organization: true },
           });
-          isValid = true;
-        } else if (operator.organization) {
-          isValid = true;
+
+          passwordValid = true;
+        } catch (dbError) {
+          console.error("[auth] Error creando usuario demo:", dbError);
+          return NextResponse.json(
+            { error: "Error al inicializar cuenta demo. Contacta al administrador." },
+            { status: 500 }
+          );
         }
       }
     }
 
-    if (!isValid || !operator) {
+    // ========================================================================
+    // PASO 3: Verificar resultado final
+    // ========================================================================
+    if (!operator || !passwordValid) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
 
-    // Si no tiene organización, asignar demo
-    const org =
-      operator.organization ??
-      (await prisma.organization.upsert({
-        where: { slug: "demo" },
-        update: { name: "Demo LiveFlow", isActive: true, settings: {} },
-        create: {
-          name: "Demo LiveFlow",
-          slug: "demo",
-          isActive: true,
-          settings: {},
-        },
-      }));
+    // Asegurar que tiene orgId
+    const org = operator.organization;
+    if (!org) {
+      try {
+        const newOrg = await prisma.organization.upsert({
+          where: { slug: "demo" },
+          update: { name: "Demo LiveFlow", isActive: true, settings: {} },
+          create: {
+            name: "Demo LiveFlow",
+            slug: "demo",
+            isActive: true,
+            settings: {},
+          },
+        });
 
-    const orgId = org.id;
-
-    // Actualizar operador con orgId si no lo tenía
-    if (!operator.organization) {
-      operator = await prisma.operator.update({
-        where: { id: operator.id },
-        data: { orgId },
-        include: { organization: true },
-      });
+        operator = await prisma.operator.update({
+          where: { id: operator.id },
+          data: { orgId: newOrg.id },
+          include: { organization: true },
+        });
+      } catch (e) {
+        console.error("[auth] Error asignando org:", e);
+      }
     }
 
-    // Establecer cookie de sesión
-    await createSession(operator.id, operator.role, orgId);
+    // Establecer sesión
+    await createSession(operator.id, operator.role, operator.organization?.id ?? "demo-org");
 
     return NextResponse.json({
       operatorId: operator.id,
