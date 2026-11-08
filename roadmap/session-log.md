@@ -553,4 +553,44 @@ docs: documentar recordatorios automaticos de pagos y actualizar backlog
 
 ### Pendiente
 
-- Tag v1.2.0 (pendiente crear y publicar a `origin/master`)
+- [ ] Limpiar warnings ESLint restantes (~155). Issue #9.
+- [ ] Revisar dependencias sin uso (p. ej. `cloudinary` vs flujo real de medios).
+- [ ] Centralizar errores y reconexión de WhatsApp. Issue #14.
+- [ ] Ejecutar `npm run db:seed` y `npm run test:db` contra BD real cuando PostgreSQL esté disponible.
+
+---
+
+## 2026-11-07 — Sesión: Recordatorios de pagos y v1.2.0
+
+### Contexto
+
+Implementación de recordatorios automáticos de órdenes de pago pendientes y cierre del backlog.
+
+### Hecho
+
+✅ **Recordatorios automáticos de órdenes de pago pendientes:**
+
+- Configuraciones `reminderEnabled`, `reminderBeforeMinutes`, `reminderDays` agregadas a `BusinessConfigSchema`
+- Endpoint `/api/caja/reminders` con GET (estado) y POST (envío manual)
+- Worker `src/lib/reminderWorker.ts` para procesar recordatorios automáticos
+- UI `RemindersSection.tsx` con toggle, inputs y botones
+- Tests de integración creados
+- Documentación `docs/recordatorios-pagos.md`
+
+✅ **Verificación:**
+
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores
+- `npm run test` → 90 passed
+
+✅ **Release:**
+
+- Commit push a origin/master
+- Tag `v1.2.0` creado y publicado
+
+### Pendiente (tareas restantes)
+
+- [ ] Limpiar warnings ESLint restantes (~155)
+- [ ] Revisar dependencias sin uso
+- [ ] Centralizar errores y reconexión de WhatsApp
+- [ ] Ejecutar tests con BD real cuando PostgreSQL esté disponible
