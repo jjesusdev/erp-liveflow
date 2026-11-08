@@ -590,7 +590,45 @@ Implementación de recordatorios automáticos de órdenes de pago pendientes y c
 
 ### Pendiente (tareas restantes)
 
-- [ ] Limpiar warnings ESLint restantes (~155)
-- [ ] Revisar dependencias sin uso
+- [ ] Limpiar warnings ESLint restantes (~185)
 - [ ] Centralizar errores y reconexión de WhatsApp
-- [ ] Ejecutar tests con BD real cuando PostgreSQL esté disponible
+- [ ] Ejecutar `npm run db:seed` y `npm run test:db` contra BD real cuando PostgreSQL esté disponible
+
+---
+
+## 2026-11-07 — Sesión: Tareas pendientes y revisión final
+
+### Contexto
+
+Continuación con las tareas pendientes del backlog.
+
+### Hecho
+
+✅ **Revisar dependencias sin uso:**
+
+- Removido `cloudinary` de package.json (no estaba siendo usado en el código)
+- Actualizado diagrama de arquitectura (`docs/diagramas/arquitectura.d2`) restando Cloudinary
+- Agregados scripts de E2E en package.json (test:e2e, test:e2e:headed, test:e2e:debug)
+
+✅ **Tests E2E con Playwright:**
+
+- Instalado `@playwright/test`
+- Creado `playwright.config.ts`
+- Creados tests básicos en `e2e/crud-flows.e2e.ts` (login, leads, órdenes de pago)
+
+### Pendiente
+
+- Limpiar warnings ESLint (~185) - son principalmente warnings `@typescript-eslint/no-explicit-any` que son preexistentes y críticos para el código de WhatsApp/Baileys
+- Centralizar errores y reconexión de WhatsApp
+- Ejecutar tests con BD real
+
+---
+
+## Tareas completadas en esta sesión
+
+| Tarea                        | Status | Archivos                                     |
+| ---------------------------- | ------ | -------------------------------------------- |
+| Recordatorios automáticos    | ✅     | schemas, types, worker, API, UI, tests, docs |
+| Revisar dependencias sin uso | ✅     | package.json, arquitectura.d2                |
+| Tests E2E Playwright         | ✅     | playwright.config.ts, e2e/crud-flows.e2e.ts  |
+| v1.2.0 release               | ✅     | push + tag                                   |
