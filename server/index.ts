@@ -16,32 +16,26 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 /**
- * Inicializa la base de datos si es necesario.
- * Crea usuarios demo si no existen.
+ * Inicializa la base de datos si es necesario (para planes gratuitos sin post-deploy hooks).
+ * Cread: tabla Organization, usuarios demo.
  */
 async function initializeDatabase() {
-  console.log("[init] Inicializando base de datos...");
+  console.log("[init] Verificando base de datos...");
 
+  // Usar db push como método más confiable que migrate deploy
+  // db push sincroniza el schema con la BD sin migraciones versionadas
   try {
-    // Verificar si la tabla Organization existe intentando una query simple
-    await prisma.$queryRaw`SELECT 1 FROM "Organization" LIMIT 1`;
-    console.log("[init] Tabla Organization existe");
+    const { execSync } = require("child_process");
+
+    console.log("[init] Ejecutando prisma db push...");
+    execSync("npx prisma db push", {
+      stdio: "inherit",
+      env: { ...process.env },
+    });
+    console.log("[init] Database sincronizada");
   } catch (error: any) {
-    // La tabla no existe, ejecutar migrate dev
-    if (error.code === "P2021") {
-      console.log("[init] Tabla Organization no existe, ejecutando migraciones...");
-      const { execSync } = require("child_process");
-      try {
-        execSync("npx prisma migrate deploy", { stdio: "inherit" });
-        console.log("[init] Migraciones aplicadas");
-      } catch (migrateError: any) {
-        console.error("[init] Error aplicando migraciones:", migrateError.message);
-        // Intentar con db push como fallback
-        console.log("[init] Intentando con prisma db push...");
-        execSync("npx prisma db push", { stdio: "inherit" });
-        console.log("[init] Schema push completado");
-      }
-    }
+    console.error("[init] Error en db push:", error.message);
+    // Continuar igual - el servidor puede arrancar con BD parcial
   }
 
   // Crear/usar organización demo
@@ -79,7 +73,7 @@ async function initializeDatabase() {
       },
     });
 
-    console.log("[init] Usuario demo admin@erp.local creado/verificado");
+    console.log("[init] Usuario demo admin@erp.local listo");
   } catch (error: any) {
     console.error("[init] Error inicializando usuarios demo:", error.message);
   }
@@ -88,6 +82,9 @@ async function initializeDatabase() {
 app.prepare().then(() => {
   // Inicializar base de datos ANTES de crear el servidor
   initializeDatabase()
+    .catch((err) => {
+      console.error("[init] Error en inicialización:", err);
+    })
     .then(() => {
       const httpServer = createServer((req, res) => {
         handle(req, res);
@@ -147,25 +144,6 @@ app.prepare().then(() => {
             console.error("[whatsapp] fallo al iniciar:", error);
             io.emit("whatsapp:status", getWhatsAppStatus());
           });
-      });
-    })
-    .catch((initError) => {
-      console.error("[init] Error crítico en inicialización:", initError);
-      // Continuar igual que si no hubo inicialización
-      const httpServer = createServer((req, res) => {
-        handle(req, res);
-      });
-
-      const io = new Server(httpServer, {
-        cors: { origin: "*" },
-        path: "/api/socketio",
-      });
-
-      (globalThis as any).io = io;
-      registerSocketHandlers(io);
-
-      httpServer.listen(port, () => {
-        console.log(`> Ready on http://${hostname}:${port}`);
       });
     });
 });
