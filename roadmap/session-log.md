@@ -674,3 +674,16 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 ### 5. Documentación ✅
 - docs/recordatorios-pagos.md completo
 - Ejemplos de uso y flujo de datos
+
+---
+
+## Bug fixes finales (2026-11-08)
+
+### Diagrama D2 corregido
+- Error de sintaxis en `docs/diagramas/arquitectura.d2` al remover cloudinary
+- Línea huérfana quedó en el archivo
+- Arreglado y verificado con `npm run diagramas`
+
+### CI/CD
+- Diagramas ahora pasan el check de diferencias
+- Build verde confirmado localmente
