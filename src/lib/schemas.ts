@@ -17,6 +17,12 @@ export const businessConfigSchema = z.object({
   welcomeMessage: z.string().max(1000).nullable().optional(),
   awayMessage: z.string().max(1000).nullable().optional(),
   queueMessage: z.string().max(1000).nullable().optional(),
+  // Recordatorios automáticos de órdenes de pago pendientes
+  reminderEnabled: z.boolean().optional(),
+  reminderBeforeMinutes: z.number().int().min(5).max(1440).optional(),
+  reminderDays: z.number().int().min(1).max(30).optional(),
+  autoExpireOrders: z.boolean().optional(),
+  orderExpirationMinutes: z.number().int().min(5).max(1440).optional(),
 });
 
 export type BusinessConfigInput = z.infer<typeof businessConfigSchema>;
@@ -297,6 +303,16 @@ export const sweepRecoverySchema = z.object({
 });
 
 export type SweepRecoveryInput = z.infer<typeof sweepRecoverySchema>;
+
+// ── Recordatorios de Pagos ───────────────────────────────────────────────
+
+export const reminderSendSchema = z.object({
+  reminderType: z.enum(["PENDING_ONLY", "EXPIRED_ONLY", "ALL_PRIOR"]).optional(),
+  customMessage: z.string().max(2000).nullable().optional(),
+  dryRun: z.boolean().optional(),
+});
+
+export type ReminderSendInput = z.infer<typeof reminderSendSchema>;
 
 // ── Carriers Config ─────────────────────────────────────────────────
 

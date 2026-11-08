@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Save, Building2, Smartphone, Clock, Bot, Trash2, Truck } from "lucide-react";
+import { Save, Building2, Smartphone, Clock, Bot, Trash2, Truck, Bell } from "lucide-react";
 import { WhatsAppSection } from "./WhatsAppSection";
 import { BankSection } from "./BankSection";
 import { LiveRulesSection } from "./LiveRulesSection";
@@ -9,6 +9,7 @@ import { BotSection } from "./BotSection";
 import { MaintenanceSection } from "./MaintenanceSection";
 import { CarriersSection } from "./CarriersSection";
 import { WhatsAppStatusSection } from "./WhatsAppStatusSection";
+import { RemindersSection } from "./RemindersSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
@@ -39,7 +40,11 @@ const DEFAULT_CONFIG: BusinessConfig = {
   awayMessage:
     "Hola! En este momento estamos fuera de horario. Te responderemos temprano para atender tu pedido.",
   queueMessage:
-    "Hola! Estamos en vivo recibiendo muchos mensajes. Tu turno esta en cola y te atenderemos en unos minutos.",
+    "Hola! Estamos en vivo recibiendo muchos mensajes. Tu turno esta en cola y te atenderemos unos minutos.",
+  // Recordatorios automáticos
+  reminderEnabled: false,
+  reminderBeforeMinutes: 15,
+  reminderDays: 7,
 };
 
 export function ConfigPage() {
@@ -148,6 +153,10 @@ export function ConfigPage() {
               <Smartphone className="size-3.5" />
               Estado del Sistema
             </TabsTrigger>
+            <TabsTrigger value="reminders" className="text-xs">
+              <Bell className="size-3.5" />
+              Recordatorios
+            </TabsTrigger>
             <TabsTrigger value="mantenimiento" className="text-xs">
               <Trash2 className="size-3.5" />
               Mantenimiento
@@ -176,6 +185,10 @@ export function ConfigPage() {
 
           <TabsContent value="estado" className="pt-2">
             <WhatsAppStatusSection />
+          </TabsContent>
+
+          <TabsContent value="reminders" className="pt-2">
+            <RemindersSection config={config} onChange={setConfig} />
           </TabsContent>
 
           <TabsContent value="mantenimiento" className="pt-2">

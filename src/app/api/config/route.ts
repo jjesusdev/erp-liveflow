@@ -23,6 +23,15 @@ export async function GET() {
       welcomeMessage: "¡Hola! Bienvenido. Envíanos captura de lo que te gusta.",
       awayMessage: null,
       queueMessage: null,
+      // Recordatorios automáticos (desactivados por defecto)
+      reminderEnabled: false,
+      reminderBeforeMinutes: 15,
+      reminderDays: 7,
+      autoExpireOrders: true,
+      orderExpirationMinutes: 30,
+      autoReleaseStock: true,
+      businessHoursStart: "09:00",
+      businessHoursEnd: "22:00",
     });
   }
 

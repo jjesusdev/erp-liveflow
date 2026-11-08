@@ -17,11 +17,11 @@
 
 ## 🟢 Deuda / mejoras
 
+- [x] **Recordatorios automáticos de órdenes de pago pendientes**: Implementado worker, API `/api/caja/reminders`, UI en ConfigPage, y documentación. Ver feature #8.
+- [x] **Documentar webhooks (MercadoPago)**: `docs/webhooks-mercadopago.md` creado (flujo, variables de entorno, cómo probar en local con túnel). Ver issue #12.
 - [ ] **Limpiar warnings de ESLint**: 161 advertencias preexistentes (0 errores). Mayormente `no-explicit-any` y vars no usadas en proveedores simulados. Ver issue #9.
 - [ ] **Revisar dependencias sin uso** (p. ej. `cloudinary` vs flujo real de medios).
-- [x] **Documentar webhooks (MercadoPago)**: `docs/webhooks-mercadopago.md` creado (flujo, variables de entorno, cómo probar en local con túnel). Ver issue #12.
 - [ ] **Centralizar manejo de errores de WhatsApp** (reconexión, QR expirado). Ver issue #14.
-- [x] **Observabilidad básica**: logger estructurado (`src/lib/logger.ts`), `GET /api/health`, pestaña "Estado del Sistema" en Config. Completado.
 
 ## 💡 Ideas / explorar
 

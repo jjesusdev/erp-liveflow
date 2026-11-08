@@ -306,6 +306,10 @@ export interface BusinessConfig {
   welcomeMessage: string;
   awayMessage?: string | null;
   queueMessage?: string | null;
+  // Recordatorios automáticos de órdenes de pago pendientes
+  reminderEnabled?: boolean;
+  reminderBeforeMinutes?: number;
+  reminderDays?: number;
   createdAt?: string;
   updatedAt?: string;
 }

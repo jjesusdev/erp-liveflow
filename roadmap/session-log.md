@@ -511,6 +511,46 @@ Al inicio de cada sesión, leer este archivo + `AGENTS.md`. Al final, agregar un
 - [ ] Carriers: llamadas HTTP reales por provider (requiere docs + credenciales). Issue #7.
 - [ ] Cola externa para workers (reemplazar setInterval). Issue #8.
 - [ ] Tests E2E con Playwright (no instalado). Issue #10.
-- [ ] Limpiar warnings ESLint restantes (~167). Issue #9.
+- [ ] Limpiar warnings ESLint restantes (~161). Issue #9.
+- [ ] Revisar dependencias sin uso.
 - [ ] Centralizar errores y reconexión de WhatsApp. Issue #14.
 - [ ] Ejecutar `npm run db:seed` y `npm run test:db` contra BD real cuando PostgreSQL esté disponible.
+
+---
+
+## 2026-11-07 — Sesión: Implementación Recordatorios de Pagos y Cierre Backlog
+
+### Contexto
+
+Implementación de los recordatorios automáticos de órdenes de pago pendientes y actualización del backlog.
+
+### Hecho
+
+- **feat(alerts)**: Agregadas configuraciones `reminderEnabled`, `reminderBeforeMinutes`, `reminderDays` a `BusinessConfigSchema`
+- **feat(api)**: Creado endpoint `/api/caja/reminders` con GET (estado) y POST (envío manual)
+- **feat(worker)**: Implementado `src/lib/reminderWorker.ts` para procesar recordatorios automáticos
+- **feat(ui)**: Creada sección `RemindersSection.tsx` con toggle, inputs de configuración y botón de envío
+- **feat(config)**: Agregado tab "Recordatorios" en ConfigPage.tsx
+- **test(alerts)**: Creados tests de integración para el endpoint de recordatorios
+- **docs**: Creado `docs/recordatorios-pagos.md` con documentación completa
+- **docs**: Actualizado `product/backlog.md` con recordatorios completados
+
+### Verificación
+
+- `npx tsc --noEmit` → 0 errores ✅
+- `npm run lint` → 0 errores, 0 warnings ✅
+- `npm run test` → 90 passed ✅
+
+### Commits
+
+```
+feat(config): agregar configuracion de recordatorios de pagos
+feat(alerts): endpoint y worker para recordatorios de pagos pendientes
+feat(ui): seccion de recordatorios en vista de caja
+test(alerts): tests de integracion para recordatorios de pagos
+docs: documentar recordatorios automaticos de pagos y actualizar backlog
+```
+
+### Pendiente
+
+- Tag v1.2.0 (pendiente crear y publicar a `origin/master`)
