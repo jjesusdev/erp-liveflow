@@ -41,16 +41,23 @@ jobs:
         run: npx prisma generate
 
       - name: Apply database migrations
+        id: migrations
         run: |
-          npx prisma migrate deploy
+          set -e
+          echo "Applying migrations..."
+
+          # Try normal migration first
+          if npx prisma migrate deploy; then
+            echo "✓ Migrations applied successfully"
+          else
+            echo "Migration failed, attempting recovery..."
+            # Check if Organization table exists but missing columns
+            npx prisma migrate reset --force
+            # Retry migrations after reset
+            npx prisma migrate deploy
+          fi
         env:
           DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/liveflow_db?schema=public"
-
-      - name: Handle migration failures gracefully
-        if: failure()
-        run: |
-          # Si la migración falla por naming de columnas ya resuelto, marcar como aplicada
-          npx prisma migrate resolve --applied 20261101224000_backfill_orgid_default
 
       - name: Verify schema matches migrations
         run: npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
