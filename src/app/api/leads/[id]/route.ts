@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { leadUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 function normalizePhone(raw: string) {
   const plus = raw.trim().startsWith("+");
@@ -13,9 +15,14 @@ function normalizePhone(raw: string) {
 export const GET = apiHandler({
   handler: async (req: NextRequest, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
     const lead = await prisma.lead.findUnique({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       include: {
         conversations: { orderBy: { createdAt: "desc" } },
         paymentOrders: { orderBy: { createdAt: "desc" } },
@@ -64,8 +71,13 @@ export const PUT = apiHandler({
   body: leadUpdateSchema,
   handler: async (req: NextRequest, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.lead.findUnique({ where: { id } });
+    const existing = await prisma.lead.findUnique({ where: { ...whereOrg(orgId), id } });
     if (!existing) {
       return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
     }
@@ -109,7 +121,7 @@ export const PUT = apiHandler({
     if (body.addressZipCode !== undefined) data.addressZipCode = body.addressZipCode || null;
     if (body.addressNotes !== undefined) data.addressNotes = body.addressNotes || null;
 
-    const lead = await prisma.lead.update({ where: { id }, data });
+    const lead = await prisma.lead.update({ where: { ...whereOrg(orgId), id }, data });
     return NextResponse.json(lead);
   },
 });
@@ -117,9 +129,14 @@ export const PUT = apiHandler({
 export const DELETE = apiHandler({
   handler: async (req: NextRequest, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
     const existing = await prisma.lead.findUnique({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       include: {
         conversations: { select: { id: true }, take: 1 },
         paymentOrders: { select: { id: true }, take: 1 },
@@ -146,7 +163,7 @@ export const DELETE = apiHandler({
     }
 
     await prisma.campaignRecipient.deleteMany({ where: { leadId: id } });
-    await prisma.lead.delete({ where: { id } });
+    await prisma.lead.delete({ where: { ...whereOrg(orgId), id } });
 
     return NextResponse.json({ deleted: true });
   },

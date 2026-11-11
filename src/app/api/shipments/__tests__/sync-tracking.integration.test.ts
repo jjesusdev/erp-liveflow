@@ -1,12 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCarrierProvider, registerCarrierProvider, type CarrierProvider } from "@/lib/carriers";
 import { POST as syncTracking } from "@/app/api/shipments/[id]/sync-tracking/route";
 
+// Mock de getOperatorContext para tests que necesitan session
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn().mockResolvedValue(null),
+}));
+
+import { getOperatorContext } from "@/lib/session";
+
 const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 const RUN_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}`;
+
+let testOrgId: string;
 
 function makeRequest() {
   return new NextRequest("http://localhost:3001/api/shipments/x/sync-tracking", {
@@ -18,13 +27,38 @@ function makeContext(id: string) {
   return { params: Promise.resolve({ id }) };
 }
 
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ */
+function setTestSession(orgId: string, operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+async function ensureTestOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "test-org-sync" },
+    update: { name: "Test Org Sync", isActive: true, settings: {} },
+    create: {
+      name: "Test Org Sync",
+      slug: "test-org-sync",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return testOrgId;
+}
+
 describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   let leadId = "";
   let conversationId = "";
   let manualCarrierId = "";
   let shipitCarrierId = "";
   let beetrackCarrierId = "";
-  let orgId = "";
   let manualShipmentId = "";
   let shipitShipmentId = "";
   let noCarrierShipmentId = "";
@@ -38,6 +72,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
       data: {
         conversationId,
         leadId,
+        orgId: testOrgId,
         amount: 100,
         concept: `Test ${RUN_ID}`,
         status: "PENDING",
@@ -49,6 +84,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
       data: {
         paymentOrderId: order.id,
         leadId,
+        orgId: testOrgId,
         carrierId,
         providerRef,
         status: "PENDING",
@@ -59,22 +95,22 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   }
 
   beforeAll(async () => {
-    const org = await prisma.organization.create({
-      data: { id: "test-org", name: "Test Org" },
-    });
-    orgId = org.id;
+    await ensureTestOrg();
+    setTestSession(testOrgId);
 
     const lead = await prisma.lead.create({
-      data: { phone: TEST_PHONE, name: "Test sync tracking" },
+      data: { phone: TEST_PHONE, name: "Test sync tracking", orgId: testOrgId },
     });
     leadId = lead.id;
 
-    const conversation = await prisma.conversation.create({ data: { leadId } });
+    const conversation = await prisma.conversation.create({
+      data: { leadId, orgId: testOrgId },
+    });
     conversationId = conversation.id;
 
     const manualCarrier = await prisma.carrier.create({
       data: {
-        orgId,
+        orgId: testOrgId,
         code: `TEST-MANUAL-${RUN_ID}`,
         name: "Manual Test",
         mode: "COURIER",
@@ -85,7 +121,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     const shipitCarrier = await prisma.carrier.create({
       data: {
-        orgId,
+        orgId: testOrgId,
         code: `TEST-SHIPIT-${RUN_ID}`,
         name: "Shipit Test",
         mode: "COURIER",
@@ -97,7 +133,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     const beetrackCarrier = await prisma.carrier.create({
       data: {
-        orgId,
+        orgId: testOrgId,
         code: `TEST-BEETRACK-${RUN_ID}`,
         name: "Beetrack Test",
         mode: "COURIER",
@@ -141,6 +177,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     await prisma.carrier.deleteMany({
       where: { id: { in: [manualCarrierId, shipitCarrierId, beetrackCarrierId].filter(Boolean) } },
     });
+    if (testOrgId) await prisma.organization.deleteMany({ where: { id: testOrgId } });
   });
 
   it("retorna 404 si el envío no existe", async () => {

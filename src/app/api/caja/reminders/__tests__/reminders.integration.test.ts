@@ -3,9 +3,16 @@
  * Solo corren con TEST_DB=1 (CI con Postgres).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+// Mock de getOperatorContext para tests que necesitan session
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn().mockResolvedValue(null),
+}));
+
+import { getOperatorContext } from "@/lib/session";
 
 import { POST as sendReminders } from "@/app/api/caja/reminders/route";
 
@@ -18,15 +25,42 @@ let conversationId = "";
 const orderIds: string[] = [];
 let testOrgId: string | null = null;
 
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ */
+function setTestSession(orgId: string, operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+async function ensureDefaultOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "default-org" },
+    update: { name: "Default Org Test", isActive: true, settings: {} },
+    create: {
+      name: "Default Org Test",
+      slug: "default-org",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return testOrgId;
+}
+
 async function setupOrdersWithExpiration() {
-  // Obtener o crear organización de test
-  const org = await prisma.organization.findFirst();
-  testOrgId = org?.id ?? null;
+  // Usar el org asegurado previamente
+  if (!testOrgId) {
+    testOrgId = (await ensureDefaultOrg())!;
+  }
 
   const lead = await prisma.lead.upsert({
     where: { phone: TEST_PHONE },
-    update: { name: "Cliente Test Recordatorios" },
-    create: { phone: TEST_PHONE, name: "Cliente Test Recordatorios" },
+    update: { name: "Cliente Test Recordatorios", orgId: testOrgId },
+    create: { phone: TEST_PHONE, name: "Cliente Test Recordatorios", orgId: testOrgId },
   });
   leadId = lead.id;
 
@@ -101,15 +135,14 @@ function makeRequest(url: string, options: { method?: string; body?: unknown } =
 
 beforeAll(async () => {
   if (process.env.TEST_DB === "1") {
+    await ensureDefaultOrg();
     await cleanupByPhone();
     // Habilitar recordatorios en la organización
-    const org = await prisma.organization.findFirst();
-    if (org) {
+    if (testOrgId) {
       await prisma.organization.update({
-        where: { id: org.id },
+        where: { id: testOrgId },
         data: {
           settings: {
-            ...(org.settings as any),
             reminderEnabled: true,
             reminderBeforeMinutes: 15,
           },
@@ -128,21 +161,10 @@ afterAll(async () => {
 
 describeDb("POST /api/caja/reminders - Envío de recordatorios", () => {
   beforeAll(async () => {
-    await setupOrdersWithExpiration();
-
-    // Habilitar recordatorios
-    const org = await prisma.organization.findFirst();
-    if (org) {
-      await prisma.organization.update({
-        where: { id: org.id },
-        data: {
-          settings: {
-            ...(org.settings as any),
-            reminderEnabled: true,
-          },
-        },
-      });
+    if (testOrgId) {
+      setTestSession(testOrgId);
     }
+    await setupOrdersWithExpiration();
   });
 
   it("debe ejecutar dryRun sin enviar mensajes", async () => {

@@ -3,9 +3,16 @@
  * Solo corren con TEST_DB=1 (CI con Postgres).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+// Mock de getOperatorContext para tests que necesitan session
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn().mockResolvedValue(null),
+}));
+
+import { getOperatorContext } from "@/lib/session";
 
 import { GET as getShipments, POST as postShipment } from "@/app/api/shipments/route";
 import {
@@ -36,6 +43,33 @@ let leadId = "";
 let conversationId = "";
 let paymentOrderId = "";
 let shipmentId = "";
+let testOrgId: string;
+
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ */
+function setTestSession(orgId: string = "default-org", operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+async function ensureDefaultOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "default-org" },
+    update: { name: "Default Org Test", isActive: true, settings: {} },
+    create: {
+      name: "Default Org Test",
+      slug: "default-org",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return testOrgId;
+}
 
 async function cleanupByPhone() {
   const leads = await prisma.lead.findMany({
@@ -55,17 +89,20 @@ async function cleanupByPhone() {
 
 async function setupOrder() {
   const lead = await prisma.lead.create({
-    data: { phone: TEST_PHONE, name: "Cliente Test Envíos" },
+    data: { phone: TEST_PHONE, name: "Cliente Test Envíos", orgId: testOrgId },
   });
   leadId = lead.id;
 
-  const conversation = await prisma.conversation.create({ data: { leadId: lead.id } });
+  const conversation = await prisma.conversation.create({
+    data: { leadId: lead.id, orgId: testOrgId },
+  });
   conversationId = conversation.id;
 
   const paymentOrder = await prisma.paymentOrder.create({
     data: {
       conversationId: conversation.id,
       leadId: lead.id,
+      orgId: testOrgId,
       amount: 15000,
       concept: "Vestido Esmeralda T. M",
       currency: "MXN",
@@ -76,7 +113,10 @@ async function setupOrder() {
 }
 
 beforeAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupByPhone();
+  if (process.env.TEST_DB === "1") {
+    await ensureDefaultOrg();
+    await cleanupByPhone();
+  }
 });
 
 afterAll(async () => {
@@ -85,6 +125,10 @@ afterAll(async () => {
 });
 
 describeDb("POST /api/shipments - Crear envío (con BD)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId);
+  });
+
   it("debe crear un envío vinculado a un cobro", async () => {
     await setupOrder();
 
@@ -126,6 +170,7 @@ describeDb("POST /api/shipments - Crear envío (con BD)", () => {
 
 describeDb("GET /api/shipments - Listado y detalle (con BD)", () => {
   beforeAll(async () => {
+    setTestSession(testOrgId);
     if (!shipmentId) await setupOrder();
   });
 

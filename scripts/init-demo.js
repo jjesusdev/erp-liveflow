@@ -12,8 +12,8 @@
  * Si la tabla Organization no existe, primero crea las migraciones base.
  */
 
-const { PrismaClient } = require("@prisma/client");
-const crypto = require("crypto");
+import { PrismaClient } from "@prisma/client";
+import { randomBytes, scryptSync } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -21,8 +21,8 @@ const SALT_BYTES = 16;
 const KEY_BYTES = 32;
 
 function hashPassword(password) {
-  const salt = crypto.randomBytes(SALT_BYTES);
-  const derivedKey = crypto.scryptSync(password, salt, KEY_BYTES);
+  const salt = randomBytes(SALT_BYTES);
+  const derivedKey = scryptSync(password, salt, KEY_BYTES);
   const combined = Buffer.concat([salt, derivedKey]);
   return combined.toString("base64");
 }

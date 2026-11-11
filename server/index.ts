@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
+import { execSync } from "child_process";
 import { registerSocketHandlers } from "./socket/handlers";
 import { connectWhatsApp, getWhatsAppStatus } from "./whatsapp/client";
 import { processScheduledCampaigns } from "../src/lib/campaignSender";
@@ -18,7 +19,6 @@ app.prepare().then(() => {
   // Usa --accept-data-loss porque BusinessConfig fue eliminada y sus datos migraron a Organization.settings
   Promise.resolve()
     .then(() => {
-      const { execSync } = require("child_process");
       console.log("[init] Sincronizando base de datos...");
 
       // Ejecutar db push - esto crea/migra tablas según el schema

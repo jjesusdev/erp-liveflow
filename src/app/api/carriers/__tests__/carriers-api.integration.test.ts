@@ -1,12 +1,47 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, vi, beforeAll } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { POST as createCarrier } from "@/app/api/carriers/route";
 import { PATCH as patchCarrier, DELETE as deleteCarrier } from "@/app/api/carriers/[id]/route";
 import { POST as testCarrier } from "@/app/api/carriers/[id]/test/route";
 
+// Mock de getOperatorContext para tests que necesitan session
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn().mockResolvedValue(null),
+}));
+
+import { getOperatorContext } from "@/lib/session";
+
 const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 const TEST_CODE = `TEST-SHIPIT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+let testOrgId: string;
+
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ */
+function setTestSession(orgId: string, operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+async function ensureDefaultOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "default-org" },
+    update: { name: "Default Org Test", isActive: true, settings: {} },
+    create: {
+      name: "Default Org Test",
+      slug: "default-org",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return testOrgId;
+}
 
 function makeRequest(url: string, options: { method?: string; body?: unknown } = {}) {
   return new NextRequest(url, {
@@ -24,6 +59,11 @@ const validConfig = { apiKey: "test-key", apiSecret: "test-secret" };
 
 describeDb("API de carriers - validación de configuración (con BD)", () => {
   let carrierId = "";
+
+  beforeAll(async () => {
+    await ensureDefaultOrg();
+    setTestSession(testOrgId);
+  });
 
   afterAll(async () => {
     if (carrierId) {

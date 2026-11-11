@@ -4,9 +4,17 @@
  * - Tests que requieren BD: solo corren con TEST_DB=1 (CI con Postgres)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+// Mock de getOperatorContext para tests que necesitan session
+// Usar mock por defecto que devuelve null (sin auth) para tests de validación
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn().mockResolvedValue(null),
+}));
+
+import { getOperatorContext } from "@/lib/session";
 
 // Importar handlers reales de las routes
 import { GET as getLeads, POST as postLead } from "@/app/api/leads/route";
@@ -37,6 +45,38 @@ const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 // sea idempotente aunque una corrida anterior haya fallado a mitad de camino.
 const TEST_PHONES = ["+525512345678", "+525511111111", "+525522222222", "+525587654321"];
 
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ * Usa este helper cuando el endpoint requiera autenticación.
+ */
+function setTestSession(orgId: string = "default-org", operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+let testOrgId: string;
+
+/**
+ * Asegura que existe una organización "default-org" para los tests
+ */
+async function ensureDefaultOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "default-org" },
+    update: { name: "Default Org Test", isActive: true, settings: {} },
+    create: {
+      name: "Default Org Test",
+      slug: "default-org",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return testOrgId;
+}
+
 async function cleanupTestLeads() {
   const leads = await prisma.lead.findMany({
     where: { phone: { in: TEST_PHONES } },
@@ -55,7 +95,10 @@ async function cleanupTestLeads() {
 }
 
 beforeAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupTestLeads();
+  if (process.env.TEST_DB === "1") {
+    await ensureDefaultOrg();
+    await cleanupTestLeads();
+  }
 });
 
 afterAll(async () => {
@@ -109,6 +152,10 @@ describe("POST /api/leads - Crear lead (validación)", () => {
 });
 
 describeDb("GET /api/leads - Listado paginado (con BD)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId);
+  });
+
   it("debe retornar estructura correcta", async () => {
     const req = makeRequest("http://localhost:3001/api/leads?page=1&pageSize=10");
     const res = await getLeads(req, {} as any);
@@ -172,6 +219,10 @@ describeDb("GET /api/leads - Listado paginado (con BD)", () => {
 
 // Tests de validación de parámetros (requieren BD para normalizar y responder)
 describeDb("GET /api/leads - Validación de parámetros (con BD)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId, "test-operator");
+  });
+
   it("debe manejar page inválido", async () => {
     const req = makeRequest("http://localhost:3001/api/leads?page=0&pageSize=10");
     const res = await getLeads(req, {} as any);
@@ -192,6 +243,10 @@ describeDb("GET /api/leads - Validación de parámetros (con BD)", () => {
 });
 
 describeDb("GET /api/leads/[id] - Detalle de lead (errores)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId, "test-operator");
+  });
+
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`);
@@ -219,6 +274,10 @@ describe("PUT /api/leads/[id] - Actualizar lead (validación)", () => {
 });
 
 describeDb("PUT /api/leads/[id] - Actualizar lead (errores)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId, "test-operator");
+  });
+
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`, {
@@ -232,6 +291,10 @@ describeDb("PUT /api/leads/[id] - Actualizar lead (errores)", () => {
 });
 
 describeDb("DELETE /api/leads/[id] - Eliminar lead (errores)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId, "test-operator");
+  });
+
   it("debe retornar 404 para lead inexistente", async () => {
     const fakeId = "00000000-0000-0000-0000-000000000000";
     const req = makeRequest(`http://localhost:3001/api/leads/${fakeId}`, { method: "DELETE" });
@@ -243,6 +306,10 @@ describeDb("DELETE /api/leads/[id] - Eliminar lead (errores)", () => {
 
 // Tests que REQUIEREN base de datos - solo corren con TEST_DB=1
 describeDb("POST /api/leads - Crear lead (con BD)", () => {
+  beforeAll(() => {
+    setTestSession(testOrgId, "test-operator");
+  });
+
   it("debe crear un lead válido", async () => {
     const req = makeRequest("http://localhost:3001/api/leads", {
       method: "POST",
@@ -290,6 +357,7 @@ describeDb("DELETE /api/leads/[id] - Eliminar lead (con BD)", () => {
   let leadToDeleteId: string;
 
   beforeEach(async () => {
+    setTestSession(testOrgId);
     const leadData = {
       phone: "+525511111111",
       name: "Para Eliminar",
@@ -365,6 +433,7 @@ describeDb("GET /api/leads/[id] - Detalle de lead (con BD)", () => {
   let createdLeadId: string;
 
   beforeAll(async () => {
+    setTestSession(testOrgId);
     const req = makeRequest("http://localhost:3001/api/leads", {
       method: "POST",
       body: testLeadData,
@@ -403,6 +472,7 @@ describeDb("PUT /api/leads/[id] - Actualizar lead (con BD)", () => {
   let createdLeadId: string;
 
   beforeAll(async () => {
+    setTestSession(testOrgId);
     const req = makeRequest("http://localhost:3001/api/leads", {
       method: "POST",
       body: testLeadData,
