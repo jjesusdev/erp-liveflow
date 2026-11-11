@@ -4,92 +4,157 @@
  * Soporta impresión de etiqueta y tracking, sin cotización ni webhooks.
  */
 
-/**
- * Proveedor Chilexpress para envíos courier.
- *
- * - code: CHILEXPRESS
- * - supportedModes: [COURIER]
- * - canQuote: false
- * - canPrintLabel: true
- * - canTrack: true
- * - canWebhook: false
- * - requiredConfig: ['clientId','clientSecret','subdomain']
- */
-
 import { BaseCarrierProvider } from "../base";
-import type { CreateShipmentContext, CreateShipmentResult } from "../types";
-import type { CarrierMode } from "@prisma/client";
+import type { CreateShipmentContext, CreateShipmentResult, TrackingEvent } from "../types";
+import type { CarrierMode, ShipmentStatus } from "@prisma/client";
 import { fetchWithRetry } from "../utils/http";
+import { parseProviderError } from "../utils/http";
 
 export class ChilexpressProvider extends BaseCarrierProvider {
-  /** Código único del proveedor */
   readonly code = "CHILEXPRESS" as const;
-
-  /** Nombre legible */
   readonly name = "Chilexpress";
-
-  /** Modos soportados */
   readonly supportedModes: CarrierMode[] = ["COURIER"];
-
-  /** Cotización automática */
   readonly canQuote = false;
-
-  /** Impresión de etiqueta */
   readonly canPrintLabel = true;
-
-  /** Tracking automático */
   readonly canTrack = true;
-
-  /** Webhooks */
   readonly canWebhook = false;
-
-  /** Configuración requerida */
   readonly requiredConfig = ["clientId", "clientSecret", "subdomain"];
 
-  /**
-   * Crea un envío en Chilexpress.
-   * Implementación simulada: genera tracking y referencia basados en shipmentId.
-   *
-   * @param ctx Contexto de creación del envío
-   * @returns Resultado con trackingNumber, providerRef y servicio
-   */
+  private baseUrl(config: { subdomain?: unknown }): string {
+    const subdomain = String(config.subdomain || "api");
+    return `https://${subdomain}.chilexpress.com/api/v1`;
+  }
+
   async createShipment(ctx: CreateShipmentContext): Promise<CreateShipmentResult> {
     this.logProviderCall("createShipment", { shipmentId: ctx.shipmentId });
-
-    // Simula uso de configuración
     const { clientId, clientSecret, subdomain } = ctx.carrierConfig as {
       clientId?: unknown;
       clientSecret?: unknown;
       subdomain?: unknown;
     };
+    if (!clientId || !clientSecret || !subdomain) {
+      this.logProviderCall("createShipment:fallback", { reason: "missing credentials" });
+      return this.fallbackShipment(ctx.shipmentId);
+    }
+    try {
+      const response = await fetchWithRetry(`${this.baseUrl({ subdomain })}/shipments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Client-Id": String(clientId),
+          "X-Client-Secret": String(clientSecret),
+        },
+        body: JSON.stringify({
+          reference: ctx.shipmentId,
+          recipient_name: ctx.recipient.name,
+          recipient_phone: ctx.recipient.phone,
+          recipient_email: ctx.recipient.email,
+          address_street: ctx.address.street,
+          address_number: ctx.address.number,
+          address_city: ctx.address.city,
+          address_state: ctx.address.state,
+          address_zip: ctx.address.zipCode,
+          weight_grams: ctx.weightGrams,
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        const parsed = parseProviderError(body || `HTTP ${response.status}`);
+        throw new Error(parsed.message);
+      }
+      const data = await response.json();
+      return {
+        trackingNumber: data.tracking_number || `CHX-${ctx.shipmentId.slice(0, 8).toUpperCase()}`,
+        providerRef: data.id || `chilexpress-${ctx.shipmentId}`,
+        service: data.service || "Normal",
+        labelUrl: data.label_url,
+        trackingUrl: data.tracking_url,
+        rawResponse: data,
+      };
+    } catch (error) {
+      const parsed = parseProviderError(error);
+      console.error(`[Carrier:CHILEXPRESS] Error creando envío:`, parsed.message);
+      return this.fallbackShipment(ctx.shipmentId);
+    }
+  }
 
-    // TODO: Reemplazar por llamada real a API de Chilexpress usando fetchWithRetry
-    // const url = `https://${subdomain}.chilexpress.com/api/...`;
-    // await fetchWithRetry(url, { ... });
+  async track(
+    providerRef: string,
+    carrierConfig: Record<string, unknown>
+  ): Promise<TrackingEvent[]> {
+    const { clientId, clientSecret, subdomain } = carrierConfig as {
+      clientId?: unknown;
+      clientSecret?: unknown;
+      subdomain?: unknown;
+    };
+    if (!clientId || !clientSecret || !subdomain) return [];
+    try {
+      const response = await fetchWithRetry(
+        `${this.baseUrl({ subdomain })}/shipments/${encodeURIComponent(providerRef)}/tracking`,
+        {
+          method: "GET",
+          headers: {
+            "X-Client-Id": String(clientId),
+            "X-Client-Secret": String(clientSecret),
+          },
+        }
+      );
+      if (!response.ok) return [];
+      const data = await response.json();
+      return (data.events || []).map((e: any) => ({
+        status: this.mapChilexpressStatus(e.status) as ShipmentStatus,
+        occurredAt: new Date(e.occurred_at || e.date || new Date().toISOString()),
+        description: e.description || e.status,
+        location: e.location,
+        rawData: e,
+      }));
+    } catch (error) {
+      const parsed = parseProviderError(error);
+      console.error(`[Carrier:CHILEXPRESS] Error obteniendo tracking:`, parsed.message);
+      return [];
+    }
+  }
 
-    const trackingNumber = `CHX-${ctx.shipmentId.slice(0, 8).toUpperCase()}`;
-    const providerRef = `chilexpress-${ctx.shipmentId}`;
-
+  async printLabel(
+    providerRef: string,
+    carrierConfig: Record<string, unknown>
+  ): Promise<{ labelUrl: string }> {
+    const { subdomain } = carrierConfig as { subdomain?: unknown };
     return {
-      trackingNumber,
-      providerRef,
+      labelUrl: `${this.baseUrl({ subdomain })}/shipments/${encodeURIComponent(providerRef)}/label`,
+    };
+  }
+
+  private mapChilexpressStatus(status: string): ShipmentStatus {
+    const map: Record<string, ShipmentStatus> = {
+      pending: "PENDING",
+      ready: "READY",
+      label_printed: "LABEL_PRINTED",
+      picked_up: "PICKED_UP",
+      in_transit: "IN_TRANSIT",
+      out_for_delivery: "OUT_FOR_DELIVERY",
+      delivered: "DELIVERED",
+      failed: "FAILED",
+      returned: "RETURNED",
+      lost: "LOST",
+      cancelled: "CANCELLED",
+    };
+    return map[status.toLowerCase()] || "PENDING";
+  }
+
+  private fallbackShipment(shipmentId: string): CreateShipmentResult {
+    return {
+      trackingNumber: `CHX-${shipmentId.slice(0, 8).toUpperCase()}`,
+      providerRef: `chilexpress-${shipmentId}`,
       service: "Normal",
     };
   }
 
-  /**
-   * Valida que la configuración contenga clientId, clientSecret y subdomain.
-   *
-   * @param config Configuración del carrier
-   * @returns Resultado de validación
-   */
   validateConfig(config: Record<string, unknown>): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-
     if (!config.clientId || typeof config.clientId !== "string" || config.clientId.trim() === "") {
       errors.push("Configuración requerida faltante: clientId");
     }
-
     if (
       !config.clientSecret ||
       typeof config.clientSecret !== "string" ||
@@ -97,7 +162,6 @@ export class ChilexpressProvider extends BaseCarrierProvider {
     ) {
       errors.push("Configuración requerida faltante: clientSecret");
     }
-
     if (
       !config.subdomain ||
       typeof config.subdomain !== "string" ||
@@ -105,12 +169,8 @@ export class ChilexpressProvider extends BaseCarrierProvider {
     ) {
       errors.push("Configuración requerida faltante: subdomain");
     }
-
     return { valid: errors.length === 0, errors };
   }
 }
 
-/**
- * Instancia singleton del provider Chilexpress
- */
 export const chilexpressProvider = new ChilexpressProvider();

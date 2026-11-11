@@ -106,19 +106,27 @@ export function WhatsAppStatusSection() {
           <Smartphone className="size-4" />
           <h3 className="text-sm font-semibold text-foreground">Estado de WhatsApp</h3>
         </div>
-        <Badge tone={statusTone(whatsAppStatus)}>{statusLabel(whatsAppStatus)}</Badge>
+        <Badge tone={statusTone(whatsAppStatus)} data-testid="whatsapp-status">
+          {statusLabel(whatsAppStatus)}
+        </Badge>
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
         <span>Base de datos</span>
-        <Badge tone={health?.dependencies?.db?.status === "up" ? "success" : "neutral"}>
+        <Badge
+          tone={health?.dependencies?.db?.status === "up" ? "success" : "neutral"}
+          data-testid="db-status"
+        >
           {health?.dependencies?.db?.status === "up" ? "Online" : "Caída"}
         </Badge>
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
         <span>Workers</span>
-        <Badge tone={health?.dependencies?.workers?.status === "up" ? "success" : "neutral"}>
+        <Badge
+          tone={health?.dependencies?.workers?.status === "up" ? "success" : "neutral"}
+          data-testid="workers-status"
+        >
           {health?.dependencies?.workers?.status === "up" ? "Activos" : "Inactivos"}
         </Badge>
       </div>

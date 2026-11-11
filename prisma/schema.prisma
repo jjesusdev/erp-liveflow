@@ -490,4 +490,42 @@ enum RecipientStatus {
   FAILED
 }
 
+enum WorkerJobStatus {
+  PENDING
+  CLAIMED
+  COMPLETED
+  FAILED
+}
+
+enum WorkerJobType {
+  CAMPAIGN_SEND
+  PAYMENT_EXPIRATION
+  PAYMENT_REMINDER
+}
+
+// Cola de trabajos en segundo plano para workers distribuidos.
+// Reemplaza setInterval por jobs persistentes en BD que pueden ser
+// procesados por múltiples instancias de la aplicación.
+model WorkerJob {
+  id          String          @id @default(uuid())
+  orgId       String?
+  type        WorkerJobType   @default(CAMPAIGN_SEND)
+  status      WorkerJobStatus @default(PENDING)
+  payload     Json?
+  attempts    Int             @default(0)
+  maxAttempts Int             @default(3)
+  runAt       DateTime        @default(now())
+  claimedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([runAt])
+  @@index([orgId])
+  @@index([status, runAt])
+}
+
 

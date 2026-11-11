@@ -4,8 +4,7 @@ import { Server } from "socket.io";
 import { execSync } from "child_process";
 import { registerSocketHandlers } from "./socket/handlers";
 import { connectWhatsApp, getWhatsAppStatus } from "./whatsapp/client";
-import { processScheduledCampaigns } from "../src/lib/campaignSender";
-import { processExpiredPaymentOrders } from "../src/lib/orderExpirationWorker";
+import { startWorkerLoop, enqueueJob } from "../src/lib/worker-queue";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -49,23 +48,20 @@ app.prepare().then(() => {
   const disableWhatsapp = process.env.DISABLE_WHATSAPP === "true";
   const disableWorkers = process.env.DISABLE_WORKERS === "true";
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, async () => {
     console.log(`> Ready on http://${hostname}:${port}`);
 
     if (!disableWorkers) {
-      const campaignTimer = setInterval(() => {
-        processScheduledCampaigns().catch((error) => {
-          console.error("[campaigns] error en el scheduler:", error);
-        });
-      }, 60_000);
-      campaignTimer.unref?.();
+      try {
+        await enqueueJob("CAMPAIGN_SEND", {}, { runAt: new Date(Date.now() + 60_000) });
+        await enqueueJob("PAYMENT_EXPIRATION", {}, { runAt: new Date(Date.now() + 45_000) });
+        console.log("[workers] jobs iniciales enqueueados");
+      } catch (error) {
+        console.error("[workers] error enqueueando jobs iniciales:", error);
+      }
 
-      const expirationTimer = setInterval(() => {
-        processExpiredPaymentOrders().catch((error) => {
-          console.error("[expiration-worker] error en el timer:", error);
-        });
-      }, 45_000);
-      expirationTimer.unref?.();
+      startWorkerLoop(10_000);
+      console.log("[workers] worker loop iniciado (cola basada en BD)");
     } else {
       console.log("[workers] deshabilitados (DISABLE_WORKERS=true)");
     }

@@ -48,11 +48,13 @@ export function LoginForm() {
         </label>
         <Input
           type="email"
+          name="email"
           placeholder="admin@erp.local"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           className="h-10"
+          data-testid="login-email"
         />
       </div>
 
@@ -62,15 +64,17 @@ export function LoginForm() {
         </label>
         <Input
           type="password"
+          name="password"
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           className="h-10"
+          data-testid="login-password"
         />
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full h-10">
+      <Button type="submit" disabled={loading} className="w-full h-10" data-testid="login-submit">
         {loading ? (
           "Iniciando sesión..."
         ) : (
