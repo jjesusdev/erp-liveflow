@@ -36,6 +36,7 @@ erp-liveflow/
 npm install
 npm run dev          # desarrollo (puerto 3001)
 npm run dev:fast     # sin WhatsApp ni workers
+npm run dev:phone    # desarrollo accesible desde el celular (túnel Cloudflare)
 npm run build
 npm run start
 npm run lint
@@ -82,18 +83,19 @@ Antes de dar algo por terminado: `npm run typecheck && npm run lint && npm run t
 
 ## Cerebro (archivos de contexto)
 
-| Archivo                     | Qué contiene                                                                     | Cuándo leerlo                            |
-| --------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
-| `roadmap/session-log.md`    | Registro de sesiones y decisiones                                                | **Siempre al inicio**; escribir al final |
-| `docs/architecture.md`      | Arquitectura del sistema, capas, tiempo real, WhatsApp, pagos                    | Al tocar backend/server                  |
-| `docs/domain-model.md`      | Entidades, relaciones y enums de Prisma                                          | Al tocar `prisma/schema.prisma`          |
-| `docs/conventions.md`       | Convenciones de código y API                                                     | Al escribir código nuevo                 |
-| `docs/herramientas.md`      | Herramientas y repos externos recomendados                                       | Al evaluar nuevas herramientas           |
-| `docs/diagramas/`           | Diagramas D2 (fuente + SVG) y guía de Mermaid                                    | Al cambiar arquitectura o dominio        |
-| `product/vision.md`         | Visión y alcance                                                                 | Al priorizar                             |
-| `product/modules.md`        | Módulos y estado                                                                 | Al planear features                      |
-| `product/backlog.md`        | Pendientes priorizados                                                           | Al elegir qué hacer                      |
-| Vault de Obsidian (externo) | Conocimiento extendido, en `C:\Users\User\Documents\erp-vault` (repo git propio) | Consulta puntual                         |
+| Archivo                      | Qué contiene                                                                     | Cuándo leerlo                            |
+| ---------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| `roadmap/session-log.md`     | Registro de sesiones y decisiones                                                | **Siempre al inicio**; escribir al final |
+| `docs/architecture.md`       | Arquitectura del sistema, capas, tiempo real, WhatsApp, pagos                    | Al tocar backend/server                  |
+| `docs/domain-model.md`       | Entidades, relaciones y enums de Prisma                                          | Al tocar `prisma/schema.prisma`          |
+| `docs/conventions.md`        | Convenciones de código y API                                                     | Al escribir código nuevo                 |
+| `docs/herramientas.md`       | Herramientas y repos externos recomendados                                       | Al evaluar nuevas herramientas           |
+| `docs/diagramas/`            | Diagramas D2 (fuente + SVG) y guía de Mermaid                                    | Al cambiar arquitectura o dominio        |
+| `docs/dev-acceso-celular.md` | Cómo abrir el dev server desde el celular (túnel Cloudflare)                     | Al probar desde el teléfono              |
+| `product/vision.md`          | Visión y alcance                                                                 | Al priorizar                             |
+| `product/modules.md`         | Módulos y estado                                                                 | Al planear features                      |
+| `product/backlog.md`         | Pendientes priorizados                                                           | Al elegir qué hacer                      |
+| Vault de Obsidian (externo)  | Conocimiento extendido, en `C:\Users\User\Documents\erp-vault` (repo git propio) | Consulta puntual                         |
 
 ## Convenciones rápidas
 

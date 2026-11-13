@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=4096 npx tsx server/index.ts",
     "dev:fast": "NODE_OPTIONS=--max-old-space-size=4096 DISABLE_WHATSAPP=true DISABLE_WORKERS=true npx tsx server/index.ts",
+    "dev:phone": "bash scripts/dev-phone.sh",
     "build": "next build",
     "start": "NODE_ENV=production npx tsx server/index.ts",
     "postinstall": "prisma generate",

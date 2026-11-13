@@ -640,11 +640,13 @@ Continuación con las tareas pendientes del backlog.
 Se solicitó review de los cambios de implementación de recordatorios. Se identificaron y corrigieron:
 
 ### Bugs críticos corregidos:
+
 1. **Filtro de tiempo incorrecto**: El worker buscaba órdenes que ya habían expirado en lugar de las que iban a expirar. Corregido para usar `expiresAt >= now`.
 2. **Lógica de status**: Eliminado filtro OR redundante que causaba confusiones.
 3. **Tiempo negativo**: Agregado `Math.max(0, ...)` para evitar mostrar "-5 minutos" en mensajes.
 
 ### Observaciones menores:
+
 - Los warnings de ESLint (`@typescript-eslint/no-explicit-any`) son preexistentes en el codebase y críticos para el código de WhatsApp/Baileys
 - Los tests E2E carecen de selectors `data-testid` que podrían necesitar ser agregados en componentes
 - Los tests E2E usan credenciales hardcodeadas (aceptable para prototipo)
@@ -654,24 +656,29 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 ## Mejoras adicionales implementadas
 
 ### 1. Indicator de recordatorios en header ✅
+
 - Agregado Bell icon en LiveStatusBar muestra contador de recordatorios pendientes
 - Click en el indicator navega a /config?tab=reminders
 - Polling cada 30 segundos del endpoint /api/caja/reminders
 
 ### 2. Navegación directa a pestana de recordatorios ✅
+
 - ConfigPage ahora acepta parámetro `tab` en URL
 - Auto-selecciona la pestaña correcta al cargar
 
 ### 3. Worker de recordatorios ✅
+
 - Lógica corregida para buscar órdenes no expiradas
 - Mensajes con tiempo positivo garantizado
 - Socket event `reminders:processed` emitido
 
 ### 4. Tests de integración ✅
+
 - Tests para GET y POST del endpoint /api/caja/reminders
 - Cobertura de dryRun y diferentes tipos de recordatorios
 
 ### 5. Documentación ✅
+
 - docs/recordatorios-pagos.md completo
 - Ejemplos de uso y flujo de datos
 
@@ -680,11 +687,13 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 ## Bug fixes finales (2026-11-08)
 
 ### Diagrama D2 corregido
+
 - Error de sintaxis en `docs/diagramas/arquitectura.d2` al remover cloudinary
 - Línea huérfana quedó en el archivo
 - Arreglado y verificado con `npm run diagramas`
 
 ### CI/CD
+
 - Diagramas ahora pasan el check de diferencias
 - Build verde confirmado localmente
 
@@ -695,6 +704,7 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
 ### Error P3018: column "isactive" of relation "Organization" does not exist
 
 #### Diagnóstico
+
 - La tabla `Organization` existía en CI pero **sin la columna `isActive`** (guardada como `isactive` por PostgreSQL)
 - La migración `20261101224000_backfill_orgid_default` fallaba al intentar INSERT con `isActive`
 - Causa: Estado inconsistente de BD en CI, posiblemente tabla creada manualmente o con esquema antiguo
@@ -714,10 +724,12 @@ Se solicitó review de los cambios de implementación de recordatorios. Se ident
    - El CI ahora se recupera automáticamente de inconsistencias de esquema
 
 #### Archivos modificados
+
 - `.github/workflows/ci.yml` - agregado fallback de migraciones
 - `prisma/migrations/20261101224000_backfill_orgid_default/migration.sql` - script resistente a naming issues
 
 #### Estado
+
 - CI debería pasar ahora que las migraciones pueden recuperarse
 - Verificar en GitHub Actions con el commit `5f60885`
 
@@ -783,3 +795,32 @@ Realizar una revisión profesional completa del proyecto ERP LiveFlow para asegu
 - **Migraciones Prisma:** 3 migraciones versionadas
 - **Tests:** 11 archivos de test (unit + integration)
 - **Warnings ESLint:** 180 (principalmente `any` preexistentes)
+
+---
+
+## 2026-11-12 — Sesión: acceso desde el celular (dev) y diagnóstico del deploy
+
+### Contexto
+
+- Se retomó el tema del deploy: el servicio de **Render** (`liveflow-app.onrender.com`) está **suspendido por el dueño** (se quedó sin espacio), y la BD vive en **Neon** (proyecto `rough-truth-39420244`, DB `neondb`), no en Render.
+- Decisión: **no pagar hosting por ahora**. Se sigue desarrollando local y el objetivo final es una VPS.
+- Vercel queda descartado para producción: la app usa custom server (Socket.io + Baileys) y eso no corre ahí.
+
+### Implementado
+
+- `scripts/dev-phone.sh` + `npm run dev:phone`: levanta el dev server y un **Cloudflare Quick Tunnel**, imprime la URL pública y un QR en consola, y baja todo con `Ctrl+C` (kill del grupo de procesos). Avisa si PostgreSQL no responde y reintenta la verificación por demoras de DNS en WSL.
+- `next.config.js`: `allowedDevOrigins: ['*.trycloudflare.com']` para que Next 15 no bloquee los assets cross-origin en dev.
+- `docs/dev-acceso-celular.md`: requisitos, uso, límites, troubleshooting y seguridad (la URL del quick tunnel es pública).
+- `AGENTS.md`: comando `npm run dev:phone` y fila del nuevo doc en la tabla del cerebro.
+
+### Verificado
+
+- `npm run lint` → 0 errores (198 warnings preexistentes).
+- `npm run typecheck` → OK.
+- Túnel real probado: `https://...trycloudflare.com/login` → 200 con chunks de Next servidos.
+- `Ctrl+C` libera el puerto 3001 y mata el túnel.
+
+### Pendiente
+
+- [ ] PostgreSQL local no está corriendo en WSL (`127.0.0.1:5432` cerrado): login/datos fallan hasta levantarlo.
+- [ ] Definir VPS y pasaje a Docker Compose o PM2 cuando se quiera dejar siempre online.
