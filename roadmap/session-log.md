@@ -824,3 +824,9 @@ Realizar una revisión profesional completa del proyecto ERP LiveFlow para asegu
 
 - [ ] PostgreSQL local no está corriendo en WSL (`127.0.0.1:5432` cerrado): login/datos fallan hasta levantarlo.
 - [ ] Definir VPS y pasaje a Docker Compose o PM2 cuando se quiera dejar siempre online.
+
+### Fix CI: drift de `orgId`
+
+- El check `prisma migrate diff` fallaba porque la migración `20261101224000_backfill_orgid_default` dejaba `orgId` **NOT NULL** en 12 tablas y el schema lo declara **nullable**.
+- Nueva migración `20261112130000_orgid_nullable`: `DROP NOT NULL` en esas 12 tablas. `Carrier.orgId` sigue requerido.
+- Verificado con Postgres 16 embebido (sin tocar Neon): `migrate deploy` de las 5 migraciones + `migrate diff --exit-code` → **"No difference detected"** (exit 0).
