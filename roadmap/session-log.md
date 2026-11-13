@@ -830,3 +830,9 @@ Realizar una revisión profesional completa del proyecto ERP LiveFlow para asegu
 - El check `prisma migrate diff` fallaba porque la migración `20261101224000_backfill_orgid_default` dejaba `orgId` **NOT NULL** en 12 tablas y el schema lo declara **nullable**.
 - Nueva migración `20261112130000_orgid_nullable`: `DROP NOT NULL` en esas 12 tablas. `Carrier.orgId` sigue requerido.
 - Verificado con Postgres 16 embebido (sin tocar Neon): `migrate deploy` de las 5 migraciones + `migrate diff --exit-code` → **"No difference detected"** (exit 0).
+
+### Otros tests destrabados (mismo run de CI)
+
+- `sync-tracking`: el caso "proveedor sin tracking" usaba Shipit, que desde `7d769cd` implementa `track`. Se agregó un provider stub sin `track` (código `SIMPLIROUTE`) con su carrier y envío de prueba.
+- `caja`: el test asumía que `data[0]` era su propio pedido en un endpoint sin filtro por org; ahora lo busca por teléfono. `sweep-recovery` devuelve la misma forma (`success`, `recoveredCount`, `totalPending`) también cuando no hay pendientes.
+- Suite completa con Postgres embebido: **167/167 tests**, `migrate diff` sin drift.

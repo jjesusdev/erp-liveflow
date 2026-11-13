@@ -57,15 +57,18 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   let leadId = "";
   let conversationId = "";
   let manualCarrierId = "";
+  let noTrackingCarrierId = "";
   let shipitCarrierId = "";
   let beetrackCarrierId = "";
   let manualShipmentId = "";
+  let noTrackingShipmentId = "";
   let shipitShipmentId = "";
   let noCarrierShipmentId = "";
   let errorShipmentId = "";
   const orderIds: string[] = [];
   const shipmentIds: string[] = [];
   const originalBeetrack = getCarrierProvider("BEETRACK");
+  const originalSimpliroute = getCarrierProvider("SIMPLIROUTE");
 
   async function createShipment(carrierId: string | null, providerRef: string | null) {
     const order = await prisma.paymentOrder.create({
@@ -131,6 +134,35 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     });
     shipitCarrierId = shipitCarrier.id;
 
+    // Proveedor sin `track` para el caso "no soporta tracking".
+    // Se reutiliza el código SIMPLIROUTE porque todos los providers reales
+    // ya implementan tracking (Shipit lo sumó en la fase de carriers).
+    const noTrackingProvider: CarrierProvider = {
+      code: "SIMPLIROUTE",
+      name: "SimpliRoute sin tracking",
+      supportedModes: ["COURIER"],
+      canQuote: false,
+      canPrintLabel: false,
+      canTrack: false,
+      canWebhook: false,
+      requiredConfig: [],
+      async createShipment() {
+        throw new Error("no implementado");
+      },
+    };
+    registerCarrierProvider(noTrackingProvider);
+
+    const noTrackingCarrier = await prisma.carrier.create({
+      data: {
+        orgId: testOrgId,
+        code: `TEST-NOTRACK-${RUN_ID}`,
+        name: "Sin tracking Test",
+        mode: "COURIER",
+        apiProvider: "SIMPLIROUTE",
+      },
+    });
+    noTrackingCarrierId = noTrackingCarrier.id;
+
     const beetrackCarrier = await prisma.carrier.create({
       data: {
         orgId: testOrgId,
@@ -143,6 +175,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     beetrackCarrierId = beetrackCarrier.id;
 
     manualShipmentId = await createShipment(manualCarrierId, "manual-ref");
+    noTrackingShipmentId = await createShipment(noTrackingCarrierId, "notrack-ref");
     shipitShipmentId = await createShipment(shipitCarrierId, "shipit-ref");
     noCarrierShipmentId = await createShipment(null, null);
     errorShipmentId = await createShipment(beetrackCarrierId, "beetrack-ref");
@@ -168,6 +201,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
   afterAll(async () => {
     if (originalBeetrack) registerCarrierProvider(originalBeetrack);
+    if (originalSimpliroute) registerCarrierProvider(originalSimpliroute);
 
     await prisma.shipmentEvent.deleteMany({ where: { shipmentId: { in: shipmentIds } } });
     await prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } });
@@ -175,7 +209,13 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
     if (conversationId) await prisma.conversation.deleteMany({ where: { id: conversationId } });
     if (leadId) await prisma.lead.deleteMany({ where: { id: leadId } });
     await prisma.carrier.deleteMany({
-      where: { id: { in: [manualCarrierId, shipitCarrierId, beetrackCarrierId].filter(Boolean) } },
+      where: {
+        id: {
+          in: [manualCarrierId, noTrackingCarrierId, shipitCarrierId, beetrackCarrierId].filter(
+            Boolean
+          ),
+        },
+      },
     });
     if (testOrgId) await prisma.organization.deleteMany({ where: { id: testOrgId } });
   });
@@ -196,7 +236,7 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   });
 
   it("retorna 400 si el proveedor no soporta tracking", async () => {
-    const res = await syncTracking(makeRequest(), makeContext(shipitShipmentId));
+    const res = await syncTracking(makeRequest(), makeContext(noTrackingShipmentId));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain("no soporta tracking");

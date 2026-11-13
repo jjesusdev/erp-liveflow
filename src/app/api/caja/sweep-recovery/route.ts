@@ -23,7 +23,12 @@ export const POST = apiHandler({
     });
 
     if (pendingOrders.length === 0) {
-      return NextResponse.json({ message: "No hay pedidos pendientes para recuperar", count: 0 });
+      return NextResponse.json({
+        success: true,
+        recoveredCount: 0,
+        totalPending: 0,
+        message: "No hay pedidos pendientes para recuperar",
+      });
     }
 
     const client = (globalThis as any).whatsappClient;

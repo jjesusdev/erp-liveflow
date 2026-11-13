@@ -164,9 +164,12 @@ describeDb("GET /api/caja - Listado de cobros (con BD)", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    const first = data[0];
-    expect(first.lead).toBeDefined();
-    expect(first.lead.phone).toBe(TEST_PHONE);
+    // El endpoint no filtra por org, así que buscamos el pedido propio
+    // en lugar de asumir que es el primero.
+    const ownOrder = data.find((o: any) => o.lead?.phone === TEST_PHONE);
+    expect(ownOrder).toBeDefined();
+    expect(ownOrder.lead.phone).toBe(TEST_PHONE);
+    expect(ownOrder.conversation).toBeDefined();
   });
 });
 
