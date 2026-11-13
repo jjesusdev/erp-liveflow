@@ -856,3 +856,11 @@ Realizar una revisión profesional completa del proyecto ERP LiveFlow para asegu
 - Nuevo `caja.org.isolation.test.ts`: dos organizaciones con un pedido cada una; cada sesión solo ve/toca lo suyo, y sin sesión ambos endpoints devuelven 401.
 - `caja.integration.test.ts`: los pedidos de prueba ahora llevan `orgId` y la sesión se mockea con la org de prueba.
 - Suite completa con Postgres embebido: **172/172 tests** (167 previos + 5 nuevos), `migrate diff` sin drift, lint 0 errores y typecheck OK.
+
+### Base de datos de desarrollo en Neon
+
+- `.env` (`DATABASE_URL`) ahora apunta a Neon: `neondb` en `ep-summer-dawn-b6hjo45y-pooler.c-2.sa-east-1.aws.neon.tech` (conexión pooled, `sslmode=require`).
+- El primer intento dio `P1001`: Neon estaba despertando. Los intentos siguientes conectaron.
+- La base ya tenía el schema actual y datos (5 leads, 3 pedidos, 1 operador, 4 productos, 2 envíos) pero **sin** `_prisma_migrations`. `migrate diff` confirmó "No difference detected".
+- Se hizo **baseline** de las 5 migraciones con `prisma migrate resolve --applied` (sin tocar datos ni schema). `migrate status` → **"Database schema is up to date!"**.
+- No correr tests con `TEST_DB=1` contra esta base: escribirían/borrarían datos reales de desarrollo.
