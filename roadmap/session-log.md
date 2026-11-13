@@ -836,3 +836,23 @@ Realizar una revisión profesional completa del proyecto ERP LiveFlow para asegu
 - `sync-tracking`: el caso "proveedor sin tracking" usaba Shipit, que desde `7d769cd` implementa `track`. Se agregó un provider stub sin `track` (código `SIMPLIROUTE`) con su carrier y envío de prueba.
 - `caja`: el test asumía que `data[0]` era su propio pedido en un endpoint sin filtro por org; ahora lo busca por teléfono. `sweep-recovery` devuelve la misma forma (`success`, `recoveredCount`, `totalPending`) también cuando no hay pendientes.
 - Suite completa con Postgres embebido: **167/167 tests**, `migrate diff` sin drift.
+
+---
+
+## 2026-11-12 — Sesión: aislamiento multi-tenant en caja
+
+### Contexto
+
+- `GET /api/caja` y `POST /api/caja/sweep-recovery` no filtraban por `orgId`: cualquier operador logueado veía y gestionaba pedidos de **todas** las organizaciones. `caja/reminders` ya estaba aislado.
+
+### Implementado
+
+- `GET /api/caja`: exige sesión (`getOperatorContext`) y aplica `whereOrg(orgId)` en el `where` de Prisma. Sin sesión → 401.
+- `POST /api/caja/sweep-recovery`: exige sesión, limita los pendientes a la org de la sesión, asigna `orgId` al `Message` que registra el envío y guarda el `operatorId` en el `ActivityLog`.
+- Registros con `orgId` NULL (legado) quedan **fuera** de las lecturas por org: no se exponen a todas las organizaciones. Los datos previos ya fueron backfilleados por `20261101224000_backfill_orgid_default`.
+
+### Verificado
+
+- Nuevo `caja.org.isolation.test.ts`: dos organizaciones con un pedido cada una; cada sesión solo ve/toca lo suyo, y sin sesión ambos endpoints devuelven 401.
+- `caja.integration.test.ts`: los pedidos de prueba ahora llevan `orgId` y la sesión se mockea con la org de prueba.
+- Suite completa con Postgres embebido: **172/172 tests** (167 previos + 5 nuevos), `migrate diff` sin drift, lint 0 errores y typecheck OK.

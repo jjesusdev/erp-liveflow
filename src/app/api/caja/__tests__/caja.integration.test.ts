@@ -3,9 +3,16 @@
  * Solo corren con TEST_DB=1 (CI con Postgres).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+// Mock de getOperatorContext para controlar la org de la sesión.
+vi.mock("@/lib/session", () => ({
+  getOperatorContext: vi.fn(),
+}));
+
+import { getOperatorContext } from "@/lib/session";
 
 import { GET as getCaja } from "@/app/api/caja/route";
 import { POST as sweepRecovery } from "@/app/api/caja/sweep-recovery/route";
@@ -28,17 +35,48 @@ const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random
 
 let leadId = "";
 let conversationId = "";
+let testOrgId = "";
 const orderIds: string[] = [];
 
+/**
+ * Fija la sesión devuelta por getOperatorContext para tests con BD.
+ */
+function setTestSession(orgId: string, operatorId = "test-operator") {
+  (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValue({
+    operatorId,
+    orgId,
+    role: "ADMIN",
+  });
+}
+
+async function ensureTestOrg() {
+  const org = await prisma.organization.upsert({
+    where: { slug: "caja-test-org" },
+    update: { name: "Org Test Caja", isActive: true, settings: {} },
+    create: {
+      name: "Org Test Caja",
+      slug: "caja-test-org",
+      isActive: true,
+      settings: {},
+    },
+  });
+  testOrgId = org.id;
+  return org.id;
+}
+
 async function setupOrders() {
+  await ensureTestOrg();
+
   const lead = await prisma.lead.upsert({
     where: { phone: TEST_PHONE },
-    update: { name: "Cliente Test Caja" },
-    create: { phone: TEST_PHONE, name: "Cliente Test Caja" },
+    update: { name: "Cliente Test Caja", orgId: testOrgId },
+    create: { phone: TEST_PHONE, name: "Cliente Test Caja", orgId: testOrgId },
   });
   leadId = lead.id;
 
-  const conversation = await prisma.conversation.create({ data: { leadId: lead.id } });
+  const conversation = await prisma.conversation.create({
+    data: { leadId: lead.id, orgId: testOrgId },
+  });
   conversationId = conversation.id;
 
   // Crear cobros en distintos estados y proveedores
@@ -52,6 +90,7 @@ async function setupOrders() {
   for (const o of orders) {
     const order = await prisma.paymentOrder.create({
       data: {
+        orgId: testOrgId,
         conversationId: conversation.id,
         leadId: lead.id,
         status: o.status as "PAID" | "PENDING" | "EXPIRED",
@@ -78,11 +117,18 @@ async function cleanupByPhone() {
 }
 
 beforeAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupByPhone();
+  if (process.env.TEST_DB === "1") {
+    await cleanupByPhone();
+    const orgId = await ensureTestOrg();
+    setTestSession(orgId);
+  }
 });
 
 afterAll(async () => {
-  if (process.env.TEST_DB === "1") await cleanupByPhone();
+  if (process.env.TEST_DB === "1") {
+    await cleanupByPhone();
+    await prisma.organization.deleteMany({ where: { slug: "caja-test-org" } });
+  }
   await prisma.$disconnect();
 });
 
@@ -164,12 +210,22 @@ describeDb("GET /api/caja - Listado de cobros (con BD)", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    // El endpoint no filtra por org, así que buscamos el pedido propio
-    // en lugar de asumir que es el primero.
+    // El endpoint filtra por la org de la sesión: solo debe aparecer el
+    // pedido de esta organización.
     const ownOrder = data.find((o: any) => o.lead?.phone === TEST_PHONE);
     expect(ownOrder).toBeDefined();
     expect(ownOrder.lead.phone).toBe(TEST_PHONE);
     expect(ownOrder.conversation).toBeDefined();
+    expect(data.every((o: any) => o.orgId === testOrgId)).toBe(true);
+  });
+
+  it("devuelve 401 sin sesión", async () => {
+    (getOperatorContext as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+
+    const req = makeRequest("http://localhost:3001/api/caja");
+    const res = await getCaja(req, {} as any);
+
+    expect(res.status).toBe(401);
   });
 });
 

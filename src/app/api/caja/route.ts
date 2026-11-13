@@ -2,16 +2,24 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, PAYMENT_STATUSES, PAYMENT_PROVIDERS } from "@/lib/enums";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const { orgId } = ctx;
+
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get("status");
     const provider = searchParams.get("provider");
     const search = searchParams.get("search");
     const dateRange = searchParams.get("range"); // 'today', 'week', 'month', 'all'
 
-    const where: any = {};
+    const where: any = { ...whereOrg(orgId) };
 
     if (status && status !== "all") {
       const parsedStatus = parseEnum(PAYMENT_STATUSES, status);

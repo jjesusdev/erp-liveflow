@@ -3,6 +3,8 @@ import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/audit";
 import { sweepRecoverySchema } from "@/lib/schemas";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 /**
  * Realiza un barrido masivo de recordatorios a clientas con apartados
@@ -11,10 +13,17 @@ import { sweepRecoverySchema } from "@/lib/schemas";
 export const POST = apiHandler({
   body: sweepRecoverySchema,
   handler: async (_req, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const { orgId, operatorId } = ctx;
+
     const { discountPercent = 0, customMessage } = body;
 
     const pendingOrders = await prisma.paymentOrder.findMany({
       where: {
+        ...whereOrg(orgId),
         status: { in: ["PENDING", "SENT", "EXPIRED"] },
       },
       include: {
@@ -59,6 +68,7 @@ export const POST = apiHandler({
 
           await prisma.message.create({
             data: {
+              orgId,
               conversationId: order.conversationId,
               direction: "OUTBOUND",
               type: "TEXT",
@@ -75,6 +85,7 @@ export const POST = apiHandler({
 
     await logActivity({
       action: "RECOVERY_SWEEP_EXECUTED",
+      operatorId,
       details: {
         totalTargeted: pendingOrders.length,
         messagesSent: sentCount,
