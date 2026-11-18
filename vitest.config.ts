@@ -10,6 +10,8 @@ export default defineConfig({
     },
   },
   test: {
+    // scrypt puede exceder 5s cuando la máquina está bajo carga.
+    testTimeout: 15000,
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],

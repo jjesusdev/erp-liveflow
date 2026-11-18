@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiHandler } from "@/lib/api-handler";
+import { ensureDemoOrg } from "@/lib/demo/ensure-org";
 import {
   DEMO_LEADS,
   DEMO_PRODUCTS,
@@ -26,23 +27,24 @@ export const POST = apiHandler({
       );
     }
 
-    // 1. Operator
-    const operator = await prisma.operator.upsert({
-      where: { email: DEMO_OPERATOR.email },
-      update: {},
-      create: DEMO_OPERATOR,
+    // 1. Organización demo (única fuente de orgId para todos los registros)
+    const orgId = await ensureDemoOrg();
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { settings: DEMO_BUSINESS_CONFIG },
     });
 
-    // 2. Organización por defecto (reemplaza BusinessConfig)
-    await prisma.organization.upsert({
-      where: { id: "default-org" },
-      update: { settings: DEMO_BUSINESS_CONFIG },
-      create: { id: "default-org", name: "Default", settings: DEMO_BUSINESS_CONFIG },
+    // 2. Operator
+    const operator = await prisma.operator.upsert({
+      where: { email: DEMO_OPERATOR.email },
+      update: { orgId },
+      create: { ...DEMO_OPERATOR, orgId },
     });
 
     // 3. Live Sessions
     const activeSession = await prisma.liveSession.create({
       data: {
+        orgId,
         title: "Live Flash Sale Viernes",
         platform: "TIKTOK",
         status: "ACTIVE",
@@ -53,6 +55,7 @@ export const POST = apiHandler({
 
     await prisma.liveSession.create({
       data: {
+        orgId,
         title: "Live Catálogo Semana 12",
         platform: "INSTAGRAM",
         status: "ENDED",
@@ -65,7 +68,7 @@ export const POST = apiHandler({
     // 4. Products
     const products = await Promise.all(
       DEMO_PRODUCTS.map((p) =>
-        prisma.product.create({ data: { ...p, isActive: true, isAvailable: true } })
+        prisma.product.create({ data: { ...p, orgId, isActive: true, isAvailable: true } })
       )
     );
 
@@ -75,6 +78,7 @@ export const POST = apiHandler({
         prisma.lead.create({
           data: {
             ...l,
+            orgId,
             firstContactAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
             lastInteractionAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000),
           },
@@ -103,6 +107,7 @@ export const POST = apiHandler({
 
         const conversation = await prisma.conversation.create({
           data: {
+            orgId,
             leadId: lead.id,
             status,
             assignedToId: operator.id,
@@ -115,6 +120,7 @@ export const POST = apiHandler({
         if (messages.length > 0) {
           await prisma.message.createMany({
             data: messages.map((m) => ({
+              orgId,
               conversationId: conversation.id,
               direction: m.direction,
               type: "TEXT" as const,
@@ -184,6 +190,7 @@ export const POST = apiHandler({
         const lead = leads[po.convIdx];
         return prisma.paymentOrder.create({
           data: {
+            orgId,
             conversationId: conv.id,
             leadId: lead.id,
             liveSessionId: activeSession.id,
@@ -208,6 +215,7 @@ export const POST = apiHandler({
     if (paidOrders.length >= 1 && paidOrders[0]) {
       await prisma.shipment.create({
         data: {
+          orgId,
           paymentOrderId: paidOrders[0].id,
           leadId: paidOrders[0].leadId,
           carrier: "Estafeta",
@@ -220,6 +228,7 @@ export const POST = apiHandler({
     if (paidOrders.length >= 2 && paidOrders[1]) {
       await prisma.shipment.create({
         data: {
+          orgId,
           paymentOrderId: paidOrders[1].id,
           leadId: paidOrders[1].leadId,
           carrier: "Starken",
@@ -234,6 +243,7 @@ export const POST = apiHandler({
     // 9. Activity Log marker
     await prisma.activityLog.create({
       data: {
+        orgId,
         operatorId: operator.id,
         action: "DEMO_SEED",
         details: {

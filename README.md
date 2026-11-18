@@ -90,6 +90,7 @@ Abrir [http://localhost:3001](http://localhost:3001). El login demo está dispon
 | `npm run db:push` / `db:migrate` | Sincronizar / migrar schema en desarrollo |
 | `npm run db:deploy` | Aplicar migraciones en producción |
 | `npm run db:seed` | Poblar datos demo (`SEED_ADMIN_PASSWORD`, `SEED_VENDEDORA_PASSWORD`) |
+| `npm run db:backfill-org` | Asignar la org demo a registros huérfanos (datos anteriores al aislamiento multi-tenant) |
 | `npm run db:studio` | Prisma Studio |
 
 ---

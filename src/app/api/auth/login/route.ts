@@ -4,6 +4,7 @@ import { apiHandler } from "@/lib/api-handler";
 import { comparePassword, hashPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { ensureDemoOrg } from "@/lib/demo/ensure-org";
 import { NextResponse } from "next/server";
 
 type LoginBody = {
@@ -110,13 +111,17 @@ export const POST = apiHandler<LoginBody>({
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
 
-    // Asegurar orgId
-    const orgId = operator.organization?.id;
+    // Asegurar orgId con un ID real (nunca un slug hardcodeado).
+    let orgId = operator.orgId;
     if (!orgId) {
-      await prisma.operator.update({
-        where: { id: operator.id },
-        data: { orgId: operator.organization?.id || "demo-org" },
-      });
+      if (!demoLoginEnabled) {
+        return NextResponse.json(
+          { error: "El operador no tiene una organización asignada" },
+          { status: 500 }
+        );
+      }
+      orgId = await ensureDemoOrg();
+      await prisma.operator.update({ where: { id: operator.id }, data: { orgId } });
     }
 
     await createSession(operator.id, operator.role, orgId!);
