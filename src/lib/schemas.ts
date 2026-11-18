@@ -181,7 +181,7 @@ export const carrierCreateSchema = z.object({
   mode: z.enum(CARRIER_MODES),
   apiProvider: z.enum(CARRIER_PROVIDERS).optional(),
   active: z.boolean().optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const carrierUpdateSchema = z.object({
@@ -190,7 +190,7 @@ export const carrierUpdateSchema = z.object({
   mode: z.enum(CARRIER_MODES).optional(),
   apiProvider: z.enum(CARRIER_PROVIDERS).optional(),
   active: z.boolean().optional(),
-  config: z.record(z.unknown()).nullable().optional(),
+  config: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export type CarrierCreateInput = z.infer<typeof carrierCreateSchema>;
@@ -289,7 +289,7 @@ export type TemplateCreateInput = z.infer<typeof templateCreateSchema>;
 
 export const maintenanceSchema = z.object({
   action: z.enum(["PURGE_OLD_LOGS", "RESET_TEST_DATA"], {
-    errorMap: () => ({ message: "Accion invalida. Usa PURGE_OLD_LOGS o RESET_TEST_DATA" }),
+    error: "Accion invalida. Usa PURGE_OLD_LOGS o RESET_TEST_DATA",
   }),
 });
 

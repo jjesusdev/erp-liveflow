@@ -1,6 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* Tailwind 4: variante dark basada en clase (antes darkMode: ['class']). */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
