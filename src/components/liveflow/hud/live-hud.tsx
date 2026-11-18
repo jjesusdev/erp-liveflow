@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Maximize2, Pause, Play, TrendingUp, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { money } from "@/lib/format";
 import { HUD_ITEMS, HUD_NAMES } from "@/lib/liveflow-data";
 import { Badge, LiveDot } from "@/components/liveflow/primitives";

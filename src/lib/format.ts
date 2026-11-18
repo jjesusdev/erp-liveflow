@@ -1,3 +1,13 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format, formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+
+/** Utilidad canónica de clases Tailwind (antes duplicada en lib/utils.ts y lib/date-utils.ts). */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 const SUPPORTED_CURRENCIES = {
   CLP: { locale: "es-CL", symbol: "$", decimals: 0 },
   USD: { locale: "en-US", symbol: "US$", decimals: 2 },
@@ -22,6 +32,7 @@ export function getCurrency(): CurrencyCode {
   return currentCurrency;
 }
 
+/** Formato monetario canónico. La moneda se resuelve desde la configuración de negocio. */
 export function money(amount: number, currency?: CurrencyCode): string {
   const code = currency || currentCurrency;
   const cfg = SUPPORTED_CURRENCIES[code] || SUPPORTED_CURRENCIES.CLP;
@@ -30,6 +41,29 @@ export function money(amount: number, currency?: CurrencyCode): string {
     maximumFractionDigits: cfg.decimals,
   }).format(amount);
   return `${cfg.symbol}${formatted}`;
+}
+
+/** Alias semántico usado por reportes/caja; mantiene un único motor de formato. */
+export function formatCurrency(amount: number, currency: string = DEFAULT_CURRENCY): string {
+  return money(amount, (currency in SUPPORTED_CURRENCIES ? currency : DEFAULT_CURRENCY) as CurrencyCode);
+}
+
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, "d 'de' MMMM, yyyy", { locale: es });
+}
+
+export function formatTime(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, "HH:mm", { locale: es });
+}
+
+export function timeAgo(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return formatDistanceToNow(d, { addSuffix: true, locale: es });
 }
 
 export function clock(totalSec: number) {
@@ -50,4 +84,17 @@ export function makeReference(seed: number) {
     out += ALPHABET[((t ^ (t >>> 14)) >>> 0) % ALPHABET.length];
   }
   return out;
+}
+
+/** Normaliza un teléfono preservando el '+' inicial (antes duplicado en 2 API routes). */
+export function normalizePhone(raw: string): string | null {
+  const plus = raw.trim().startsWith("+");
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  return (plus ? "+" : "") + digits;
+}
+
+/** JID de WhatsApp a partir de un teléfono (evita repetir el regex en ~17 handlers). */
+export function toWhatsAppJid(phone: string): string {
+  return `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
 }

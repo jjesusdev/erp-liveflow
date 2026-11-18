@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import {
   Check,
   Copy,
@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
 import { money } from "@/lib/format";
-import { formatDate, timeAgo } from "@/lib/date-utils";
+import { formatDate, timeAgo } from "@/lib/format";
 import type { Carrier, Shipment } from "@/types";
 import {
   Avatar,

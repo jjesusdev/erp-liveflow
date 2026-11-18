@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatCurrency, formatDate, formatTime, timeAgo } from "@/lib/date-utils";
+import { formatCurrency, formatDate, formatTime, timeAgo } from "@/lib/format";
 
 describe("formatCurrency", () => {
   it("formats CLP (default) without decimals", () => {

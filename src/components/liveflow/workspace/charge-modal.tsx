@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Building2, Check, Copy, CreditCard, Loader2, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { money } from "@/lib/format";
+import { cn } from "@/lib/format";
+import { money, type CurrencyCode } from "@/lib/format";
+import { usePaymentOrder } from "@/hooks/usePaymentOrder";
+import {
+  buildChargeConcept,
+  buildChargePreview,
+  calculateChargeTotals,
+  providerForMethod,
+  type BankDetails,
+} from "@/lib/payments/charge";
 import type { Conversation, Product } from "@/lib/liveflow-data";
 import {
   Dialog,
@@ -43,50 +51,60 @@ export function ChargeModal({
   const [amount, setAmount] = useState("450");
   const [shipping, setShipping] = useState("99");
   const [method, setMethod] = useState<Method>("transferencia");
-  const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [bank, setBank] = useState<BankDetails>({});
+  const [currency, setCurrency] = useState<CurrencyCode>("MXN");
+  const { loading: sending, createOrder, reset } = usePaymentOrder();
 
-  const subtotal = mode === "simple" ? Number(amount) || 0 : bag.reduce((s, p) => s + p.price, 0);
-  const ship = mode === "bolsa" ? Number(shipping) || 0 : 0;
-  const total = subtotal + ship;
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((config) => {
+        if (!config) return;
+        setBank({
+          bankName: config.bankName,
+          bankBeneficiary: config.bankBeneficiary,
+          bankClabe: config.bankClabe,
+          bankAccountNumber: config.bankAccountNumber,
+          bankNotes: config.bankNotes,
+        });
+        if (config.currency) setCurrency(config.currency as CurrencyCode);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const chargeDraft = {
+    mode,
+    concept,
+    amount: Number(amount) || 0,
+    shipping: Number(shipping) || 0,
+    items: bag,
+  };
+  const { subtotal, total } = calculateChargeTotals(chargeDraft);
   const firstName = conversation.name.split(" ")[0];
 
-  const message =
-    method === "transferencia"
-      ? `¡Hola ${firstName}! Tu total es ${money(total)} MXN.\n\nBBVA · CLABE 012 180 0152 3344 9910\nA nombre de: LiveFlow Boutique\nReferencia: ${reference}\n\nEnvíame tu comprobante aquí y tu pedido queda confirmado 💛`
-      : `¡Hola ${firstName}! Tu total es ${money(total)} MXN.\n\nPaga con tarjeta aquí:\nmpago.la/lf-${reference.toLowerCase()}\n\nReferencia: ${reference}`;
+  const message = buildChargePreview({ ...chargeDraft, method, firstName, reference, currency, bank });
 
   const send = async () => {
     if (total <= 0) return;
-    setSending(true);
+    const created = await createOrder({
+      conversationId: conversation.id,
+      amount: total,
+      concept: buildChargeConcept(chargeDraft),
+      provider: providerForMethod(method),
+    });
 
-    try {
-      const res = await fetch("/api/payment-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          amount: total,
-          concept:
-            mode === "simple"
-              ? concept
-              : bag.map((p) => p.name).join(" + ") + (ship > 0 ? ` (+ Envío $${ship})` : ""),
-          provider: method === "transferencia" ? "TRANSFER" : "MERCADOPAGO",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Error generando cobro");
-
-      onSent(total, method, message);
-      onOpenChange(false);
-      toast.success("Cobro enviado por WhatsApp", {
-        description: `${money(total)} MXN · Ref. ${reference}`,
-      });
-    } catch {
+    if (!created) {
       toast.error("No se pudo generar el cobro");
-    } finally {
-      setSending(false);
+      return;
     }
+
+    onSent(total, method, created.transferDetails?.message ?? message);
+    onOpenChange(false);
+    reset();
+    toast.success("Cobro enviado por WhatsApp", {
+      description: `${money(total, currency)} ${currency} · Ref. ${reference}`,
+    });
   };
 
   return (
@@ -148,7 +166,7 @@ export function ChargeModal({
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="amount" className="text-[11px] font-medium text-muted-foreground">
-                    Monto (MXN)
+                    Monto ({currency})
                   </label>
                   <div className="relative">
                     <span className="absolute top-1/2 left-3 -translate-y-1/2 font-mono text-lg text-muted-foreground">
@@ -259,7 +277,7 @@ export function ChargeModal({
                 </p>
                 <p className="font-mono text-3xl font-bold tracking-tight">{money(total)}</p>
               </div>
-              <span className="pb-1 text-xs text-muted-foreground">MXN</span>
+              <span className="pb-1 text-xs text-muted-foreground">{currency}</span>
             </div>
           </div>
 
@@ -306,7 +324,7 @@ export function ChargeModal({
             className="font-semibold"
           >
             {sending ? <Loader2 className="animate-spin" aria-hidden /> : <Send aria-hidden />}
-            {sending ? "Enviando…" : `Enviar cobro ${money(total)}`}
+            {sending ? "Enviando…" : `Enviar cobro ${money(total, currency)}`}
           </Button>
         </DialogFooter>
       </DialogContent>

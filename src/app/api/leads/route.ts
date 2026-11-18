@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/format";
 import { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api-handler";
 import { leadCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
+import {
+  CUSTOMER_TIERS,
+  isCustomerTier,
+  TIER_CASE,
+  TIER_RANK,
+  TIER_WHERE,
+} from "@/lib/customers/tiers";
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100];
 const EXPORT_LIMIT = 20000;
@@ -25,27 +33,6 @@ const AGG_CTES = Prisma.sql`
     WHERE status IN ('EXPIRED', 'CANCELLED') AND "leadId" IS NOT NULL
   )
 `;
-
-const TIER_CASE = Prisma.sql`CASE
-    WHEN COALESCE(p.paid_count, 0) >= 3 OR COALESCE(p.spent, 0) >= 2000 THEN 'VIP'
-    WHEN COALESCE(p.paid_count, 0) >= 1 THEN 'FREQUENT'
-    WHEN f.lid IS NOT NULL THEN 'GHOST'
-    ELSE 'NEW'
-  END`;
-
-const TIER_RANK = Prisma.sql`CASE
-    WHEN COALESCE(p.paid_count, 0) >= 3 OR COALESCE(p.spent, 0) >= 2000 THEN 3
-    WHEN COALESCE(p.paid_count, 0) >= 1 THEN 2
-    WHEN f.lid IS NOT NULL THEN 0
-    ELSE 1
-  END`;
-
-const TIER_WHERE: Record<string, Prisma.Sql> = {
-  VIP: Prisma.sql`AND (COALESCE(p.paid_count, 0) >= 3 OR COALESCE(p.spent, 0) >= 2000)`,
-  FREQUENT: Prisma.sql`AND (COALESCE(p.paid_count, 0) >= 1 AND NOT (COALESCE(p.paid_count, 0) >= 3 OR COALESCE(p.spent, 0) >= 2000))`,
-  GHOST: Prisma.sql`AND (COALESCE(p.paid_count, 0) = 0 AND f.lid IS NOT NULL)`,
-  NEW: Prisma.sql`AND (COALESCE(p.paid_count, 0) = 0 AND f.lid IS NULL)`,
-};
 
 const SORT_EXPR: Record<string, Prisma.Sql> = {
   name: Prisma.sql`l.name`,
@@ -74,14 +61,6 @@ interface ListRow {
   tier: string;
 }
 
-function normalizePhone(raw: string) {
-  // Conserva el + inicial y elimina espacios/guiones/paréntesis.
-  const plus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return null;
-  return (plus ? "+" : "") + digits;
-}
-
 export const GET = apiHandler({
   handler: async (req: NextRequest) => {
     const ctx = await getOperatorContext();
@@ -93,7 +72,7 @@ export const GET = apiHandler({
     const sp = req.nextUrl.searchParams;
     const search = (sp.get("search") || "").trim();
     const rawTier = (sp.get("tier") || "all").trim();
-    const tier = rawTier in TIER_WHERE ? rawTier : "all";
+    const tier = isCustomerTier(rawTier) ? rawTier : "all";
     const rawSort = sp.get("sort") || "";
     const sort = rawSort in SORT_EXPR ? rawSort : "recent";
     const dir = sp.get("dir") === "asc" ? "asc" : "desc";
@@ -154,7 +133,8 @@ export const GET = apiHandler({
       GROUP BY 1
     `);
 
-    const facets: Record<string, number> = { all: 0, VIP: 0, FREQUENT: 0, NEW: 0, GHOST: 0 };
+    const facets: Record<string, number> = { all: 0 };
+    for (const code of CUSTOMER_TIERS) facets[code] = 0;
     for (const row of facetRows) {
       facets[row.tier] = row.count;
       facets.all += row.count;

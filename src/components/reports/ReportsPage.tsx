@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatCurrency } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format";
+import { statusPresentation } from "@/lib/statusPresentation";
 import { TrendingUp, Users, MessageSquare, CreditCard, Package, Clock } from "lucide-react";
 
 interface Stats {
@@ -33,14 +34,6 @@ const PERIODS = [
   { id: "month", label: "Este mes" },
   { id: "all", label: "Todo" },
 ];
-
-const SHIPMENT_LABELS: Record<string, string> = {
-  PENDING: "Pendiente",
-  IN_TRANSIT: "En transito",
-  DELIVERED: "Entregado",
-  RETURNED: "Devuelto",
-  LOST: "Perdido",
-};
 
 export function ReportsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -224,7 +217,7 @@ export function ReportsPage() {
             {Object.keys(stats.shipments || {}).length > 0 ? (
               Object.entries(stats.shipments).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between text-sm">
-                  <span>{SHIPMENT_LABELS[status] || status}</span>
+                  <span>{statusPresentation(status).label}</span>
                   <span className="font-medium">{count}</span>
                 </div>
               ))

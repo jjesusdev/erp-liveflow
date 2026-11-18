@@ -4,9 +4,9 @@ import { shipmentUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, SHIPMENT_STATUSES } from "@/lib/enums";
 import { getCarrierProvider } from "@/lib/carriers";
+import { IN_TRANSIT_STATUSES } from "@/lib/shipments/constants";
 import type { ShipmentStatus as PrismaShipmentStatus, ConversationStatus } from "@prisma/client";
 
-const TRANSIT_STATUSES: string[] = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
 const SHIPPED_CONV_STATUSES = ["PAID", "ATTENTION", "AWAITING_PAYMENT"] as ConversationStatus[];
 
 export const GET = apiHandler({
@@ -56,10 +56,10 @@ export const PATCH = apiHandler({
       data.status = status;
       newStatus = status;
 
-      if (TRANSIT_STATUSES.includes(status)) {
+      if (IN_TRANSIT_STATUSES.includes(status)) {
         if (!existing.shippedAt) data.shippedAt = new Date();
         const wasBeforeTransit =
-          !TRANSIT_STATUSES.includes(existing.status) && existing.status !== "DELIVERED";
+          !IN_TRANSIT_STATUSES.includes(existing.status) && existing.status !== "DELIVERED";
         if (wasBeforeTransit && status === "IN_TRANSIT") {
           isStatusTransitionToInTransit = true;
         }
@@ -161,7 +161,7 @@ export const PATCH = apiHandler({
     }
 
     // Actualiza la conversación a SHIPPED cuando el paquete sale en camino
-    if (newStatus && (TRANSIT_STATUSES.includes(newStatus) || newStatus === "DELIVERED")) {
+    if (newStatus && (IN_TRANSIT_STATUSES.includes(newStatus) || newStatus === "DELIVERED")) {
       await prisma.conversation.updateMany({
         where: {
           paymentOrders: { some: { shipment: { id } } },

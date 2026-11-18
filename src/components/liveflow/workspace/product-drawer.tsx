@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { money } from "@/lib/format";
 import { CATALOG, type Product } from "@/lib/liveflow-data";
 import { Button } from "@/components/ui/button";

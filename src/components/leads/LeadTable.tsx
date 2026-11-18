@@ -1,6 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
+import { pageWindow } from "@/lib/pagination";
 import {
   ArrowDown,
   ArrowUp,
@@ -15,7 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TierBadge } from "@/components/liveflow/primitives";
 import { money } from "@/lib/format";
-import { timeAgo } from "@/lib/date-utils";
+import { timeAgo } from "@/lib/format";
 import type { Lead } from "@/types";
 import { PAGE_SIZE_OPTIONS, type LeadSortKey, type SortDir } from "@/hooks/useLeads";
 import { Avatar, lastPaidAt, leadAvgTicket, leadTier, waLink } from "./leads-ui";
@@ -62,20 +63,6 @@ function SortHeader({ label, sortKey, activeKey, dir, onSort, align = "left" }: 
       </button>
     </th>
   );
-}
-
-function pageWindow(current: number, totalPages: number): (number | "gap")[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const out: (number | "gap")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(totalPages - 1, current + 1);
-  if (start > 2) out.push("gap");
-  for (let i = start; i <= end; i++) out.push(i);
-  if (end < totalPages - 1) out.push("gap");
-  out.push(totalPages);
-  return out;
 }
 
 interface LeadTableProps {

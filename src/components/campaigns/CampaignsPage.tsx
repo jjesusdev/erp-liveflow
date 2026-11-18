@@ -1,18 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatDate, formatTime, cn } from "@/lib/date-utils";
+import { formatDate, formatTime, cn } from "@/lib/format";
+import { statusPresentation } from "@/lib/statusPresentation";
 import { useSocket } from "@/lib/socket";
 import { Megaphone, Plus, Trash2, Send, Users, Clock, XCircle, Loader2 } from "lucide-react";
-import type { Campaign, CampaignStatus } from "@/types";
-
-const STATUS_META: Record<CampaignStatus, { label: string; className: string }> = {
-  DRAFT: { label: "Borrador", className: "bg-muted text-muted-foreground" },
-  SCHEDULED: { label: "Programada", className: "bg-blue-100 text-blue-800" },
-  SENDING: { label: "Enviando", className: "bg-yellow-100 text-yellow-800" },
-  SENT: { label: "Enviada", className: "bg-green-100 text-green-800" },
-  CANCELLED: { label: "Cancelada", className: "bg-red-100 text-red-800" },
-};
+import type { Campaign } from "@/types";
 
 export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -194,10 +187,10 @@ export function CampaignsPage() {
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs font-medium",
-                    STATUS_META[campaign.status]?.className
+                    statusPresentation(campaign.status, "campaign").className
                   )}
                 >
-                  {STATUS_META[campaign.status]?.label || campaign.status}
+                  {statusPresentation(campaign.status, "campaign").label || campaign.status}
                 </span>
 
                 <span className="flex items-center gap-1 text-muted-foreground">

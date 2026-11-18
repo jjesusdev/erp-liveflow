@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatCurrency, cn } from "@/lib/date-utils";
+import { formatCurrency, cn } from "@/lib/format";
 import {
   Plus,
   Pencil,

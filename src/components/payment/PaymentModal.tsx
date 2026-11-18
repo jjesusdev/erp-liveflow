@@ -12,6 +12,8 @@ import {
   PackagePlus,
 } from "lucide-react";
 import type { Product } from "@/types";
+import { usePaymentOrder } from "@/hooks/usePaymentOrder";
+import { buildChargeConcept, calculateChargeTotals } from "@/lib/payments/charge";
 
 interface PaymentModalProps {
   open: boolean;
@@ -27,26 +29,6 @@ interface CartItem {
   price: number;
 }
 
-interface CreatedPayment {
-  id: string;
-  provider: string;
-  providerLinkUrl?: string | null;
-  status: string;
-  whatsappSent: boolean;
-  linkGenerated?: boolean;
-  transferDetails?: {
-    bankName?: string | null;
-    bankBeneficiary?: string | null;
-    bankClabe?: string | null;
-    bankAccountNumber?: string | null;
-    bankNotes?: string | null;
-    reference: string;
-    amount: number;
-    currency: string;
-    concept: string;
-    message?: string;
-  } | null;
-}
 
 export function PaymentModal({
   open,
@@ -65,10 +47,15 @@ export function PaymentModal({
   const [provider, setProvider] = useState<"TRANSFER" | "MERCADOPAGO" | "CASH">("TRANSFER");
   const [products, setProducts] = useState<Product[]>([]);
   const [showCatalog, setShowCatalog] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<CreatedPayment | null>(null);
   const [copied, setCopied] = useState(false);
+  const {
+    loading,
+    error: chargeError,
+    order: created,
+    createOrder,
+    reset: resetCharge,
+  } = usePaymentOrder();
 
   useEffect(() => {
     if (open) {
@@ -97,23 +84,14 @@ export function PaymentModal({
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const calculateTotal = () => {
-    if (useCartMode) {
-      const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-      const fee = parseFloat(shippingFee) || 0;
-      return subtotal + fee;
-    }
-    return parseFloat(singleAmount) || 0;
+  const chargeDraft = {
+    mode: useCartMode ? ("bolsa" as const) : ("simple" as const),
+    concept: singleConcept,
+    amount: parseFloat(singleAmount) || 0,
+    shipping: parseFloat(shippingFee) || 0,
+    items,
   };
-
-  const getConsolidatedConcept = () => {
-    if (useCartMode) {
-      const names = items.map((i) => i.name).join(" + ");
-      const fee = parseFloat(shippingFee) || 0;
-      return fee > 0 ? `${names} (+ Envío $${fee})` : names;
-    }
-    return singleConcept;
-  };
+  const calculateTotal = () => calculateChargeTotals(chargeDraft).total;
 
   const reset = () => {
     setItems([]);
@@ -124,7 +102,7 @@ export function PaymentModal({
     setProvider("TRANSFER");
     setShowCatalog(false);
     setError(null);
-    setCreated(null);
+    resetCharge();
     setCopied(false);
   };
 
@@ -136,7 +114,7 @@ export function PaymentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalAmount = calculateTotal();
-    const finalConcept = getConsolidatedConcept();
+    const finalConcept = buildChargeConcept(chargeDraft);
 
     if (!finalAmount || finalAmount <= 0) {
       setError("El monto total debe ser mayor a 0");
@@ -148,33 +126,8 @@ export function PaymentModal({
       return;
     }
 
-    setLoading(true);
     setError(null);
-
-    try {
-      const res = await fetch("/api/payment-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          amount: finalAmount,
-          concept: finalConcept,
-          provider,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "No se pudo generar el cobro");
-      }
-
-      setCreated(data);
-    } catch (err: any) {
-      setError(err?.message || "No se pudo generar el cobro");
-    } finally {
-      setLoading(false);
-    }
+    await createOrder({ conversationId, amount: finalAmount, concept: finalConcept, provider });
   };
 
   const copyTransferText = async () => {
@@ -214,9 +167,9 @@ export function PaymentModal({
           )}
         </div>
 
-        {error && (
+        {(error || chargeError) && (
           <div className="mt-4 rounded-md bg-red-50 p-3 text-xs text-red-800 border border-red-200">
-            {error}
+            {error || chargeError}
           </div>
         )}
 

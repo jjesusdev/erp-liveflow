@@ -4,21 +4,8 @@ import { carrierCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
-import { getAvailableProviders, validateCarrierConfig } from "@/lib/carriers";
-
-function providerMeta() {
-  return getAvailableProviders().map((provider) => ({
-    code: provider.code,
-    label: provider.name,
-    requiresConfig: provider.requiredConfig.length > 0,
-    requiredConfig: provider.requiredConfig,
-    supportsTracking: provider.canTrack,
-    supportsLabel: provider.canPrintLabel,
-    supportedModes: provider.supportedModes,
-    canQuote: provider.canQuote,
-    canWebhook: provider.canWebhook,
-  }));
-}
+import { validateCarrierConfig } from "@/lib/carriers";
+import { providerMeta } from "@/lib/carriers/metadata";
 
 export const GET = apiHandler({
   handler: async (req) => {

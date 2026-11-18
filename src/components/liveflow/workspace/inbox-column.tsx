@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Lock, Search, MessageSquareDashed, Sparkles, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { STATUSES, type Conversation, type ConversationStatus } from "@/lib/liveflow-data";
 import { Kbd, TierBadge } from "@/components/liveflow/primitives";
 

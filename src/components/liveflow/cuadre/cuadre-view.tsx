@@ -3,14 +3,12 @@
 import { useMemo, useState } from "react";
 import { Building2, CreditCard, Download, Search } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { money } from "@/lib/format";
 import { TRANSACTIONS, type Transaction } from "@/lib/liveflow-data";
+import { statusPresentation } from "@/lib/statusPresentation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
-
-const STATUS_TONE = { pagado: "success", apartado: "pending", vencido: "live" } as const;
-const STATUS_LABEL = { pagado: "Pagado", apartado: "Apartado", vencido: "Vencido" } as const;
 
 export function CuadreView() {
   const [status, setStatus] = useState<Transaction["status"] | "todos">("todos");
@@ -125,7 +123,7 @@ export function CuadreView() {
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {s === "todos" ? "Todos" : STATUS_LABEL[s]}
+                  {s === "todos" ? "Todos" : statusPresentation(s).label}
                 </button>
               ))}
             </div>
@@ -194,7 +192,9 @@ export function CuadreView() {
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground">{t.operator}</td>
                     <td className="px-3 py-2.5">
-                      <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                      <Badge tone={statusPresentation(t.status).tone}>
+                        {statusPresentation(t.status).label}
+                      </Badge>
                     </td>
                     <td
                       className={cn(

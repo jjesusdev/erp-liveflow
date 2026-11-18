@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { Download, Printer, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useShipments } from "@/hooks/useShipments";
