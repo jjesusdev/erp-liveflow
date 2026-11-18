@@ -10,12 +10,10 @@ async function createMercadoPagoPreference({
   amount,
   concept,
   paymentOrderId,
-  leadPhone,
 }: {
   amount: number;
   concept: string;
   paymentOrderId: string;
-  leadPhone?: string | null;
 }) {
   const accessToken = process.env.MP_ACCESS_TOKEN;
 
@@ -175,14 +173,6 @@ export const POST = apiHandler({
     let link: { id: string; url: string } | null = null;
 
     if (resolvedProvider === "TRANSFER") {
-      const hasBankData = Boolean(
-        businessConfig &&
-        (businessConfig.bankName ||
-          businessConfig.bankBeneficiary ||
-          businessConfig.bankClabe ||
-          businessConfig.bankAccountNumber)
-      );
-
       transferDetails = {
         bankName: businessConfig?.bankName || null,
         bankBeneficiary: businessConfig?.bankBeneficiary || null,
@@ -278,7 +268,6 @@ export const POST = apiHandler({
         amount: numericAmount,
         concept,
         paymentOrderId: paymentOrder.id,
-        leadPhone: conversation.lead?.phone,
       });
 
       if (link?.url) {

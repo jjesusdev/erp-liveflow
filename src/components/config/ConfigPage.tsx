@@ -51,7 +51,7 @@ export function ConfigPage() {
   const [config, setConfig] = useState<BusinessConfig>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>(() => {
+  const [activeTab] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       return params.get("tab") || "banco";

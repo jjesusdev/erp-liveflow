@@ -10,8 +10,6 @@ import {
   PackageX,
   Upload,
   FileSpreadsheet,
-  Download,
-  Check,
 } from "lucide-react";
 import type { Product } from "@/types";
 

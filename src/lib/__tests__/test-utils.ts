@@ -5,7 +5,6 @@
 
 import { NextRequest } from "next/server";
 import { createHmac } from "crypto";
-import { vi } from "vitest";
 
 // Mock de cookies store
 class MockCookieStore {
@@ -16,7 +15,7 @@ class MockCookieStore {
     return item ? { value: item.value } : undefined;
   }
 
-  set(name: string, value: string, options?: Record<string, unknown>) {
+  set(name: string, value: string, _options?: Record<string, unknown>) {
     this.store.set(name, { value });
   }
 
@@ -43,7 +42,6 @@ export function mockSession(
   const { SESSION_SECRET } = process.env;
 
   const SESSION_COOKIE = "lf_session";
-  const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
   const payload = Buffer.from(
     JSON.stringify({ operatorId, orgId, role, issuedAt: Date.now() })
@@ -62,7 +60,7 @@ export function mockSession(
 /**
  * Crea una request de test con session mockeada
  */
-export function createTestRequest<T = unknown>(
+export function createTestRequest<_T = unknown>(
   url: string,
   options: {
     method?: string;

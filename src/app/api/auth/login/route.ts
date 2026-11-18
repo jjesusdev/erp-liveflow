@@ -10,11 +10,6 @@ type LoginBody = {
   password: string;
 };
 
-// Credenciales demo
-const DEMO_CREDENTIALS = {
-  admin: { email: "admin@erp.local", password: "admin123", role: "ADMIN" as const },
-};
-
 /** POST /api/auth/login - Login con inicialización automática */
 export const POST = apiHandler<LoginBody>({
   body: z.object({

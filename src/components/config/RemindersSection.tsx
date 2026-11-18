@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Send, Clock, RefreshCw } from "lucide-react";
+import { Bell, Send, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { Badge } from "@/components/liveflow/primitives";

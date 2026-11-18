@@ -7,7 +7,6 @@ import {
   Building2,
   CreditCard,
   Send,
-  ShoppingBag,
   Plus,
   Trash2,
   PackagePlus,

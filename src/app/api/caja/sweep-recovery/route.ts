@@ -41,7 +41,6 @@ export const POST = apiHandler({
     }
 
     const client = (globalThis as any).whatsappClient;
-    const io = (globalThis as any).io;
     let sentCount = 0;
 
     for (const order of pendingOrders) {

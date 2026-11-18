@@ -3,17 +3,9 @@
 import {
   BookOpen,
   Keyboard,
-  CreditCard,
-  Truck,
-  MessageSquare,
   Clock,
   Sparkles,
-  ShoppingBag,
   Zap,
-  CheckCircle2,
-  Copy,
-  Printer,
-  HelpCircle,
 } from "lucide-react";
 
 export function ManualPage() {

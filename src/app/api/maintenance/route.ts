@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/audit";
 import { maintenanceSchema } from "@/lib/schemas";
 
 export const POST = apiHandler({

@@ -20,8 +20,6 @@ const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 
 const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 100)}`;
 
-let leadId = "";
-let conversationId = "";
 const orderIds: string[] = [];
 let testOrgId: string | null = null;
 
@@ -62,7 +60,6 @@ async function setupOrdersWithExpiration() {
     update: { name: "Cliente Test Recordatorios", orgId: testOrgId },
     create: { phone: TEST_PHONE, name: "Cliente Test Recordatorios", orgId: testOrgId },
   });
-  leadId = lead.id;
 
   const conversation = await prisma.conversation.create({
     data: {
@@ -70,7 +67,6 @@ async function setupOrdersWithExpiration() {
       orgId: testOrgId,
     },
   });
-  conversationId = conversation.id;
 
   // Crear órdenes con diferentes estados y expiraciones
   const now = new Date();

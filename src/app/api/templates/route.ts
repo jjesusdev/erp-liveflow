@@ -4,7 +4,7 @@ import { templateCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 
 export const GET = apiHandler({
-  handler: async (req: NextRequest) => {
+  handler: async (_req: NextRequest) => {
     const templates = await prisma.messageTemplate.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },

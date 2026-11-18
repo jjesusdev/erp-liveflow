@@ -17,7 +17,7 @@ import { getOperatorContext } from "@/lib/session";
 import { GET as getCaja } from "@/app/api/caja/route";
 import { POST as sweepRecovery } from "@/app/api/caja/sweep-recovery/route";
 
-function makeContext(params: Record<string, string>) {
+function _makeContext(params: Record<string, string>) {
   return { params: Promise.resolve(params) };
 }
 
@@ -34,7 +34,6 @@ const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 100)}`;
 
 let leadId = "";
-let conversationId = "";
 let testOrgId = "";
 const orderIds: string[] = [];
 
@@ -77,7 +76,6 @@ async function setupOrders() {
   const conversation = await prisma.conversation.create({
     data: { leadId: lead.id, orgId: testOrgId },
   });
-  conversationId = conversation.id;
 
   // Crear cobros en distintos estados y proveedores
   const orders = [

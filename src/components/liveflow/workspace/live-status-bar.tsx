@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, MonitorPlay, Radio, Users } from "lucide-react";
+import { Bell, MonitorPlay, Radio } from "lucide-react";
 import { clock, money } from "@/lib/format";
 import { Badge, LiveDot } from "@/components/liveflow/primitives";
 import type { LiveSession } from "@/types";
