@@ -1,5 +1,6 @@
 import type { WASocket } from "@whiskeysockets/baileys";
 import { prisma } from "../../src/lib/prisma";
+import { getIO } from "../../src/lib/realtime/events";
 
 function minutesOf(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -94,8 +95,7 @@ export async function processBotTriggers(
         },
       });
 
-      const io = (globalThis as any).io;
-      io?.emit("message:new", created);
+      getIO()?.emit("message:new", created);
 
       const full = await prisma.conversation.findUnique({
         where: { id: conversationId },
@@ -170,8 +170,7 @@ export async function sendWelcomeMessage(sock: WASocket, phone: string, conversa
       data: { lastMessageAt: created.sentAt },
     });
 
-    const io = (globalThis as any).io;
-    io?.emit("message:new", created);
+    getIO()?.emit("message:new", created);
     const full = await prisma.conversation.findUnique({
       where: { id: convId },
       include: {

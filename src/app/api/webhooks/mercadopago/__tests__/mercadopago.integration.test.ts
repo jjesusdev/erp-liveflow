@@ -85,7 +85,7 @@ beforeEach(() => {
 });
 
 beforeAll(async () => {
-  process.env.MP_ACCESS_TOKEN = "test-access-token";
+  process.env.MP_ACCESS_TOKEN = "test-access-token-0123456789";
   if (process.env.TEST_DB === "1") await cleanupByPhone();
 });
 

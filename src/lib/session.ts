@@ -40,7 +40,9 @@ function deserializeSession(token: string): SessionPayload | null {
   if (!payload || !signature) return null;
 
   const expected = sign(payload);
-  if (!timingSafeEqual(Buffer.from(signature, "base64url"), Buffer.from(expected, "base64url"))) {
+  const received = Buffer.from(signature, "base64url");
+  const valid = Buffer.from(expected, "base64url");
+  if (received.length !== valid.length || !timingSafeEqual(received, valid)) {
     return null;
   }
 

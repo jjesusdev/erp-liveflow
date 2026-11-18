@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { campaignUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
   handler: async (_req, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const campaign = await prisma.campaign.findUnique({
-      where: { id },
+    const campaign = await prisma.campaign.findFirst({
+      where: { ...whereOrg(orgId), id },
       include: {
         recipients: {
           include: { lead: true },
@@ -29,8 +36,13 @@ export const PUT = apiHandler({
   body: campaignUpdateSchema,
   handler: async (_req, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.campaign.findUnique({ where: { id } });
+    const existing = await prisma.campaign.findFirst({ where: { ...whereOrg(orgId), id } });
     if (!existing) {
       return NextResponse.json({ error: "Campana no encontrada" }, { status: 404 });
     }
@@ -42,7 +54,7 @@ export const PUT = apiHandler({
       data.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
     }
 
-    const campaign = await prisma.campaign.update({ where: { id }, data });
+    const campaign = await prisma.campaign.update({ where: { ...whereOrg(orgId), id }, data });
 
     return NextResponse.json(campaign);
   },
@@ -51,14 +63,21 @@ export const PUT = apiHandler({
 export const DELETE = apiHandler({
   handler: async (_req, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.campaign.findUnique({ where: { id } });
+    const existing = await prisma.campaign.findFirst({ where: { ...whereOrg(orgId), id } });
     if (!existing) {
       return NextResponse.json({ error: "Campana no encontrada" }, { status: 404 });
     }
 
-    await prisma.campaignRecipient.deleteMany({ where: { campaignId: id } });
-    await prisma.campaign.delete({ where: { id } });
+    await prisma.campaignRecipient.deleteMany({
+      where: { campaignId: id, campaign: { ...whereOrg(orgId) } },
+    });
+    await prisma.campaign.delete({ where: { ...whereOrg(orgId), id } });
 
     return NextResponse.json({ deleted: true });
   },

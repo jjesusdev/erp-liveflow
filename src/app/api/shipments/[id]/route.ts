@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { shipmentUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
+import { getIO } from "@/lib/realtime/events";
 import { parseEnum, SHIPMENT_STATUSES } from "@/lib/enums";
 import { getCarrierProvider } from "@/lib/carriers";
 import { IN_TRANSIT_STATUSES } from "@/lib/shipments/constants";
@@ -12,9 +15,14 @@ const SHIPPED_CONV_STATUSES = ["PAID", "ATTENTION", "AWAITING_PAYMENT"] as Conve
 export const GET = apiHandler({
   handler: async (_req, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const shipment = await prisma.shipment.findUnique({
-      where: { id },
+    const shipment = await prisma.shipment.findFirst({
+      where: { ...whereOrg(orgId), id },
       include: {
         lead: true,
         paymentOrder: { include: { conversation: { select: { id: true } } } },
@@ -35,9 +43,14 @@ export const PATCH = apiHandler({
   body: shipmentUpdateSchema,
   handler: async (_req, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.shipment.findUnique({
-      where: { id },
+    const existing = await prisma.shipment.findFirst({
+      where: { ...whereOrg(orgId), id },
       include: { lead: true, paymentOrder: true, carrierRef: true },
     });
     if (!existing) {
@@ -116,7 +129,7 @@ export const PATCH = apiHandler({
     }
 
     const shipment = await prisma.shipment.update({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       data,
       include: {
         lead: true,
@@ -164,6 +177,7 @@ export const PATCH = apiHandler({
     if (newStatus && (IN_TRANSIT_STATUSES.includes(newStatus) || newStatus === "DELIVERED")) {
       await prisma.conversation.updateMany({
         where: {
+          ...whereOrg(orgId),
           paymentOrders: { some: { shipment: { id } } },
           status: { in: SHIPPED_CONV_STATUSES },
         },
@@ -208,10 +222,7 @@ export const PATCH = apiHandler({
               },
             });
 
-            const io = (global as any).io;
-            if (io) {
-              io.emit("message:new", savedMsg);
-            }
+            getIO()?.emit("message:new", savedMsg);
           }
         } catch (error) {
           console.error("Error enviando notificación de despacho por WhatsApp:", error);
@@ -219,10 +230,7 @@ export const PATCH = apiHandler({
       }
     }
 
-    const io = (global as any).io;
-    if (io) {
-      io.emit("shipment:updated", shipment);
-    }
+    getIO()?.emit("shipment:updated", shipment);
 
     return NextResponse.json(shipment);
   },
@@ -231,14 +239,23 @@ export const PATCH = apiHandler({
 export const DELETE = apiHandler({
   handler: async (_req, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.shipment.findUnique({ where: { id } });
+    const existing = await prisma.shipment.findFirst({
+      where: { ...whereOrg(orgId), id },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Envio no encontrado" }, { status: 404 });
     }
 
-    await prisma.shipmentEvent.deleteMany({ where: { shipmentId: id } });
-    await prisma.shipment.delete({ where: { id } });
+    await prisma.shipmentEvent.deleteMany({
+      where: { shipmentId: id, shipment: { ...whereOrg(orgId) } },
+    });
+    await prisma.shipment.delete({ where: { ...whereOrg(orgId), id } });
 
     return NextResponse.json({ deleted: true });
   },

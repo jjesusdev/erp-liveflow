@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { getIO } from "./realtime/events";
 
 const running = new Set<string>();
 
@@ -7,17 +8,13 @@ function getRandomDelay(baseMs = 2500, jitterMs = 1500) {
   return baseMs + Math.floor(Math.random() * jitterMs);
 }
 
-function getIo() {
-  return (globalThis as any).io;
-}
-
 function getWhatsapp() {
   return (globalThis as any).whatsappClient;
 }
 
 async function emitUpdate(campaignId: string) {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  if (campaign) getIo()?.emit("campaign:updated", campaign);
+  if (campaign) getIO()?.emit("campaign:updated", campaign);
 }
 
 export function isSendingCampaign(campaignId: string) {

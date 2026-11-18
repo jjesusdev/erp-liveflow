@@ -1,4 +1,5 @@
 import type { Server, Socket } from 'socket.io';
+import { getIO } from '../../src/lib/realtime/events';
 import {
   connectWhatsApp,
   disconnectWhatsApp,
@@ -24,8 +25,7 @@ setInterval(() => {
     if (now > lock.expiresAt) {
       activeLocks.delete(convId);
       // Emitir desbloqueo a todas las sesiones si el lock expiró
-      const io = (globalThis as any).io;
-      io?.emit('chat:unlocked', { conversationId: convId });
+      getIO()?.emit('chat:unlocked', { conversationId: convId });
     }
   }
 }, 30_000).unref?.();

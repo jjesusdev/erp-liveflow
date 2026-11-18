@@ -15,8 +15,9 @@ function hashPassword(password) {
   return combined.toString("base64");
 }
 
-const ADMIN_PASSWORD_HASH = hashPassword("admin123");
-const VENDEDORA_PASSWORD_HASH = hashPassword("vendedora123");
+// Credenciales semilla configurables: en producción se espera sobreescribirlas.
+const ADMIN_PASSWORD_HASH = hashPassword(process.env.SEED_ADMIN_PASSWORD || "admin123");
+const VENDEDORA_PASSWORD_HASH = hashPassword(process.env.SEED_VENDEDORA_PASSWORD || "vendedora123");
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;

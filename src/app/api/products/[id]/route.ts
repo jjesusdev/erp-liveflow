@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { productUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
   handler: async (req: NextRequest, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const product = await prisma.product.findFirst({
+      where: { ...whereOrg(orgId), id },
     });
 
     if (!product) {
@@ -23,8 +30,13 @@ export const PUT = apiHandler({
   body: productUpdateSchema,
   handler: async (req: NextRequest, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findFirst({ where: { ...whereOrg(orgId), id } });
     if (!existing) {
       return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
     }
@@ -41,7 +53,7 @@ export const PUT = apiHandler({
     if (body.price !== undefined) data.price = body.price;
 
     const product = await prisma.product.update({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       data,
     });
 
@@ -52,13 +64,18 @@ export const PUT = apiHandler({
 export const DELETE = apiHandler({
   handler: async (req: NextRequest, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findFirst({ where: { ...whereOrg(orgId), id } });
     if (!existing) {
       return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
     }
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.product.delete({ where: { ...whereOrg(orgId), id } });
 
     return NextResponse.json({ deleted: true });
   },
