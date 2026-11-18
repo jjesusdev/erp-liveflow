@@ -294,6 +294,7 @@ describeDb("DELETE /api/shipments/[id] - Eliminar envío (con BD)", () => {
       data: {
         conversationId,
         leadId,
+        orgId: testOrgId,
         amount: 5000,
         concept: "Envío para eliminar",
         status: "PENDING",
@@ -301,6 +302,7 @@ describeDb("DELETE /api/shipments/[id] - Eliminar envío (con BD)", () => {
     });
     const shipment2 = await prisma.shipment.create({
       data: {
+        orgId: testOrgId,
         paymentOrderId: order2.id,
         leadId,
         status: "PENDING",
