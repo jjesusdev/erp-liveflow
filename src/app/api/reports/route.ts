@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const searchParams = req.nextUrl.searchParams;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -30,36 +38,41 @@ export const GET = apiHandler({
     ] = await Promise.all([
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
-        where: { status: "PAID", ...(range && { paidAt: range }) },
+        where: { ...whereOrg(orgId), status: "PAID", ...(range && { paidAt: range }) },
       }),
       prisma.paymentOrder.count({
-        where: { status: "PAID", ...(range && { paidAt: range }) },
+        where: { ...whereOrg(orgId), status: "PAID", ...(range && { paidAt: range }) },
       }),
       prisma.paymentOrder.count({
-        where: { status: { in: ["PENDING", "SENT"] } },
+        where: { ...whereOrg(orgId), status: { in: ["PENDING", "SENT"] } },
       }),
       prisma.conversation.count({
-        where: range ? { createdAt: range } : undefined,
+        where: { ...whereOrg(orgId), ...(range && { createdAt: range }) },
       }),
-      prisma.conversation.count(),
+      prisma.conversation.count({ where: { ...whereOrg(orgId) } }),
       prisma.conversation.count({
-        where: { status: { in: ["NEW", "ATTENTION", "AWAITING_PAYMENT"] } },
+        where: {
+          ...whereOrg(orgId),
+          status: { in: ["NEW", "ATTENTION", "AWAITING_PAYMENT"] },
+        },
       }),
-      prisma.lead.count(),
+      prisma.lead.count({ where: { ...whereOrg(orgId) } }),
       prisma.lead.count({
-        where: range ? { firstContactAt: range } : undefined,
+        where: { ...whereOrg(orgId), ...(range && { firstContactAt: range }) },
       }),
       prisma.lead.count({
-        where: range ? { lastInteractionAt: range } : undefined,
+        where: { ...whereOrg(orgId), ...(range && { lastInteractionAt: range }) },
       }),
       prisma.shipment.groupBy({
         by: ["status"],
         _count: { status: true },
+        where: { ...whereOrg(orgId) },
       }),
-      prisma.product.count({ where: { isActive: true } }),
+      prisma.product.count({ where: { ...whereOrg(orgId), isActive: true } }),
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
         where: {
+          ...whereOrg(orgId),
           status: "PAID",
           provider: { in: ["TRANSFER", "CASH"] },
           ...(range && { paidAt: range }),
@@ -68,13 +81,14 @@ export const GET = apiHandler({
       prisma.paymentOrder.aggregate({
         _sum: { amount: true },
         where: {
+          ...whereOrg(orgId),
           status: "PAID",
           provider: { in: ["MERCADOPAGO", "STRIPE"] },
           ...(range && { paidAt: range }),
         },
       }),
       prisma.paymentOrder.findMany({
-        where: { status: "PAID", ...(range && { paidAt: range }) },
+        where: { ...whereOrg(orgId), status: "PAID", ...(range && { paidAt: range }) },
         select: { paidAt: true, amount: true, concept: true },
         orderBy: { paidAt: "desc" },
         take: 50,

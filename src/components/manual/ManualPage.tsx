@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  BookOpen,
-  Keyboard,
-  CreditCard,
-  Truck,
-  MessageSquare,
-  Clock,
-  Sparkles,
-  ShoppingBag,
-  Zap,
-  CheckCircle2,
-  Copy,
-  Printer,
-  HelpCircle,
-} from "lucide-react";
+import { BookOpen, Keyboard, Clock, Sparkles, Zap } from "lucide-react";
 
 export function ManualPage() {
   return (

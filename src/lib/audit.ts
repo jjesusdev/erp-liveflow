@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { getIO } from "./realtime/events";
 
 export async function logActivity({
   action,
@@ -21,8 +22,7 @@ export async function logActivity({
       },
     });
 
-    const io = (globalThis as any).io;
-    io?.emit("activity:new", log);
+    getIO()?.emit("activity:new", log);
 
     return log;
   } catch (error) {

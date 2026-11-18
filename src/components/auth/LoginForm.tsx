@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -84,10 +84,6 @@ export function LoginForm() {
           </>
         )}
       </Button>
-
-      <p className="text-[11px] text-muted-foreground text-center">
-        Credenciales de demo: <strong>admin@erp.local</strong> / <strong>admin123</strong>
-      </p>
     </form>
   );
 }

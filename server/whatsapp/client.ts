@@ -11,6 +11,7 @@ import { prisma } from "../../src/lib/prisma";
 import { sendWelcomeMessage } from "./bot";
 import { handleIncomingMessage } from "./handlers/messages";
 import { handleMediaMessage } from "./handlers/media";
+import { getWhatsAppOrgId } from "./org";
 
 const AUTH_DIR = "auth_info";
 
@@ -245,6 +246,10 @@ async function persistConversation(conversationId: string) {
 }
 
 async function handleUpsert(sock: WASocket, messages: WAMessage[]) {
+  // La conexión WhatsApp es single-tenant: todo lo que llega por aquí se
+  // asocia a la misma organización para que los filtros whereOrg lo vean.
+  const orgId = await getWhatsAppOrgId();
+
   for (const raw of messages) {
     try {
       if (raw.key.fromMe) continue;
@@ -268,7 +273,7 @@ async function handleUpsert(sock: WASocket, messages: WAMessage[]) {
 
       let lead = await prisma.lead.findUnique({ where: { phone } });
       if (!lead) {
-        lead = await prisma.lead.create({ data: { phone, source: "whatsapp" } });
+        lead = await prisma.lead.create({ data: { phone, source: "whatsapp", orgId } });
       }
 
       let conversation = await prisma.conversation.findFirst({
@@ -282,16 +287,16 @@ async function handleUpsert(sock: WASocket, messages: WAMessage[]) {
       let isNewConversation = false;
       if (!conversation) {
         conversation = await prisma.conversation.create({
-          data: { leadId: lead.id, status: "NEW" },
+          data: { leadId: lead.id, status: "NEW", orgId },
         });
         isNewConversation = true;
       }
 
       let created = null;
       if (msg.imageMessage || msg.videoMessage) {
-        created = await handleMediaMessage(sock, raw, conversation.id, phone);
+        created = await handleMediaMessage(sock, raw, conversation.id, phone, orgId);
       } else if (msg.conversation || msg.extendedTextMessage) {
-        created = await handleIncomingMessage(raw, conversation.id, phone);
+        created = await handleIncomingMessage(raw, conversation.id, phone, orgId);
       } else {
         // Tipos no soportados (stickers, reacciones, notas de voz): ignorar.
         continue;
@@ -341,11 +346,11 @@ async function handleUpsert(sock: WASocket, messages: WAMessage[]) {
       if (full) io?.emit("conversation:updated", full);
 
       if (isNewConversation) {
-        void sendWelcomeMessage(sock, phone, conversation.id);
+        void sendWelcomeMessage(sock, phone, conversation.id, orgId);
       } else if (created.type === "TEXT" && created.content) {
         // Evaluar disparadores rápidos / palabras clave de Live Shopping si no es conversación nueva
         const { processBotTriggers } = await import("./bot");
-        void processBotTriggers(sock, phone, created.content, conversation.id);
+        void processBotTriggers(sock, phone, created.content, conversation.id, orgId);
       }
     } catch (error) {
       console.error("[whatsapp] error procesando mensaje entrante:", error);

@@ -62,7 +62,6 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
   let beetrackCarrierId = "";
   let manualShipmentId = "";
   let noTrackingShipmentId = "";
-  let shipitShipmentId = "";
   let noCarrierShipmentId = "";
   let errorShipmentId = "";
   const orderIds: string[] = [];
@@ -176,7 +175,6 @@ describeDb("POST /api/shipments/[id]/sync-tracking (con BD)", () => {
 
     manualShipmentId = await createShipment(manualCarrierId, "manual-ref");
     noTrackingShipmentId = await createShipment(noTrackingCarrierId, "notrack-ref");
-    shipitShipmentId = await createShipment(shipitCarrierId, "shipit-ref");
     noCarrierShipmentId = await createShipment(null, null);
     errorShipmentId = await createShipment(beetrackCarrierId, "beetrack-ref");
 

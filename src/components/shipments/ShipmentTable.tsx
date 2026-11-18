@@ -1,6 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
+import { pageWindow } from "@/lib/pagination";
+import { canDeliver, canDispatch } from "@/lib/shipments/constants";
 import {
   Check,
   CheckSquare,
@@ -25,23 +27,6 @@ import {
   waLink,
 } from "@/components/leads/leads-ui";
 import { folioOf } from "./shipments-ui";
-
-const TO_DISPATCH = ["PENDING", "READY", "LABEL_PRINTED"];
-const IN_TRANSIT = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
-
-function pageWindow(current: number, totalPages: number): (number | "gap")[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const out: (number | "gap")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(totalPages - 1, current + 1);
-  if (start > 2) out.push("gap");
-  for (let i = start; i <= end; i++) out.push(i);
-  if (end < totalPages - 1) out.push("gap");
-  out.push(totalPages);
-  return out;
-}
 
 interface ShipmentTableProps {
   shipments: Shipment[];
@@ -163,8 +148,8 @@ export function ShipmentTable({
                 const isSelected = selectedId === shipment.id;
                 const isChecked = selectedIds.includes(shipment.id);
                 const status = shipment.status;
-                const canDispatch = TO_DISPATCH.includes(status);
-                const canDeliver = IN_TRANSIT.includes(status);
+                const dispatchable = canDispatch(status);
+                const deliverable = canDeliver(status);
                 const phone = shipment.lead?.phone || shipment.recipient?.phone || "";
                 const tier = shipment.lead ? leadTier(shipment.lead) : undefined;
 
@@ -266,7 +251,7 @@ export function ShipmentTable({
                             <MessageCircle className="size-4" aria-hidden />
                           </a>
                         )}
-                        {canDispatch && (
+                        {dispatchable && (
                           <button
                             type="button"
                             title="Despachar paquete"
@@ -281,7 +266,7 @@ export function ShipmentTable({
                             <Send className="size-4" aria-hidden />
                           </button>
                         )}
-                        {canDeliver && (
+                        {deliverable && (
                           <button
                             type="button"
                             title="Marcar como entregado"

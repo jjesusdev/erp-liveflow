@@ -32,7 +32,7 @@ async function main() {
 
   try {
     // Paso 1: Crear organización
-    let org = await prisma.organization.upsert({
+    await prisma.organization.upsert({
       where: { slug: "demo" },
       update: {
         name: "Demo LiveFlow",
@@ -131,7 +131,7 @@ main()
   .finally(async () => {
     try {
       await prisma.$disconnect();
-    } catch (e) {
+    } catch {
       // ignore
     }
   });

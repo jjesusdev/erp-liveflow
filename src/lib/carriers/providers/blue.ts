@@ -112,7 +112,7 @@ export class BlueProvider extends BaseCarrierProvider {
 
   async printLabel(
     providerRef: string,
-    carrierConfig: Record<string, unknown>
+    _carrierConfig: Record<string, unknown>
   ): Promise<{ labelUrl: string }> {
     return {
       labelUrl: `${BLUE_BASE_URL}/api/v1/shipments/${encodeURIComponent(providerRef)}/label`,

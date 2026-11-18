@@ -5,6 +5,7 @@ import { execSync } from "child_process";
 import { registerSocketHandlers } from "./socket/handlers";
 import { connectWhatsApp, getWhatsAppStatus } from "./whatsapp/client";
 import { startWorkerLoop, enqueueJob } from "../src/lib/worker-queue";
+import "../src/lib/realtime/events";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -20,9 +21,8 @@ app.prepare().then(() => {
     .then(() => {
       console.log("[init] Sincronizando base de datos...");
 
-      // Ejecutar db push - esto crea/migra tablas según el schema
-      // Nota: BusinessConfig será eliminada si existe, datos ya migrados a Organization.settings
-      execSync("npx prisma db push --accept-data-loss", {
+      // Migraciones versionadas: nunca mutar el esquema con --accept-data-loss en producción.
+      execSync("npx prisma migrate deploy", {
         stdio: "inherit",
         env: { ...process.env, NODE_ENV: "production" },
       });
@@ -36,12 +36,17 @@ app.prepare().then(() => {
     handle(req, res);
   });
 
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:3001")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: { origin: allowedOrigins, credentials: true },
     path: "/api/socketio",
   });
 
-  (globalThis as any).io = io;
+  globalThis.io = io;
 
   registerSocketHandlers(io);
 

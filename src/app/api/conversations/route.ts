@@ -6,6 +6,7 @@ import { conversationCreateSchema } from "@/lib/schemas";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
+import { customerTier } from "@/lib/customers/tiers";
 
 const OPEN_STATUSES: Prisma.ConversationWhereInput["status"] = {
   in: ["NEW", "ATTENTION", "AWAITING_PAYMENT", "PAID", "SHIPPED"],
@@ -62,12 +63,7 @@ export const GET = apiHandler({
         const totalPaidCount = paidOrders.length;
         const totalSpent = paidOrders.reduce((sum, o) => sum + Number(o.amount), 0);
 
-        let tier: "VIP" | "FREQUENT" | "NEW" = "NEW";
-        if (totalPaidCount >= 3 || totalSpent >= 2000) {
-          tier = "VIP";
-        } else if (totalPaidCount >= 1) {
-          tier = "FREQUENT";
-        }
+        const tier = customerTier({ totalPaidCount, totalSpent });
 
         return {
           ...conversation,

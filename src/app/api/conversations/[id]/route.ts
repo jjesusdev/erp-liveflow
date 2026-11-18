@@ -3,13 +3,21 @@ import { apiHandler } from "@/lib/api-handler";
 import { conversationUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { parseEnum, CONVERSATION_STATUSES } from "@/lib/enums";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
+import { getIO } from "@/lib/realtime/events";
 
 export const GET = apiHandler({
   handler: async (_req, _body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id },
+    const conversation = await prisma.conversation.findFirst({
+      where: { ...whereOrg(orgId), id },
       include: {
         lead: true,
         messages: {
@@ -34,9 +42,14 @@ export const PATCH = apiHandler({
   body: conversationUpdateSchema,
   handler: async (_req, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.conversation.findUnique({
-      where: { id },
+    const existing = await prisma.conversation.findFirst({
+      where: { ...whereOrg(orgId), id },
       include: { lead: true },
     });
 
@@ -64,7 +77,7 @@ export const PATCH = apiHandler({
     }
 
     const conversation = await prisma.conversation.update({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       data,
       include: {
         lead: true,
@@ -79,10 +92,7 @@ export const PATCH = apiHandler({
       },
     });
 
-    const io = (global as any).io;
-    if (io) {
-      io.emit("conversation:updated", conversation);
-    }
+    getIO()?.emit("conversation:updated", conversation);
 
     return NextResponse.json(conversation);
   },

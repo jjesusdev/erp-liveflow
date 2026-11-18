@@ -1,5 +1,6 @@
 import type { WASocket } from "@whiskeysockets/baileys";
 import { prisma } from "../../src/lib/prisma";
+import { getIO } from "../../src/lib/realtime/events";
 
 function minutesOf(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -49,7 +50,8 @@ export async function processBotTriggers(
   sock: WASocket,
   phone: string,
   incomingText: string,
-  conversationId: string
+  conversationId: string,
+  orgId: string
 ): Promise<boolean> {
   if (!incomingText || typeof incomingText !== "string") return false;
 
@@ -77,6 +79,7 @@ export async function processBotTriggers(
       const created = await prisma.message.create({
         data: {
           conversationId,
+          orgId,
           direction: "OUTBOUND",
           type: "TEXT",
           content: matched.content,
@@ -94,8 +97,7 @@ export async function processBotTriggers(
         },
       });
 
-      const io = (globalThis as any).io;
-      io?.emit("message:new", created);
+      getIO()?.emit("message:new", created);
 
       const full = await prisma.conversation.findUnique({
         where: { id: conversationId },
@@ -121,7 +123,12 @@ export async function processBotTriggers(
  * Bienvenida / mensaje de ausencia. Usa Organization.settings (JSON) y respeta
  * autoReplyEnabled, autoReplyDelayMs y el horario.
  */
-export async function sendWelcomeMessage(sock: WASocket, phone: string, conversationId?: string) {
+export async function sendWelcomeMessage(
+  sock: WASocket,
+  phone: string,
+  conversationId?: string,
+  orgId?: string
+) {
   try {
     const org = await prisma.organization.findFirst();
     const config = (org?.settings as any) ?? {};
@@ -157,6 +164,7 @@ export async function sendWelcomeMessage(sock: WASocket, phone: string, conversa
     const created = await prisma.message.create({
       data: {
         conversationId: convId,
+        orgId,
         direction: "OUTBOUND",
         type: "TEXT",
         content: text,
@@ -170,8 +178,7 @@ export async function sendWelcomeMessage(sock: WASocket, phone: string, conversa
       data: { lastMessageAt: created.sentAt },
     });
 
-    const io = (globalThis as any).io;
-    io?.emit("message:new", created);
+    getIO()?.emit("message:new", created);
     const full = await prisma.conversation.findUnique({
       where: { id: convId },
       include: {

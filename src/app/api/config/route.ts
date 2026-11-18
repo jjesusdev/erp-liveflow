@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiHandler } from "@/lib/api-handler";
 import { businessConfigSchema, type BusinessConfigInput } from "@/lib/schemas";
+import { getOperatorContext } from "@/lib/session";
 
 export async function GET() {
-  const org = await prisma.organization.findFirst();
+  const ctx = await getOperatorContext();
+  if (!ctx) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+  const orgId = ctx.orgId;
+
+  const org = await prisma.organization.findUnique({ where: { id: orgId } });
   const config = (org?.settings as any) ?? {};
 
   if (!config || Object.keys(config).length === 0) {
@@ -41,21 +48,27 @@ export async function GET() {
 export const PUT = apiHandler<BusinessConfigInput>({
   body: businessConfigSchema,
   handler: async (_req, body) => {
-    const org = await prisma.organization.findFirst();
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
     const settings = { ...(org?.settings as any), ...body };
 
     if (org) {
       await prisma.organization.update({
-        where: { id: org.id },
+        where: { id: orgId },
         data: { settings },
       });
     } else {
       await prisma.organization.create({
-        data: { id: "default-org", name: "Default", settings },
+        data: { id: orgId, name: "Default", settings },
       });
     }
 
-    const updatedOrg = await prisma.organization.findFirst();
+    const updatedOrg = await prisma.organization.findUnique({ where: { id: orgId } });
     return NextResponse.json(updatedOrg?.settings);
   },
 });

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Check, CheckCheck, Pause, Play, ReceiptText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { clock, money } from "@/lib/format";
 import type { Message } from "@/lib/liveflow-data";
 import { Button } from "@/components/ui/button";

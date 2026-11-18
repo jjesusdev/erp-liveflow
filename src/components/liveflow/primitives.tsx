@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import type { CustomerTier } from "@/lib/liveflow-data";
 import { Star } from "lucide-react";
 

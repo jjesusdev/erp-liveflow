@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/liveflow/primitives";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { toast } from "sonner";
 
 interface WhatsAppState {

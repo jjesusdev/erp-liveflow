@@ -2,34 +2,49 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { messageCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
+import { getIO } from "@/lib/realtime/events";
+import { toWhatsAppJid } from "@/lib/format";
 
 export const GET = apiHandler({
   handler: async (req) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const conversationId = req.nextUrl.searchParams.get("conversationId");
     if (!conversationId) {
       return NextResponse.json({ error: "conversationId required" }, { status: 400 });
     }
 
+    const conversation = await prisma.conversation.findFirst({
+      where: { ...whereOrg(orgId), id: conversationId },
+      select: { status: true },
+    });
+
+    if (!conversation) {
+      return NextResponse.json({ error: "Conversacion no encontrada" }, { status: 404 });
+    }
+
     const messages = await prisma.message.findMany({
-      where: { conversationId },
+      where: { ...whereOrg(orgId), conversationId },
       orderBy: { sentAt: "asc" },
     });
 
     // Enriquecemos los mensajes con bandera si son imágenes y hay órdenes pendientes
     const pendingPayment = await prisma.paymentOrder.findFirst({
       where: {
+        ...whereOrg(orgId),
         conversationId,
         status: { in: ["PENDING", "SENT"] },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      select: { status: true },
-    });
-
-    const isAwaiting = conversation?.status === "AWAITING_PAYMENT" || Boolean(pendingPayment);
+    const isAwaiting = conversation.status === "AWAITING_PAYMENT" || Boolean(pendingPayment);
 
     const enriched = messages.map((m) => ({
       ...m,
@@ -44,6 +59,12 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: messageCreateSchema,
   handler: async (_req, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const { conversationId, content, mediaUrl, type = "TEXT" } = body;
     const mediaType = body.mediaType !== undefined ? body.mediaType : "image/jpeg";
 
@@ -51,8 +72,8 @@ export const POST = apiHandler({
       return NextResponse.json({ error: "Faltan datos del mensaje" }, { status: 400 });
     }
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
+    const conversation = await prisma.conversation.findFirst({
+      where: { ...whereOrg(orgId), id: conversationId },
       include: { lead: true },
     });
 
@@ -66,7 +87,7 @@ export const POST = apiHandler({
 
     if (client) {
       try {
-        const jid = `${conversation.lead.phone.replace(/\D/g, "")}@s.whatsapp.net`;
+        const jid = toWhatsAppJid(conversation.lead.phone);
         if (type === "IMAGE" && mediaUrl) {
           // Envío de imagen por Baileys (URL o Base64 Data URL)
           const isBase64 = mediaUrl.startsWith("data:image");
@@ -92,6 +113,7 @@ export const POST = apiHandler({
 
     const message = await prisma.message.create({
       data: {
+        orgId,
         conversationId,
         direction: "OUTBOUND",
         type: type === "IMAGE" ? "IMAGE" : "TEXT",
@@ -104,21 +126,18 @@ export const POST = apiHandler({
     });
 
     await prisma.conversation.update({
-      where: { id: conversationId },
+      where: { ...whereOrg(orgId), id: conversationId },
       data: {
         lastMessageAt: message.sentAt,
         status: conversation.status === "NEW" ? "ATTENTION" : conversation.status,
       },
     });
 
-    const io = (global as any).io;
-    if (io) {
-      io.emit("message:new", message);
-      io.emit("conversation:updated", {
-        id: conversationId,
-        lastMessageAt: message.sentAt,
-      });
-    }
+    getIO()?.emit("message:new", message);
+    getIO()?.emit("conversation:updated", {
+      id: conversationId,
+      lastMessageAt: message.sentAt,
+    });
 
     return NextResponse.json({ ...message, delivered });
   },

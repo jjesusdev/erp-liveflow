@@ -32,10 +32,6 @@ const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 
 const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 100)}`;
 
-let leadId = "";
-let conversationId = "";
-let paymentOrderId = "";
-
 const PAYMENT_ID = `mp_payment_${Date.now()}`;
 const EXTERNAL_REF = `order_${Date.now()}`;
 
@@ -59,12 +55,10 @@ async function setupOrder(status: PaymentStatus = "PENDING") {
     update: { name: "Cliente Test MP Webhook" },
     create: { phone: TEST_PHONE, name: "Cliente Test MP Webhook" },
   });
-  leadId = lead.id;
 
   const conversation = await prisma.conversation.create({ data: { leadId: lead.id } });
-  conversationId = conversation.id;
 
-  const paymentOrder = await prisma.paymentOrder.create({
+  await prisma.paymentOrder.create({
     data: {
       id: EXTERNAL_REF, // Usamos el external_reference como id del cobro
       conversationId: conversation.id,
@@ -75,7 +69,6 @@ async function setupOrder(status: PaymentStatus = "PENDING") {
       status,
     },
   });
-  paymentOrderId = paymentOrder.id;
 }
 
 beforeEach(() => {
@@ -91,7 +84,7 @@ beforeEach(() => {
 });
 
 beforeAll(async () => {
-  process.env.MP_ACCESS_TOKEN = "test-access-token";
+  process.env.MP_ACCESS_TOKEN = "test-access-token-0123456789";
   if (process.env.TEST_DB === "1") await cleanupByPhone();
 });
 
@@ -191,7 +184,7 @@ describeDb("POST /api/webhooks/mercadopago - Webhook (con BD)", () => {
     expect(order?.metadata).toEqual({ mpPaymentId: PAYMENT_ID });
 
     // La conversación también se actualizó a PAID
-    const conv = await prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conv = await prisma.conversation.findUnique({ where: { id: order?.conversationId } });
     expect(conv?.status).toBe("PAID");
   });
 

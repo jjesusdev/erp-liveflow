@@ -1,139 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { formatDate, formatTime, cn } from "@/lib/date-utils";
-import { useSocket } from "@/lib/socket";
+import { formatDate, formatTime, cn } from "@/lib/format";
+import { statusPresentation } from "@/lib/statusPresentation";
+import { useCampaigns } from "@/hooks/useCampaigns";
 import { Megaphone, Plus, Trash2, Send, Users, Clock, XCircle, Loader2 } from "lucide-react";
-import type { Campaign, CampaignStatus } from "@/types";
-
-const STATUS_META: Record<CampaignStatus, { label: string; className: string }> = {
-  DRAFT: { label: "Borrador", className: "bg-muted text-muted-foreground" },
-  SCHEDULED: { label: "Programada", className: "bg-blue-100 text-blue-800" },
-  SENDING: { label: "Enviando", className: "bg-yellow-100 text-yellow-800" },
-  SENT: { label: "Enviada", className: "bg-green-100 text-green-800" },
-  CANCELLED: { label: "Cancelada", className: "bg-red-100 text-red-800" },
-};
 
 export function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: "", message: "", scheduledAt: "" });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const socket = useSocket();
-
-  const fetchCampaigns = useCallback(async () => {
-    try {
-      const res = await fetch("/api/campaigns");
-      if (!res.ok) throw new Error("No se pudieron cargar las campanas");
-      setCampaigns(await res.json());
-      setError(null);
-    } catch (err: any) {
-      setError(err?.message || "Error al cargar las campanas");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns]);
-
-  // Progreso del envio en tiempo real.
-  useEffect(() => {
-    if (!socket) return;
-
-    const onUpdated = (campaign: Campaign) => {
-      setCampaigns((prev) => prev.map((c) => (c.id === campaign.id ? { ...c, ...campaign } : c)));
-    };
-
-    socket.on("campaign:updated", onUpdated);
-    return () => {
-      socket.off("campaign:updated", onUpdated);
-    };
-  }, [socket]);
-
-  const handleCreate = async (e: React.FormEvent, sendNow: boolean) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-
-    try {
-      const payload: Record<string, unknown> = {
-        name: form.name,
-        message: form.message,
-      };
-      if (sendNow) {
-        payload.sendNow = true;
-      } else if (form.scheduledAt) {
-        payload.scheduledAt = new Date(form.scheduledAt).toISOString();
-      }
-
-      const res = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo crear la campana");
-      if (data?.warning) setError(data.warning);
-
-      setShowModal(false);
-      setForm({ name: "", message: "", scheduledAt: "" });
-      fetchCampaigns();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo crear la campana");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSend = async (id: string) => {
-    setBusyId(id);
-    setError(null);
-    try {
-      const res = await fetch(`/api/campaigns/${id}/send`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo iniciar el envio");
-      fetchCampaigns();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo iniciar el envio");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleCancel = async (id: string) => {
-    if (!confirm("¿Cancelar esta campana?")) return;
-    setBusyId(id);
-    setError(null);
-    try {
-      const res = await fetch(`/api/campaigns/${id}/cancel`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo cancelar");
-      fetchCampaigns();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo cancelar");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta campana?")) return;
-
-    try {
-      const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
-      fetchCampaigns();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo eliminar la campana");
-    }
-  };
+  const {
+    campaigns,
+    showModal,
+    setShowModal,
+    form,
+    setForm,
+    loading,
+    saving,
+    busyId,
+    error,
+    setError,
+    handleCreate,
+    handleSend,
+    handleCancel,
+    handleDelete,
+  } = useCampaigns();
 
   return (
     <div className="p-6">
@@ -194,10 +82,10 @@ export function CampaignsPage() {
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs font-medium",
-                    STATUS_META[campaign.status]?.className
+                    statusPresentation(campaign.status, "campaign").className
                   )}
                 >
-                  {STATUS_META[campaign.status]?.label || campaign.status}
+                  {statusPresentation(campaign.status, "campaign").label || campaign.status}
                 </span>
 
                 <span className="flex items-center gap-1 text-muted-foreground">

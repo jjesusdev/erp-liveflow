@@ -1,56 +1,18 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
+import type { StatusTone } from "@/lib/statusPresentation";
 import type { CustomerTier } from "@/lib/liveflow-data";
-import type { Lead, PaymentStatus, ShipmentStatus } from "@/types";
+import type { Lead } from "@/types";
 
-type Tone = "neutral" | "live" | "success" | "pending" | "transit" | "vip";
+export {
+  PAYMENT_LABEL,
+  PAYMENT_TONE,
+  SHIPMENT_LABEL,
+  SHIPMENT_TONE,
+} from "@/lib/statusPresentation";
 
-export const PAYMENT_TONE: Record<PaymentStatus, Tone> = {
-  PAID: "success",
-  SENT: "transit",
-  PENDING: "pending",
-  EXPIRED: "neutral",
-  CANCELLED: "live",
-  REFUNDED: "pending",
-};
-
-export const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  PAID: "Pagado",
-  SENT: "Por pagar",
-  PENDING: "Pendiente",
-  EXPIRED: "Vencido",
-  CANCELLED: "Cancelado",
-  REFUNDED: "Reembolsado",
-};
-
-export const SHIPMENT_TONE: Record<ShipmentStatus, Tone> = {
-  PENDING: "pending",
-  READY: "pending",
-  LABEL_PRINTED: "pending",
-  PICKED_UP: "transit",
-  IN_TRANSIT: "transit",
-  OUT_FOR_DELIVERY: "transit",
-  DELIVERED: "success",
-  FAILED: "live",
-  RETURNED: "pending",
-  LOST: "live",
-  CANCELLED: "neutral",
-};
-
-export const SHIPMENT_LABEL: Record<ShipmentStatus, string> = {
-  PENDING: "Pendiente",
-  READY: "Listo",
-  LABEL_PRINTED: "Etiqueta",
-  PICKED_UP: "Retirado",
-  IN_TRANSIT: "En camino",
-  OUT_FOR_DELIVERY: "En reparto",
-  DELIVERED: "Entregado",
-  FAILED: "Fallido",
-  RETURNED: "Devuelto",
-  LOST: "Perdido",
-  CANCELLED: "Cancelado",
-};
+type Tone = StatusTone;
 
 export const TOKEN_BG: Record<Tone, string> = {
   neutral: "bg-muted-foreground/60",

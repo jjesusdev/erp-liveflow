@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { createHmac, timingSafeEqual } from "crypto";
 
 const SESSION_COOKIE = "lf_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
@@ -12,10 +11,8 @@ interface SessionPayload {
 }
 
 /**
- * Retorna el secreto de sesión, validando que esté configurado.
- * Se valida en runtime (al firmar una sesión), no en el top-level del módulo,
- * para no romper el build de Next.js cuando la variable de entorno no está
- * disponible durante la recolección de datos de página.
+ * El secreto se valida en runtime (al firmar/verificar), no en el top-level,
+ * para no romper el build cuando la variable no esté disponible.
  */
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
@@ -25,39 +22,67 @@ function getSessionSecret(): string {
   return secret;
 }
 
-function sign(payload: string): string {
-  return createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
+const encoder = new TextEncoder();
+
+async function sign(payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(getSessionSecret()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  return toBase64Url(new Uint8Array(signature));
 }
 
-function serializeSession(session: SessionPayload): string {
-  const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
-  const signature = sign(payload);
-  return `${payload}.${signature}`;
+/** Comparación en tiempo constante sobre bytes (Edge-compatible). */
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
 }
 
-function deserializeSession(token: string): SessionPayload | null {
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64Url(value: string): Uint8Array {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function serializeSession(session: SessionPayload): Promise<string> {
+  const payload = toBase64Url(encoder.encode(JSON.stringify(session)));
+  return `${payload}.${await sign(payload)}`;
+}
+
+async function deserializeSession(token: string): Promise<SessionPayload | null> {
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return null;
 
-  const expected = sign(payload);
-  if (!timingSafeEqual(Buffer.from(signature, "base64url"), Buffer.from(expected, "base64url"))) {
-    return null;
-  }
-
   try {
-    const session = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8")
-    ) as SessionPayload;
+    const received = fromBase64Url(signature);
+    const expected = fromBase64Url(await sign(payload));
+    if (!constantTimeEqual(received, expected)) return null;
+
+    const session = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as SessionPayload;
     if (Date.now() - session.issuedAt > SESSION_TTL_MS) return null;
     return session;
   } catch {
+    // Base64 inválido (p. ej. una cookie manipulada) debe tratarse como sesión
+    // inválida, no como un 500. `atob` lanza InvalidCharacterError.
     return null;
   }
 }
 
 /**
  * Crea y establece la cookie de sesión firmada en la respuesta.
- * Se llama desde los route handlers de API tras autenticar al operador.
  * Guarda operatorId, role y orgId en la sesión.
  */
 export async function createSession(
@@ -65,13 +90,12 @@ export async function createSession(
   role: string,
   orgId: string
 ): Promise<string> {
-  const session: SessionPayload = {
+  const token = await serializeSession({
     operatorId,
     role,
     orgId,
     issuedAt: Date.now(),
-  };
-  const token = serializeSession(session);
+  });
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
@@ -85,10 +109,7 @@ export async function createSession(
   return token;
 }
 
-/**
- * Lee y valida la cookie de sesión de la request actual.
- * Retorna null si no hay sesión válida.
- */
+/** Lee y valida la cookie de sesión de la request actual. */
 export async function getSession(): Promise<{
   operatorId: string;
   orgId: string;
@@ -98,16 +119,13 @@ export async function getSession(): Promise<{
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const session = deserializeSession(token);
+  const session = await deserializeSession(token);
   if (!session) return null;
 
   return { operatorId: session.operatorId, orgId: session.orgId, role: session.role };
 }
 
-/**
- * Retorna el contexto del operador autenticado: operatorId, orgId y role.
- * Retorna null si no hay sesión válida.
- */
+/** Contexto del operador autenticado: operatorId, orgId y role. */
 export async function getOperatorContext(): Promise<{
   operatorId: string;
   orgId: string;
@@ -116,9 +134,7 @@ export async function getOperatorContext(): Promise<{
   return getSession();
 }
 
-/**
- * Elimina la cookie de sesión (logout).
- */
+/** Elimina la cookie de sesión (logout). */
 export async function clearSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, "", {
@@ -130,18 +146,7 @@ export async function clearSession(): Promise<void> {
   });
 }
 
-/**
- * Verifica si existe una sesión válida sin retornar los datos.
- */
+/** Verifica si existe una sesión válida sin retornar los datos. */
 export async function hasSession(): Promise<boolean> {
   return (await getSession()) !== null;
-}
-
-/**
- * Retorna el operatorId de la sesión actual, o null si no hay sesión válida.
- * Se usa en API routes para registrar la auditoría del operador autenticado.
- */
-export async function getOperatorIdFromSession(): Promise<string | null> {
-  const session = await getSession();
-  return session ? session.operatorId : null;
 }

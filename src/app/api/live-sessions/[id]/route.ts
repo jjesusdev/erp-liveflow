@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { liveSessionUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
+import { getIO } from "@/lib/realtime/events";
 
 export const PATCH = apiHandler({
   body: liveSessionUpdateSchema,
   handler: async (req: NextRequest, body, context) => {
     const { id } = await context.params;
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
 
-    const existing = await prisma.liveSession.findUnique({ where: { id } });
+    const existing = await prisma.liveSession.findFirst({
+      where: { ...whereOrg(orgId), id },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
     }
@@ -24,12 +34,11 @@ export const PATCH = apiHandler({
     if (body.notes !== undefined) data.notes = body.notes;
 
     const session = await prisma.liveSession.update({
-      where: { id },
+      where: { ...whereOrg(orgId), id },
       data,
     });
 
-    const io = (globalThis as any).io;
-    io?.emit("live:session:updated", session);
+    getIO()?.emit("live:session:updated", session);
 
     return NextResponse.json(session);
   },

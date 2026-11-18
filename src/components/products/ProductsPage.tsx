@@ -1,205 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { formatCurrency, cn } from "@/lib/date-utils";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  PackageX,
-  Upload,
-  FileSpreadsheet,
-  Download,
-  Check,
-} from "lucide-react";
-import type { Product } from "@/types";
-
-interface FormState {
-  name: string;
-  description: string;
-  price: string;
-  category: string;
-  imageUrl: string;
-  stock: string;
-  isAvailable: boolean;
-}
-
-const EMPTY_FORM: FormState = {
-  name: "",
-  description: "",
-  price: "",
-  category: "",
-  imageUrl: "",
-  stock: "10",
-  isAvailable: true,
-};
+import { formatCurrency, cn } from "@/lib/format";
+import { Plus, Pencil, Trash2, Search, PackageX, Upload, FileSpreadsheet } from "lucide-react";
+import { useProducts } from "@/hooks/useProducts";
 
 export function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [csvText, setCsvText] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const url = search ? `/api/products?search=${encodeURIComponent(search)}` : "/api/products";
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("No se pudieron cargar los productos");
-      setProducts(await res.json());
-      setError(null);
-    } catch (err: any) {
-      setError(err?.message || "Error al cargar los productos");
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
-
-  useEffect(() => {
-    const timer = setTimeout(fetchProducts, 250);
-    return () => clearTimeout(timer);
-  }, [fetchProducts]);
-
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setError(null);
-    setShowModal(true);
-  };
-
-  const openEdit = (product: Product) => {
-    setEditingId(product.id);
-    setForm({
-      name: product.name,
-      description: product.description || "",
-      price: String(product.price),
-      category: product.category || "",
-      imageUrl: product.imageUrl || "",
-      stock: String(product.stock ?? 10),
-      isAvailable: product.isAvailable,
-    });
-    setError(null);
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-
-    try {
-      const res = await fetch(editingId ? `/api/products/${editingId}` : "/api/products", {
-        method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          stock: parseInt(form.stock, 10) || 10,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo guardar el producto");
-
-      setShowModal(false);
-      setEditingId(null);
-      setForm(EMPTY_FORM);
-      fetchProducts();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo guardar el producto");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleImportCsv = async () => {
-    if (!csvText.trim()) return;
-    setImporting(true);
-    setError(null);
-
-    try {
-      const lines = csvText.trim().split("\n");
-      const parsedProducts = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line || (i === 0 && line.toLowerCase().includes("nombre"))) continue; // Saltar cabecera
-
-        const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
-        if (cols.length >= 2) {
-          parsedProducts.push({
-            name: cols[0],
-            price: parseFloat(cols[1]),
-            category: cols[2] || "Prendas",
-            stock: parseInt(cols[3], 10) || 10,
-            description: cols[4] || "",
-          });
-        }
-      }
-
-      if (parsedProducts.length === 0) {
-        throw new Error(
-          "No se detectaron filas válidas en el formato Nombre, Precio, Categoría, Stock"
-        );
-      }
-
-      const res = await fetch("/api/products/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ products: parsedProducts }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Error importando catálogo");
-
-      setSuccessToast(`🎉 ¡${data.importedCount} productos importados correctamente!`);
-      setShowImportModal(false);
-      setCsvText("");
-      setTimeout(() => setSuccessToast(null), 4000);
-      fetchProducts();
-    } catch (err: any) {
-      setError(err?.message || "Error en la importación masiva");
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const toggleAvailability = async (product: Product) => {
-    try {
-      const res = await fetch(`/api/products/${product.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isAvailable: !product.isAvailable }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo actualizar");
-
-      fetchProducts();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo actualizar el producto");
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este producto del catalogo?")) return;
-
-    try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
-      fetchProducts();
-    } catch (err: any) {
-      setError(err?.message || "No se pudo eliminar el producto");
-    }
-  };
+  const {
+    products,
+    search,
+    setSearch,
+    showModal,
+    setShowModal,
+    showImportModal,
+    setShowImportModal,
+    csvText,
+    setCsvText,
+    importing,
+    editingId,
+    form,
+    setForm,
+    loading,
+    saving,
+    error,
+    successToast,
+    handleSubmit,
+    handleImportCsv,
+    toggleAvailability,
+    handleDelete,
+    openCreate,
+    openEdit,
+  } = useProducts();
 
   return (
     <div className="p-6">

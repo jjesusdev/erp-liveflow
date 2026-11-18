@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+  IN_TRANSIT_STATUSES,
+  ISSUE_STATUSES,
+  TO_DISPATCH_STATUSES,
+} from "@/lib/shipments/constants";
 import type { Carrier, Shipment } from "@/types";
 
 export interface ShipmentStats {
@@ -16,15 +21,11 @@ export interface ShipmentStats {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 export { PAGE_SIZE_OPTIONS };
 
-const TO_DISPATCH = ["PENDING", "READY", "LABEL_PRINTED"];
-const IN_TRANSIT = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
-const ISSUES = ["FAILED", "RETURNED", "LOST", "CANCELLED"];
-
 function filterToStatus(f: string): string | null {
   if (f === "all") return null;
-  if (f === "TO_DISPATCH") return TO_DISPATCH.join(",");
-  if (f === "IN_TRANSIT") return IN_TRANSIT.join(",");
-  if (f === "ISSUES") return ISSUES.join(",");
+  if (f === "TO_DISPATCH") return TO_DISPATCH_STATUSES.join(",");
+  if (f === "IN_TRANSIT") return IN_TRANSIT_STATUSES.join(",");
+  if (f === "ISSUES") return ISSUE_STATUSES.join(",");
   return f;
 }
 
@@ -168,10 +169,10 @@ export function useShipments() {
   const counts = useMemo(
     () => ({
       all: stats.byStatus ? Object.values(stats.byStatus).reduce((a, b) => a + b, 0) : 0,
-      TO_DISPATCH: sum(stats.byStatus, TO_DISPATCH),
-      IN_TRANSIT: sum(stats.byStatus, IN_TRANSIT),
+      TO_DISPATCH: sum(stats.byStatus, TO_DISPATCH_STATUSES),
+      IN_TRANSIT: sum(stats.byStatus, IN_TRANSIT_STATUSES),
       DELIVERED: stats.byStatus?.DELIVERED || 0,
-      ISSUES: sum(stats.byStatus, ISSUES),
+      ISSUES: sum(stats.byStatus, ISSUE_STATUSES),
     }),
     [stats.byStatus]
   );

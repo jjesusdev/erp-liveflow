@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { getCarrierProvider } from "@/lib/carriers";
+import { IN_TRANSIT_STATUSES } from "@/lib/shipments/constants";
 
-const TRANSIT_STATUSES = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
 const SHIPPED_CONV_STATUSES = ["PAID", "ATTENTION", "AWAITING_PAYMENT"] as const;
 
 /**
@@ -91,7 +91,7 @@ export const POST = apiHandler({
       const data: Record<string, unknown> = {};
       if (latest) {
         data.status = latest.status;
-        if (TRANSIT_STATUSES.includes(latest.status) && !shipment.shippedAt) {
+        if (IN_TRANSIT_STATUSES.includes(latest.status) && !shipment.shippedAt) {
           data.shippedAt = new Date();
         }
         if (latest.status === "DELIVERED") {
@@ -108,7 +108,10 @@ export const POST = apiHandler({
             })
           : shipment;
 
-      if (latest && (TRANSIT_STATUSES.includes(latest.status) || latest.status === "DELIVERED")) {
+      if (
+        latest &&
+        (IN_TRANSIT_STATUSES.includes(latest.status) || latest.status === "DELIVERED")
+      ) {
         await prisma.conversation.updateMany({
           where: {
             paymentOrders: { some: { shipment: { id } } },

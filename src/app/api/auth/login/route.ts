@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { apiHandler } from "@/lib/api-handler";
 import { comparePassword, hashPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { ensureDemoOrg } from "@/lib/demo/ensure-org";
 import { NextResponse } from "next/server";
 
 type LoginBody = {
@@ -10,24 +12,26 @@ type LoginBody = {
   password: string;
 };
 
-// Credenciales demo
-const DEMO_CREDENTIALS = {
-  admin: { email: "admin@erp.local", password: "admin123", role: "ADMIN" as const },
-};
+const loginLimiter = createRateLimiter({ max: 10, windowMs: 60_000 });
+const demoLoginEnabled =
+  process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_LOGIN === "true";
 
-/** POST /api/auth/login - Login con inicialización automática */
+/** POST /api/auth/login */
 export const POST = apiHandler<LoginBody>({
   body: z.object({
     email: z.string().email("Email inválido"),
     password: z.string().min(4, "Contraseña mínima 4 caracteres"),
   }),
   handler: async (req, parsedBody) => {
-    console.log("[login] Iniciando proceso de login");
+    const limited = loginLimiter(req);
+    if (limited) return limited;
+
     const { email, password } = parsedBody;
     const email_normalized = email.toLowerCase().trim();
 
     // Verificar si es credencial demo
-    const isDemo = email_normalized === "admin@erp.local" && password === "admin123";
+    const isDemo =
+      demoLoginEnabled && email_normalized === "admin@erp.local" && password === "admin123";
 
     // Buscar operador
     let operator = await prisma.operator.findUnique({
@@ -45,8 +49,6 @@ export const POST = apiHandler<LoginBody>({
         console.log("[login] Error comparando password:", e);
       }
     }
-
-    console.log("[login] passwordValid:", passwordValid, "isDemo:", isDemo);
 
     // Si falla y es demo, crear/usar sistema demo
     if (!passwordValid && isDemo) {
@@ -109,13 +111,17 @@ export const POST = apiHandler<LoginBody>({
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
 
-    // Asegurar orgId
-    const orgId = operator.organization?.id;
+    // Asegurar orgId con un ID real (nunca un slug hardcodeado).
+    let orgId = operator.orgId;
     if (!orgId) {
-      await prisma.operator.update({
-        where: { id: operator.id },
-        data: { orgId: operator.organization?.id || "demo-org" },
-      });
+      if (!demoLoginEnabled) {
+        return NextResponse.json(
+          { error: "El operador no tiene una organización asignada" },
+          { status: 500 }
+        );
+      }
+      orgId = await ensureDemoOrg();
+      await prisma.operator.update({ where: { id: operator.id }, data: { orgId } });
     }
 
     await createSession(operator.id, operator.role, orgId!);

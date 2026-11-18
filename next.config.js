@@ -5,9 +5,6 @@ const nextConfig = {
   // (npm run dev:phone). Sin esto Next bloquea los assets cross-origin en dev.
   allowedDevOrigins: ["*.trycloudflare.com"],
   serverExternalPackages: ["@whiskeysockets/baileys", "prisma", "@prisma/client"],
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 };
 
 module.exports = nextConfig;

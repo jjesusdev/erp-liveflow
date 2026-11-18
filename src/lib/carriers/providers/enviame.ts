@@ -122,7 +122,7 @@ export class EnviameProvider extends BaseCarrierProvider {
 
   async printLabel(
     providerRef: string,
-    carrierConfig: Record<string, unknown>
+    _carrierConfig: Record<string, unknown>
   ): Promise<{ labelUrl: string }> {
     return {
       labelUrl: `${ENVIAMI_BASE_URL}/api/v1/shipments/${encodeURIComponent(providerRef)}/label`,

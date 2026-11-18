@@ -1,4 +1,3 @@
-import { prisma } from "./prisma";
 import { scrypt as _scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -32,62 +31,4 @@ export async function comparePassword(password: string, hashBase64: string): Pro
   } catch {
     return false;
   }
-}
-
-/**
- * Resuelve el operatorId verificando la contraseña.
- * Si se proveen credenciales correctas, retorna el operatorId.
- * Si no, cae al operador por defecto (admin@erp.local).
- */
-export async function resolveOperatorId(
-  operatorId?: string | null,
-  password?: string
-): Promise<string> {
-  // Si no hay credenciales, operador por defecto (mismo comportamiento actual)
-  if (!operatorId || !password) {
-    const existing = await prisma.operator.findUnique({
-      where: { email: "admin@erp.local" },
-      select: { id: true },
-    });
-    if (existing) return existing.id;
-
-    const created = await prisma.operator.create({
-      data: {
-        name: "Administrador",
-        email: "admin@erp.local",
-        passwordHash: await hashPassword("admin123"),
-        role: "ADMIN" as const,
-      },
-      select: { id: true },
-    });
-    return created.id;
-  }
-
-  // Buscar operator por ID y verificar password
-  const found = await prisma.operator.findUnique({
-    where: { id: operatorId },
-    select: { id: true, passwordHash: true },
-  });
-
-  if (found && (await comparePassword(password, found.passwordHash ?? ""))) {
-    return found.id;
-  }
-
-  // Si no coincide, caer al default
-  const existing = await prisma.operator.findUnique({
-    where: { email: "admin@erp.local" },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-
-  const created = await prisma.operator.create({
-    data: {
-      name: "Administrador",
-      email: "admin@erp.local",
-      passwordHash: await hashPassword("admin123"),
-      role: "ADMIN" as const,
-    },
-    select: { id: true },
-  });
-  return created.id;
 }

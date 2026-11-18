@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Bell, Send, Clock, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Send, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { Badge } from "@/components/liveflow/primitives";
+import { useReminderStats } from "@/hooks/useReminderStats";
 import { toast } from "sonner";
 import type { BusinessConfig } from "@/types";
 
@@ -15,10 +16,16 @@ interface RemindersSectionProps {
 
 export function RemindersSection({ config, onChange }: RemindersSectionProps) {
   const [sending, setSending] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [reminderStats, setReminderStats] = useState<{
-    pendingCount: number;
-  } | null>(null);
+  const {
+    stats: reminderStats,
+    loading: refreshing,
+    error,
+    refresh: fetchStats,
+  } = useReminderStats({ autoFetch: false });
+
+  useEffect(() => {
+    if (error) toast.error("Error al obtener estadísticas");
+  }, [error]);
 
   const handleSendReminders = async (dryRun = false) => {
     setSending(true);
@@ -44,21 +51,6 @@ export function RemindersSection({ config, onChange }: RemindersSectionProps) {
       toast.error("Error al enviar recordatorios");
     } finally {
       setSending(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    setRefreshing(true);
-    try {
-      const res = await fetch("/api/caja/reminders");
-      if (res.ok) {
-        const data = await res.json();
-        setReminderStats({ pendingCount: data.pendingCount || 0 });
-      }
-    } catch {
-      toast.error("Error al obtener estadísticas");
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -121,7 +113,7 @@ export function RemindersSection({ config, onChange }: RemindersSectionProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => fetchStats()}
+                onClick={() => void fetchStats()}
                 disabled={refreshing}
                 className="h-8 gap-1.5"
               >

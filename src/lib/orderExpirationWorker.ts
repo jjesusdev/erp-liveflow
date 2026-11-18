@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { logActivity } from "./audit";
+import { getIO } from "./realtime/events";
 
 /**
  * Worker en segundo plano para procesar la expiración automática de pedidos
@@ -29,7 +30,6 @@ export async function processExpiredPaymentOrders() {
     if (expiredOrders.length === 0) return 0;
 
     const client = (globalThis as any).whatsappClient;
-    const io = (globalThis as any).io;
 
     for (const order of expiredOrders) {
       // 1. Actualizar estado a EXPIRED
@@ -74,7 +74,7 @@ export async function processExpiredPaymentOrders() {
 
       // 4. Emitir evento por Socket.io
       if (io) {
-        io.emit("payment:updated", {
+        getIO()?.emit("payment:updated", {
           ...updated,
           amount: Number(updated.amount),
         });

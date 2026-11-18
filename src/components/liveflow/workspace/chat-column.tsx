@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Clock, SendHorizontal, Shirt, Wallet, Radio } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import { clock, money } from "@/lib/format";
 import { SHORTCUTS, type Conversation, type Message, type Product } from "@/lib/liveflow-data";
 import { Button } from "@/components/ui/button";

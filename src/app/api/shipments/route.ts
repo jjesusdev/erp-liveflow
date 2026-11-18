@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
 import { getCarrierProvider, type CreateShipmentContext } from "@/lib/carriers";
+import {
+  IN_TRANSIT_STATUSES,
+  ISSUE_STATUSES,
+  TO_DISPATCH_STATUSES,
+} from "@/lib/shipments/constants";
 import type { ShipmentMode } from "@prisma/client";
 
 const PAGE_SIZES = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 25;
-
-const TO_DISPATCH: string[] = ["PENDING", "READY", "LABEL_PRINTED"];
-const IN_TRANSIT_STATUSES: string[] = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"];
-const ISSUE_STATUSES: string[] = ["FAILED", "RETURNED", "LOST", "CANCELLED"];
 
 const LIST_SELECT = {
   id: true,
@@ -147,7 +148,7 @@ export const GET = apiHandler({
 
     const stats = {
       total,
-      pending: countIn(TO_DISPATCH),
+      pending: countIn(TO_DISPATCH_STATUSES),
       inTransit: countIn(IN_TRANSIT_STATUSES),
       delivered: byStatus.get("DELIVERED") ?? 0,
       issues: countIn(ISSUE_STATUSES),

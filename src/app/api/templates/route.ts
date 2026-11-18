@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { templateCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
+import { getOperatorContext } from "@/lib/session";
+import { whereOrg } from "@/lib/org";
 
 export const GET = apiHandler({
-  handler: async (req: NextRequest) => {
+  handler: async (_req: NextRequest) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const templates = await prisma.messageTemplate.findMany({
-      where: { isActive: true },
+      where: { ...whereOrg(orgId), isActive: true },
       orderBy: { name: "asc" },
     });
 
@@ -51,9 +59,11 @@ export const GET = apiHandler({
         },
       ];
 
-      await prisma.messageTemplate.createMany({ data: defaults });
+      await prisma.messageTemplate.createMany({
+        data: defaults.map((template) => ({ ...template, orgId })),
+      });
       const freshTemplates = await prisma.messageTemplate.findMany({
-        where: { isActive: true },
+        where: { ...whereOrg(orgId), isActive: true },
         orderBy: { name: "asc" },
       });
       return NextResponse.json(freshTemplates);
@@ -66,6 +76,12 @@ export const GET = apiHandler({
 export const POST = apiHandler({
   body: templateCreateSchema,
   handler: async (req: NextRequest, body) => {
+    const ctx = await getOperatorContext();
+    if (!ctx) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    const orgId = ctx.orgId;
+
     const { name, content, category = "GENERAL", shortcut, variables = [] } = body;
 
     const template = await prisma.messageTemplate.create({
@@ -76,6 +92,7 @@ export const POST = apiHandler({
         shortcut: shortcut ? shortcut.toLowerCase().replace("/", "") : null,
         variables,
         isActive: true,
+        orgId,
       },
     });
 

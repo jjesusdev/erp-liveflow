@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/format";
 import {
   CalendarDays,
   Check,
@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge, TierBadge } from "@/components/liveflow/primitives";
 import { money } from "@/lib/format";
-import { formatDate, timeAgo } from "@/lib/date-utils";
+import { formatDate, timeAgo } from "@/lib/format";
 import type { Lead } from "@/types";
 import {
   Avatar,

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useSyncExternalStore, useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   LayoutGrid,
   MonitorPlay,
@@ -19,8 +19,8 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useSocket } from "@/lib/socket";
-import { cn } from "@/lib/utils";
+import { useWhatsAppStatus } from "@/hooks/useWhatsAppStatus";
+import { cn } from "@/lib/format";
 
 const NAV = [
   { href: "/", label: "Workspace de ventas", icon: LayoutGrid },
@@ -43,19 +43,8 @@ export function NavRail() {
     () => false
   );
   const isDark = mounted ? resolvedTheme === "dark" : true;
-  const socket = useSocket();
-  const [whatsappConnected, setWhatsappConnected] = useState(false);
-
-  useEffect(() => {
-    if (!socket) return;
-    const onStatus = (status: { connected: boolean }) =>
-      setWhatsappConnected(Boolean(status?.connected));
-    socket.on("whatsapp:status", onStatus);
-    socket.emit("whatsapp:status:request");
-    return () => {
-      socket.off("whatsapp:status", onStatus);
-    };
-  }, [socket]);
+  const { status, connected } = useWhatsAppStatus();
+  const whatsappConnected = Boolean(status?.connected);
 
   return (
     <nav
@@ -97,13 +86,13 @@ export function NavRail() {
         <div
           className={cn(
             "flex size-8 items-center justify-center rounded-full transition-colors",
-            socket ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+            connected ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
           )}
-          title={socket ? "Servidor conectado" : "Reconectando al servidor..."}
+          title={connected ? "Servidor conectado" : "Reconectando al servidor..."}
           role="status"
           aria-live="polite"
         >
-          {socket ? (
+          {connected ? (
             <Wifi className="size-3.5" aria-hidden />
           ) : (
             <WifiOff className="size-3.5" aria-hidden />

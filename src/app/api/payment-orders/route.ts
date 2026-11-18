@@ -1,66 +1,11 @@
 import { NextResponse } from "next/server";
-import axios from "axios";
 import { apiHandler } from "@/lib/api-handler";
 import { paymentOrderCreateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
-
-async function createMercadoPagoPreference({
-  amount,
-  concept,
-  paymentOrderId,
-  leadPhone,
-}: {
-  amount: number;
-  concept: string;
-  paymentOrderId: string;
-  leadPhone?: string | null;
-}) {
-  const accessToken = process.env.MP_ACCESS_TOKEN;
-
-  if (!accessToken || accessToken.includes("xxx")) {
-    return null;
-  }
-
-  try {
-    const response = await axios.post(
-      "https://api.mercadopago.com/checkout/preferences",
-      {
-        items: [
-          {
-            title: concept,
-            quantity: 1,
-            currency_id: "MXN",
-            unit_price: amount,
-          },
-        ],
-        external_reference: paymentOrderId,
-        back_urls: {
-          success: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?paid=${paymentOrderId}`,
-          pending: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?pending=${paymentOrderId}`,
-          failure: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/caja?failure=${paymentOrderId}`,
-        },
-        auto_return: "approved",
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/webhooks/mercadopago`,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    return {
-      id: response.data.id as string,
-      url: (response.data.sandbox_init_point as string) || (response.data.init_point as string),
-    };
-  } catch (error: any) {
-    console.error("Error creando preferencia de MercadoPago:", error?.response?.data || error);
-    return null;
-  }
-}
+import { createPaymentPreference } from "@/lib/payments/mercadopago";
+import { getIO } from "@/lib/realtime/events";
 
 function normalizeProvider(
   raw?: string | null
@@ -175,14 +120,6 @@ export const POST = apiHandler({
     let link: { id: string; url: string } | null = null;
 
     if (resolvedProvider === "TRANSFER") {
-      const hasBankData = Boolean(
-        businessConfig &&
-        (businessConfig.bankName ||
-          businessConfig.bankBeneficiary ||
-          businessConfig.bankClabe ||
-          businessConfig.bankAccountNumber)
-      );
-
       transferDetails = {
         bankName: businessConfig?.bankName || null,
         bankBeneficiary: businessConfig?.bankBeneficiary || null,
@@ -230,10 +167,7 @@ export const POST = apiHandler({
             },
           });
 
-          const io = (global as any).io;
-          if (io) {
-            io.emit("message:new", outboundMsg);
-          }
+          getIO()?.emit("message:new", outboundMsg);
         } catch (error) {
           console.error("Error enviando datos de transferencia por WhatsApp:", error);
         }
@@ -257,13 +191,10 @@ export const POST = apiHandler({
         include: { lead: true },
       });
 
-      const io = (global as any).io;
-      if (io) {
-        io.emit("payment:updated", {
-          ...updated,
-          amount: Number(updated.amount),
-        });
-      }
+      getIO()?.emit("payment:updated", {
+        ...updated,
+        amount: Number(updated.amount),
+      });
 
       return NextResponse.json({
         ...updated,
@@ -274,12 +205,13 @@ export const POST = apiHandler({
     }
 
     if (resolvedProvider === "MERCADOPAGO") {
-      link = await createMercadoPagoPreference({
+      const preference = await createPaymentPreference({
         amount: numericAmount,
         concept,
-        paymentOrderId: paymentOrder.id,
-        leadPhone: conversation.lead?.phone,
+        orderId: paymentOrder.id,
+        currency: paymentOrder.currency,
       });
+      link = preference ? { id: preference.id, url: preference.url } : null;
 
       if (link?.url) {
         const client = (global as any).whatsappClient;
@@ -313,13 +245,10 @@ export const POST = apiHandler({
           })
           .catch(() => undefined);
 
-        const io = (global as any).io;
-        if (io) {
-          io.emit("payment:updated", {
-            ...updated,
-            amount: Number(updated.amount),
-          });
-        }
+        getIO()?.emit("payment:updated", {
+          ...updated,
+          amount: Number(updated.amount),
+        });
 
         return NextResponse.json({
           ...updated,

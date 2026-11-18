@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, MonitorPlay, Radio, Users } from "lucide-react";
+import { Bell, MonitorPlay, Radio } from "lucide-react";
 import { clock, money } from "@/lib/format";
 import { Badge, LiveDot } from "@/components/liveflow/primitives";
+import { useReminderStats } from "@/hooks/useReminderStats";
 import type { LiveSession } from "@/types";
 
 export function LiveStatusBar({
@@ -16,31 +17,26 @@ export function LiveStatusBar({
   onStartLive?: () => void;
   onEndLive?: () => void;
 }) {
-  const [elapsed, setElapsed] = useState(42 * 60 + 18);
-  const [pendingReminders, setPendingReminders] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const { stats } = useReminderStats();
+  const pendingReminders = stats?.pendingCount ?? 0;
+
+  // Cronómetro derivado de startedAt: sin sesión activa arranca en 0 (antes usaba un valor demo).
+  const startedAtMs = activeSession?.startedAt
+    ? new Date(activeSession.startedAt).getTime()
+    : Number.NaN;
 
   useEffect(() => {
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    if (!Number.isFinite(startedAtMs)) {
+      setElapsed(0);
+      return;
+    }
+
+    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)));
+    update();
+    const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, []);
-
-  // Fetch recordatorios pendientes
-  useEffect(() => {
-    const fetchReminders = async () => {
-      try {
-        const res = await fetch("/api/caja/reminders");
-        if (res.ok) {
-          const data = await res.json();
-          setPendingReminders(data.pendingCount || 0);
-        }
-      } catch {
-        // Ignore
-      }
-    };
-    fetchReminders();
-    const interval = setInterval(fetchReminders, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [startedAtMs]);
 
   const h = Math.floor(elapsed / 3600);
 

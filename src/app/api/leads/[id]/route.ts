@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/format";
 import { apiHandler } from "@/lib/api-handler";
 import { leadUpdateSchema } from "@/lib/schemas";
 import { prisma } from "@/lib/prisma";
 import { getOperatorContext } from "@/lib/session";
 import { whereOrg } from "@/lib/org";
-
-function normalizePhone(raw: string) {
-  const plus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return null;
-  return (plus ? "+" : "") + digits;
-}
+import { customerTier } from "@/lib/customers/tiers";
 
 export const GET = apiHandler({
   handler: async (req: NextRequest, _body, context) => {
@@ -38,14 +33,13 @@ export const GET = apiHandler({
     const totalPaidCount = paidOrders.length;
     const totalSpent = paidOrders.reduce((sum, order) => sum + Number(order.amount), 0);
 
-    let tier: "VIP" | "FREQUENT" | "NEW" | "GHOST" = "NEW";
-    if (totalPaidCount >= 3 || totalSpent >= 2000) {
-      tier = "VIP";
-    } else if (totalPaidCount >= 1) {
-      tier = "FREQUENT";
-    } else if (lead.paymentOrders.some((o) => o.status === "EXPIRED" || o.status === "CANCELLED")) {
-      tier = "GHOST";
-    }
+    const tier = customerTier({
+      totalPaidCount,
+      totalSpent,
+      hasFailedPayment: lead.paymentOrders.some(
+        (o) => o.status === "EXPIRED" || o.status === "CANCELLED"
+      ),
+    });
 
     const lastPaidAt = paidOrders.reduce<Date | null>((latest, order) => {
       const ts = order.paidAt || order.createdAt;

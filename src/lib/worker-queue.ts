@@ -11,9 +11,6 @@
 
 import { prisma } from "./prisma";
 import type { Prisma } from "@prisma/client";
-import { processScheduledCampaigns } from "./campaignSender";
-import { processExpiredPaymentOrders } from "./orderExpirationWorker";
-import { processPaymentReminders } from "./reminderWorker";
 import { logActivity } from "./audit";
 
 export type WorkerJobType = "CAMPAIGN_SEND" | "PAYMENT_EXPIRATION" | "PAYMENT_REMINDER";
