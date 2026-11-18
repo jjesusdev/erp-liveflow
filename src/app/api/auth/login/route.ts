@@ -12,7 +12,8 @@ type LoginBody = {
 };
 
 const loginLimiter = createRateLimiter({ max: 10, windowMs: 60_000 });
-const demoLoginEnabled = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_LOGIN === "true";
+const demoLoginEnabled =
+  process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_LOGIN === "true";
 
 /** POST /api/auth/login */
 export const POST = apiHandler<LoginBody>({

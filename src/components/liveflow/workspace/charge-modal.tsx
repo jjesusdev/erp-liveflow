@@ -83,7 +83,14 @@ export function ChargeModal({
   const { subtotal, total } = calculateChargeTotals(chargeDraft);
   const firstName = conversation.name.split(" ")[0];
 
-  const message = buildChargePreview({ ...chargeDraft, method, firstName, reference, currency, bank });
+  const message = buildChargePreview({
+    ...chargeDraft,
+    method,
+    firstName,
+    reference,
+    currency,
+    bank,
+  });
 
   const send = async () => {
     if (total <= 0) return;

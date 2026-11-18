@@ -43,9 +43,13 @@ export function providerForMethod(method: ChargeMethod): PaymentProvider {
 }
 
 /** Totales puros del cobro: evita que cada modal implemente la suma. */
-export function calculateChargeTotals(input: Pick<ChargeInput, "mode" | "amount" | "shipping" | "items">) {
+export function calculateChargeTotals(
+  input: Pick<ChargeInput, "mode" | "amount" | "shipping" | "items">
+) {
   const subtotal =
-    input.mode === "simple" ? Math.max(0, input.amount) || 0 : input.items.reduce((sum, item) => sum + item.price, 0);
+    input.mode === "simple"
+      ? Math.max(0, input.amount) || 0
+      : input.items.reduce((sum, item) => sum + item.price, 0);
   const shipping = input.mode === "bolsa" ? Math.max(0, input.shipping) || 0 : 0;
   return { subtotal, shipping, total: subtotal + shipping };
 }
@@ -72,7 +76,8 @@ export function buildChargePreview(input: ChargePreviewInput): string {
 
   const bank = input.bank ?? {};
   const lines = [header, ""];
-  if (bank.bankName) lines.push(`${bank.bankName}${bank.bankClabe ? ` · CLABE ${bank.bankClabe}` : ""}`);
+  if (bank.bankName)
+    lines.push(`${bank.bankName}${bank.bankClabe ? ` · CLABE ${bank.bankClabe}` : ""}`);
   if (bank.bankBeneficiary) lines.push(`A nombre de: ${bank.bankBeneficiary}`);
   if (bank.bankAccountNumber && !bank.bankClabe) lines.push(`Cuenta: ${bank.bankAccountNumber}`);
   lines.push(`Referencia: ${input.reference}`);

@@ -32,7 +32,6 @@ const describeDb = process.env.TEST_DB === "1" ? describe : describe.skip;
 
 const TEST_PHONE = `+5255${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 100)}`;
 
-
 const PAYMENT_ID = `mp_payment_${Date.now()}`;
 const EXTERNAL_REF = `order_${Date.now()}`;
 

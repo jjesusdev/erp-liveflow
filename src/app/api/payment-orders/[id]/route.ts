@@ -93,8 +93,13 @@ export const PATCH = apiHandler({
 
     if (status === "PAID") {
       // Confirmación automática por WhatsApp si el cliente está disponible.
-      const client = (global as { whatsappClient?: { sendMessage: (jid: string, payload: { text: string }) => Promise<unknown> } })
-        .whatsappClient;
+      const client = (
+        global as {
+          whatsappClient?: {
+            sendMessage: (jid: string, payload: { text: string }) => Promise<unknown>;
+          };
+        }
+      ).whatsappClient;
       if (client && order.lead?.phone) {
         try {
           const jid = toWhatsAppJid(order.lead.phone);

@@ -13,7 +13,9 @@ const bag = [
 
 describe("calculateChargeTotals", () => {
   it("usa el monto simple sin envío", () => {
-    expect(calculateChargeTotals({ mode: "simple", amount: 450, shipping: 99, items: bag })).toEqual({
+    expect(
+      calculateChargeTotals({ mode: "simple", amount: 450, shipping: 99, items: bag })
+    ).toEqual({
       subtotal: 450,
       shipping: 0,
       total: 450,
@@ -29,19 +31,29 @@ describe("calculateChargeTotals", () => {
   });
 
   it("ignora montos negativos", () => {
-    expect(calculateChargeTotals({ mode: "simple", amount: -10, shipping: 0, items: [] }).total).toBe(0);
+    expect(
+      calculateChargeTotals({ mode: "simple", amount: -10, shipping: 0, items: [] }).total
+    ).toBe(0);
   });
 });
 
 describe("buildChargeConcept", () => {
   it("devuelve el concepto simple recortado", () => {
-    expect(buildChargeConcept({ mode: "simple", concept: "  Vestido  ", amount: 1, shipping: 0, items: [] })).toBe("Vestido");
+    expect(
+      buildChargeConcept({
+        mode: "simple",
+        concept: "  Vestido  ",
+        amount: 1,
+        shipping: 0,
+        items: [],
+      })
+    ).toBe("Vestido");
   });
 
   it("consolida los nombres de la bolsa con el envío", () => {
-    expect(buildChargeConcept({ mode: "bolsa", concept: "", amount: 0, shipping: 99, items: bag })).toBe(
-      "Vestido satinado + Blusa floral (+ Envío $99)"
-    );
+    expect(
+      buildChargeConcept({ mode: "bolsa", concept: "", amount: 0, shipping: 99, items: bag })
+    ).toBe("Vestido satinado + Blusa floral (+ Envío $99)");
   });
 });
 

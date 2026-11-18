@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  BookOpen,
-  Keyboard,
-  Clock,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { BookOpen, Keyboard, Clock, Sparkles, Zap } from "lucide-react";
 
 export function ManualPage() {
   return (

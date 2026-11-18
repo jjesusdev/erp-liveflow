@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Copy,
-  Check,
-  Building2,
-  CreditCard,
-  Send,
-  Plus,
-  Trash2,
-  PackagePlus,
-} from "lucide-react";
+import { Copy, Check, Building2, CreditCard, Send, Plus, Trash2, PackagePlus } from "lucide-react";
 import type { Product } from "@/types";
 import { usePaymentOrder } from "@/hooks/usePaymentOrder";
 import { buildChargeConcept, calculateChargeTotals } from "@/lib/payments/charge";
@@ -28,7 +19,6 @@ interface CartItem {
   name: string;
   price: number;
 }
-
 
 export function PaymentModal({
   open,

@@ -45,7 +45,10 @@ export function money(amount: number, currency?: CurrencyCode): string {
 
 /** Alias semántico usado por reportes/caja; mantiene un único motor de formato. */
 export function formatCurrency(amount: number, currency: string = DEFAULT_CURRENCY): string {
-  return money(amount, (currency in SUPPORTED_CURRENCIES ? currency : DEFAULT_CURRENCY) as CurrencyCode);
+  return money(
+    amount,
+    (currency in SUPPORTED_CURRENCIES ? currency : DEFAULT_CURRENCY) as CurrencyCode
+  );
 }
 
 export function formatDate(date: string | Date | null | undefined): string {

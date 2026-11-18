@@ -37,27 +37,30 @@ export function usePaymentOrder() {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<CreatedPayment | null>(null);
 
-  const createOrder = useCallback(async (input: CreatePaymentInput): Promise<CreatedPayment | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/payment-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "No se pudo generar el cobro");
-      setOrder(data as CreatedPayment);
-      return data as CreatedPayment;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "No se pudo generar el cobro";
-      setError(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const createOrder = useCallback(
+    async (input: CreatePaymentInput): Promise<CreatedPayment | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/payment-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "No se pudo generar el cobro");
+        setOrder(data as CreatedPayment);
+        return data as CreatedPayment;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "No se pudo generar el cobro";
+        setError(message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const reset = useCallback(() => {
     setOrder(null);
