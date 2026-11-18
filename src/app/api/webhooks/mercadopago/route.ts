@@ -6,7 +6,7 @@ import { getIO } from "@/lib/realtime/events";
 
 const webhookSchema = z.object({
   type: z.string(),
-  action: z.string(),
+  action: z.string().optional(),
   data: z.object({ id: z.union([z.string(), z.number()]) }).optional(),
 });
 
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
   const paymentId = String(body.data.id);
   const signatureHeader = req.headers.get("x-signature");
-  const ts = signatureHeader?.match(/\bts:(\d+)\b/)?.[1] ?? null;
+  // x-signature real de MP: "ts=1704908010,v1=<hex>"
+  const ts = signatureHeader?.match(/\bts=(\d+)\b/)?.[1] ?? null;
   if (
     !verifyWebhookSignature({
       signature: signatureHeader,

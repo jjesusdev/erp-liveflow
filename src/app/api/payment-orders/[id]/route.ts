@@ -50,13 +50,21 @@ export const PATCH = apiHandler({
 
     if (status === "PAID") {
       // Transición crítica centralizada: idempotente, transaccional y con shipment.
-      const result = await markPaymentAsPaid(id, undefined, extra);
+      const result = await markPaymentAsPaid(id, undefined, extra, orgId);
       if (result.status === "not_found") {
         return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
       }
       if (result.status === "paid") {
         ({ order, conversation: updatedConv, shipment: createdShipment } = result);
       } else {
+        // Ya estaba pagado: no repetir la transición, pero conservar cambios
+        // de monto/concepto que el operador haya editado (comportamiento previo).
+        if (Object.keys(extra).length > 0) {
+          await prisma.paymentOrder.updateMany({
+            where: { ...whereOrg(orgId), id },
+            data: extra,
+          });
+        }
         order = await prisma.paymentOrder.findFirst({
           where: { ...whereOrg(orgId), id },
           include: { lead: true, conversation: true },

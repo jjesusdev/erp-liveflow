@@ -1,4 +1,6 @@
-import { prisma } from "@/lib/prisma";
+// Import relativo para que el helper funcione tanto en Next (alias @/) como en
+// el custom server ejecutado con tsx (server/whatsapp/*).
+import { prisma } from "../prisma";
 
 const DEMO_ORG_SLUG = "demo";
 

@@ -66,15 +66,17 @@ async function deserializeSession(token: string): Promise<SessionPayload | null>
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return null;
 
-  const received = fromBase64Url(signature);
-  const expected = fromBase64Url(await sign(payload));
-  if (!constantTimeEqual(received, expected)) return null;
-
   try {
+    const received = fromBase64Url(signature);
+    const expected = fromBase64Url(await sign(payload));
+    if (!constantTimeEqual(received, expected)) return null;
+
     const session = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as SessionPayload;
     if (Date.now() - session.issuedAt > SESSION_TTL_MS) return null;
     return session;
   } catch {
+    // Base64 inválido (p. ej. una cookie manipulada) debe tratarse como sesión
+    // inválida, no como un 500. `atob` lanza InvalidCharacterError.
     return null;
   }
 }

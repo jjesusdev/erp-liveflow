@@ -112,7 +112,8 @@ export function verifyWebhookSignature({
   const received = parts.v1;
   if (!received) return false;
 
-  const manifest = `id:${paymentId};request-id:${requestId};ts:${ts}`;
+  // El manifest oficial de MercadoPago termina con ';'.
+  const manifest = `id:${paymentId};request-id:${requestId};ts:${ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
   const a = Buffer.from(received, "utf8");
   const b = Buffer.from(expected, "utf8");
