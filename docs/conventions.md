@@ -50,10 +50,14 @@ export const POST = (req: NextRequest) =>
 
 ## Base de datos / Prisma
 
-- Esquema en `prisma/schema.prisma`; sincronizar con `npx prisma db push`.
-- Cambios no destructivos: columnas nuevas nullable; enums solo agregan valores.
+- Esquema en `prisma/schema.prisma`; sincronizar con migraciones versionadas.
+- Flujo recomendado: crear migraciones en `prisma/migrations/<timestamp>_<nombre>/` y aplicar con:
+  - Desarrollo: `npx prisma migrate dev --name <nombre>`
+  - Producción: `npx prisma migrate deploy`
+- Cambios no destructivos: columnas nuevas nullable; enums solo agregan valores (`ALTER TYPE ... ADD VALUE`).
 - Usar transacciones (`prisma.$transaction`) cuando una operación toca varias tablas (p. ej. crear `Shipment` + `ShipmentEvent`).
 - No hardcodear datos de negocio en queries.
+- Para agregar un valor a un enum: `ALTER TYPE "EnumName" ADD VALUE 'value'`
 
 ## Tests
 
